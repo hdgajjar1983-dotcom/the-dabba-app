@@ -154,7 +154,7 @@ export default function MenuScreen() {
                 </View>
                 <View style={styles.mealInfo}>
                   <Text style={styles.mealTime}>Dinner</Text>
-                  <Text style={styles.mealTimeDetail}>7:00 PM - 9:00 PM</Text>
+                  <Text style={styles.mealTimeDetail}>4:00 PM - 6:00 PM</Text>
                 </View>
               </View>
               <View style={styles.mealDetails}>
