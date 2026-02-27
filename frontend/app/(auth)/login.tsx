@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,12 +29,23 @@ const COLORS = {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Navigate when user changes
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'driver') {
+        router.replace('/(driver)');
+      } else {
+        router.replace('/(customer)');
+      }
+    }
+  }, [user]);
 
   const handleLogin = async () => {
     if (!email || !password) {
