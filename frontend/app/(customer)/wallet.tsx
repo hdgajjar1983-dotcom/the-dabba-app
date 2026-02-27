@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { walletAPI } from '../services/api';
+import { walletAPI } from '../../src/services/api';
 
 const COLORS = {
   primary: '#EA580C',
