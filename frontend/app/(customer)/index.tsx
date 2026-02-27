@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../context/AuthContext';
-import { menuAPI, subscriptionAPI } from '../services/api';
+import { useAuth } from '../../src/context/AuthContext';
+import { menuAPI, subscriptionAPI } from '../../src/services/api';
 
 const COLORS = {
   primary: '#EA580C',
