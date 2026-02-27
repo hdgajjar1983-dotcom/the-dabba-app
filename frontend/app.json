@@ -10,7 +10,13 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thedabba.app"
+      "bundleIdentifier": "com.thedabba.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos for your profile",
+        "NSPhotoLibraryUsageDescription": "Select photos for your profile",
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +24,8 @@
         "backgroundColor": "#EA580C"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.thedabba.app"
+      "package": "com.thedabba.app",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -39,6 +46,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "owner": "your-expo-username"
   }
 }
