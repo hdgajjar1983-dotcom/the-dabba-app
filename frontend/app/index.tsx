@@ -1,16 +1,44 @@
-import { Text, View, StyleSheet, Image } from "react-native";
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from './context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const COLORS = {
+  primary: '#EA580C',
+  background: '#FDFBF7',
+  text: '#1F2937',
+  textLight: '#6B7280',
+};
 
 export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (user) {
+        if (user.role === 'driver') {
+          router.replace('/(driver)');
+        } else {
+          router.replace('/(customer)');
+        }
+      } else {
+        router.replace('/(auth)/login');
+      }
+    }
+  }, [isLoading, user]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <View style={styles.logoContainer}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="fast-food" size={48} color={COLORS.primary} />
+        </View>
+        <Text style={styles.title}>The Dabba</Text>
+        <Text style={styles.subtitle}>Fresh homestyle meals delivered</Text>
+      </View>
+      <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
     </View>
   );
 }
@@ -18,13 +46,33 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+  logoContainer: {
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textLight,
+  },
+  loader: {
+    marginTop: 32,
   },
 });
