@@ -188,33 +188,6 @@ export default function CustomerDashboard() {
 
           {todayMenu ? (
             <>
-              {/* Lunch Card */}
-              <View style={[styles.mealCard, isSkipped('lunch') && styles.mealCardSkipped]}>
-                <View style={styles.mealHeader}>
-                  <View style={styles.mealTypeContainer}>
-                    <Ionicons name="sunny" size={20} color={COLORS.warning} />
-                    <Text style={styles.mealType}>Lunch</Text>
-                  </View>
-                  {isSkipped('lunch') ? (
-                    <View style={styles.skippedBadge}>
-                      <Text style={styles.skippedText}>Skipped</Text>
-                    </View>
-                  ) : (
-                    subscription && (
-                      <TouchableOpacity style={styles.skipButton} onPress={() => handleSkipMeal('lunch')}>
-                        <Ionicons name="close-circle-outline" size={18} color={COLORS.textLight} />
-                        <Text style={styles.skipButtonText}>Skip (+₹120)</Text>
-                      </TouchableOpacity>
-                    )
-                  )}
-                </View>
-                <Text style={styles.mealName}>{todayMenu.lunch.name}</Text>
-                <Text style={styles.mealDescription}>{todayMenu.lunch.description}</Text>
-                <View style={styles.mealTypeBadge}>
-                  <Text style={styles.mealTypeBadgeText}>{todayMenu.lunch.type}</Text>
-                </View>
-              </View>
-
               {/* Dinner Card */}
               <View style={[styles.mealCard, isSkipped('dinner') && styles.mealCardSkipped]}>
                 <View style={styles.mealHeader}>
