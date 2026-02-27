@@ -50,10 +50,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token, user: userData } = response.data;
+      const { token: authToken, user: userData } = response.data;
       
-      await AsyncStorage.setItem('authToken', access_token);
-      setToken(access_token);
+      await AsyncStorage.setItem('authToken', authToken);
+      setToken(authToken);
       setUser(userData);
       
       return { success: true };
@@ -65,11 +65,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (data: { name: string; email: string; password: string; phone?: string; address?: string; role?: string }) => {
     try {
-      const response = await authAPI.register(data);
-      const { access_token, user: userData } = response.data;
+      const response = await authAPI.register({
+        ...data,
+        phone: data.phone || '0000000000', // Phone is required by API
+      });
+      const { token: authToken, user: userData } = response.data;
       
-      await AsyncStorage.setItem('authToken', access_token);
-      setToken(access_token);
+      await AsyncStorage.setItem('authToken', authToken);
+      setToken(authToken);
       setUser(userData);
       
       return { success: true };
