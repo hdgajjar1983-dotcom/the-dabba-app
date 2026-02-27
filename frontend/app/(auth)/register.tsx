@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ const COLORS = {
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -39,6 +39,17 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Navigate when user changes
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'driver') {
+        router.replace('/(driver)');
+      } else {
+        router.replace('/(customer)');
+      }
+    }
+  }, [user]);
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
