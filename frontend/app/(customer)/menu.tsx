@@ -146,26 +146,6 @@ export default function MenuScreen() {
               <Text style={styles.selectedDate}>{formatDate(selectedMenu.date)}</Text>
             </View>
 
-            {/* Lunch Card */}
-            <View style={styles.mealCard}>
-              <View style={styles.mealHeader}>
-                <View style={styles.mealIconContainer}>
-                  <Ionicons name="sunny" size={24} color={COLORS.warning} />
-                </View>
-                <View style={styles.mealInfo}>
-                  <Text style={styles.mealTime}>Lunch</Text>
-                  <Text style={styles.mealTimeDetail}>12:00 PM - 2:00 PM</Text>
-                </View>
-              </View>
-              <View style={styles.mealDetails}>
-                <Text style={styles.mealName}>{selectedMenu.lunch.name}</Text>
-                <Text style={styles.mealDescription}>{selectedMenu.lunch.description}</Text>
-                <View style={styles.mealTypeBadge}>
-                  <Text style={styles.mealTypeBadgeText}>{selectedMenu.lunch.type}</Text>
-                </View>
-              </View>
-            </View>
-
             {/* Dinner Card */}
             <View style={styles.mealCard}>
               <View style={styles.mealHeader}>
