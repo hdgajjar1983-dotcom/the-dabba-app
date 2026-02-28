@@ -375,8 +375,27 @@ async def update_delivery_status(delivery_id: str, status_data: DeliveryStatusUp
     if current_user.get("role") != "driver":
         raise HTTPException(status_code=403, detail="Access denied. Driver role required.")
     
-    # In a real app, you'd update the delivery status in DB
-    return {"message": f"Delivery {delivery_id} marked as {status_data.status}"}
+    # Store delivery completion in DB
+    delivery_record = {
+        "id": delivery_id,
+        "status": status_data.status,
+        "driver_id": current_user["id"],
+        "driver_name": current_user.get("name", "Unknown"),
+        "completed_at": datetime.utcnow().isoformat(),
+        "photo_base64": status_data.photo_base64 if status_data.photo_base64 else None
+    }
+    
+    # Upsert into completed_deliveries collection
+    await db.completed_deliveries.update_one(
+        {"id": delivery_id},
+        {"$set": delivery_record},
+        upsert=True
+    )
+    
+    return {
+        "message": f"Delivery {delivery_id} marked as {status_data.status}",
+        "has_photo": status_data.photo_base64 is not None
+    }
 
 # ==================== ROOT ROUTE ====================
 
