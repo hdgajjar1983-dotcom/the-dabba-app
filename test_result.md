@@ -107,123 +107,153 @@ user_problem_statement: "Test the backend API for 'The Dabba' tiffin delivery ap
 backend:
   - task: "Auth Registration API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify user registration endpoint"
+      - working: true
+        agent: "testing"
+        comment: "PASS - User registration working for both customer and driver roles. Returns JWT token and user data properly."
         
   - task: "Auth Login API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify login endpoint with test credentials"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Login working with test credentials (test2@dabba.com/test123, driver@dabba.com/driver123). Returns JWT token and user data."
         
   - task: "Auth Get Current User API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify authenticated user endpoint"
+      - working: true
+        agent: "testing"
+        comment: "PASS - /auth/me endpoint working correctly with Bearer token authentication."
         
   - task: "Menu API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify weekly menu endpoint"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Menu endpoint returning 7-day menu with lunch and dinner items correctly."
         
   - task: "Subscription Create API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify subscription creation with auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Subscription creation working for new users. Correctly prevents duplicate subscriptions (returns 400 for existing). Fixed ObjectId serialization issue by converting created_at to ISO string and removing _id field."
         
   - task: "Subscription Get API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify get subscription endpoint with auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Get subscription working correctly. Fixed critical ObjectId serialization bug by removing MongoDB _id field from response."
         
   - task: "Skip Meal API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify meal skip functionality with auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Skip meal functionality working. Correctly adds skipped meal to subscription and credits ₹120 to user wallet."
         
   - task: "Wallet API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify wallet balance and transactions with auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Wallet endpoint returning balance and transaction history correctly. Integration with skip meal credits working."
         
   - task: "Driver Deliveries API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify driver deliveries endpoint with driver auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Driver deliveries endpoint working. Returns active subscriptions as deliveries for driver role users."
         
   - task: "Driver Update Delivery Status API"
     implemented: true
-    working: "NA"
+    working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing - need to verify delivery status update with driver auth token"
+      - working: true
+        agent: "testing"
+        comment: "PASS - Delivery status update working correctly for driver role users."
 
 frontend: []
 
