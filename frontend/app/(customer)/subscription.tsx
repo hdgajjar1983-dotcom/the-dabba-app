@@ -562,6 +562,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    marginTop: 16,
   },
   confirmButtonDisabled: {
     opacity: 0.7,
@@ -570,5 +571,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  modalScrollView: {
+    maxHeight: 350,
   },
 });
