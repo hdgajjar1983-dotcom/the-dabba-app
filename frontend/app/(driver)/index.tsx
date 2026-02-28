@@ -154,12 +154,13 @@ export default function DriverDeliveries() {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
-      quality: 0.8,
+      quality: 0.5,
       base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
       setDeliveryPhoto(result.assets[0].uri);
+      setDeliveryPhotoBase64(result.assets[0].base64 || null);
       setShowPhotoModal(true);
     }
   };
@@ -171,7 +172,8 @@ export default function DriverDeliveries() {
     try {
       await Linking.openURL(`whatsapp://send?phone=${cleanPhone}&text=${message}`);
     } catch {
-      await Linking.openURL(`https://wa.me/${cleanPhone}?text=${message}`);
+      // WhatsApp skipped as per user request
+      console.log('WhatsApp not available');
     }
   };
 
@@ -180,13 +182,17 @@ export default function DriverDeliveries() {
 
     setIsSubmitting(true);
     try {
-      await driverAPI.updateDeliveryStatus(currentDelivery.id, 'delivered');
-      await sendToWhatsApp(currentDelivery.customer_phone);
+      await driverAPI.updateDeliveryStatus(
+        currentDelivery.id, 
+        'delivered',
+        deliveryPhotoBase64 || undefined
+      );
       
       setCompletedToday(prev => prev + 1);
       setPendingDeliveries(prev => prev.slice(1));
       setShowPhotoModal(false);
       setDeliveryPhoto(null);
+      setDeliveryPhotoBase64(null);
       
       Alert.alert('Delivered! ✅', 'Great job! Moving to next delivery.');
     } catch (error) {
