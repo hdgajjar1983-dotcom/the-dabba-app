@@ -57,9 +57,19 @@ export const walletAPI = {
 
 // Driver APIs
 export const driverAPI = {
-  getDeliveries: () => api.get('/driver/deliveries'),
-  updateDeliveryStatus: (id: string, status: string) =>
-    api.put(`/driver/delivery/${id}/status`, { status }),
+  getDeliveries: (lat?: number, lon?: number) => {
+    const params: Record<string, string> = {};
+    if (lat !== undefined && lon !== undefined) {
+      params.lat = lat.toString();
+      params.lon = lon.toString();
+    }
+    return api.get('/driver/deliveries', { params });
+  },
+  updateDeliveryStatus: (id: string, status: string, photoBase64?: string) =>
+    api.put(`/driver/delivery/${id}/status`, { 
+      status,
+      photo_base64: photoBase64 
+    }),
 };
 
 export default api;
