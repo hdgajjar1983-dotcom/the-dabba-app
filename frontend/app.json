@@ -13,8 +13,9 @@
       "bundleIdentifier": "com.thedabba.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Take photos for your profile",
+        "NSCameraUsageDescription": "Take delivery proof photos",
         "NSPhotoLibraryUsageDescription": "Select photos for your profile",
+        "NSLocationWhenInUseUsageDescription": "Find nearest deliveries to optimize your route",
         "CFBundleAllowMixedLocalizations": true
       }
     },
