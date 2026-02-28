@@ -194,20 +194,13 @@ export default function RegisterScreen() {
             </View>
 
             {role === 'customer' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Delivery Address</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="location-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your delivery address"
-                    placeholderTextColor={COLORS.textLight}
-                    value={address}
-                    onChangeText={setAddress}
-                    multiline
-                  />
-                </View>
-              </View>
+              <AddressAutocomplete
+                value={address}
+                onChangeText={setAddress}
+                onSelect={(selectedAddress) => setAddress(selectedAddress)}
+                label="Delivery Address"
+                placeholder="Enter your delivery address"
+              />
             )}
 
             <View style={styles.inputContainer}>
