@@ -33,30 +33,11 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
 };
 
-// Menu APIs - Transform data to match our UI format
+// Menu APIs - Backend now returns proper format
 export const menuAPI = {
   getWeeklyMenu: async () => {
     const response = await api.get('/menu');
-    // Transform backend format to UI format
-    const transformedMenu = response.data.map((item: any) => {
-      const date = new Date(item.date);
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      return {
-        date: item.date,
-        day: dayNames[date.getDay()],
-        lunch: {
-          name: item.main_item,
-          description: `Served with ${item.side_item}, ${item.farsan}, and ${item.sweet}`,
-          type: 'vegetarian',
-        },
-        dinner: {
-          name: item.main_item,
-          description: `Served with ${item.side_item}, ${item.farsan}, and ${item.sweet}`,
-          type: 'vegetarian',
-        },
-      };
-    });
-    return { data: { menu: transformedMenu } };
+    return response;
   },
 };
 
