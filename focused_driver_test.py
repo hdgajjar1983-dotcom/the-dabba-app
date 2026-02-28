@@ -57,6 +57,11 @@ async def make_request(session, method, endpoint, data=None, token=None):
                 response_data = await response.json()
                 return response.status, response_data
         
+        elif method.upper() == "POST":
+            async with session.post(url, headers=headers, json=data) as response:
+                response_data = await response.json()
+                return response.status, response_data
+        
         elif method.upper() == "PUT":
             async with session.put(url, headers=headers, json=data) as response:
                 response_data = await response.json()
