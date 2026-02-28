@@ -48,6 +48,19 @@
           "resizeMode": "contain",
           "backgroundColor": "#FDFBF7"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow The Dabba to use your location to find nearest deliveries."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow The Dabba to access your photos.",
+          "cameraPermission": "Allow The Dabba to take delivery proof photos."
+        }
       ]
     ],
     "experiments": {
