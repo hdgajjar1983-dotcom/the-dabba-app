@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { subscriptionAPI } from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
+import AddressAutocomplete from '../../src/components/AddressAutocomplete';
 
 const COLORS = {
   primary: '#EA580C',
