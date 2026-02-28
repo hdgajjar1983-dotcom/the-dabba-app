@@ -74,13 +74,17 @@ async def login_driver(session, results):
         "password": "driver123"
     }
     
-    status, response = await make_request(session, "POST", "/auth/login", login_data)
-    if status == 200 and "token" in response:
-        results.driver_token = response["token"]
-        results.add_result("Driver Login", "PASS", f"Driver logged in: {response['user']['email']}")
-        return True
-    else:
-        results.add_result("Driver Login", "FAIL", f"Status {status}: {response}")
+    try:
+        status, response = await make_request(session, "POST", "/auth/login", login_data)
+        if status == 200 and "token" in response:
+            results.driver_token = response["token"]
+            results.add_result("Driver Login", "PASS", f"Driver logged in: {response['user']['email']}")
+            return True
+        else:
+            results.add_result("Driver Login", "FAIL", f"Status {status}: {response}")
+            return False
+    except Exception as e:
+        results.add_result("Driver Login", "FAIL", f"Login error: {str(e)}")
         return False
 
 async def test_driver_deliveries_location_sorting(session, results):
