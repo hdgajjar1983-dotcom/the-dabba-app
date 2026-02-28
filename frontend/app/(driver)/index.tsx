@@ -76,13 +76,18 @@ export default function DriverDeliveries() {
   // Request location permission and get current location
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('Location permission denied');
-        return;
-      }
-      
       try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('Location permission denied');
+          // Use default location (Halifax) if permission denied
+          setDriverLocation({
+            latitude: 44.6488,
+            longitude: -63.5752,
+          });
+          return;
+        }
+        
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
