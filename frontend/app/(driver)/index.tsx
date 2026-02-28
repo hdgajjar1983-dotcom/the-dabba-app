@@ -63,15 +63,39 @@ export default function DriverDeliveries() {
   const [refreshing, setRefreshing] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [deliveryPhoto, setDeliveryPhoto] = useState<string | null>(null);
+  const [deliveryPhotoBase64, setDeliveryPhotoBase64] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedToday, setCompletedToday] = useState(0);
   const [failedToday, setFailedToday] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
+  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-  // Request location permission
+  // Request location permission and get current location
   useEffect(() => {
     (async () => {
-      await Location.requestForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationError('Location permission denied');
+        return;
+      }
+      
+      try {
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setDriverLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      } catch (error) {
+        console.error('Error getting location:', error);
+        // Use default location (Halifax) if location fails
+        setDriverLocation({
+          latitude: 44.6488,
+          longitude: -63.5752,
+        });
+      }
     })();
   }, []);
 
