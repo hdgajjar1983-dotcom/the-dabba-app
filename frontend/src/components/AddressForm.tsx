@@ -137,13 +137,13 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
   );
 
   useEffect(() => {
-    if (streetAddress && focusedField === 'street') {
+    if (streetAddress && streetAddress.length >= 3) {
       searchAddress(streetAddress);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [streetAddress, focusedField, searchAddress]);
+  }, [streetAddress, searchAddress]);
 
   const handleSelectSuggestion = (item: AddressSuggestion) => {
     const addr = item.address;
