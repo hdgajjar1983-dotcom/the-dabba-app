@@ -194,12 +194,8 @@ export default function RegisterScreen() {
             </View>
 
             {role === 'customer' && (
-              <AddressAutocomplete
-                value={address}
-                onChangeText={setAddress}
-                onSelect={(selectedAddress) => setAddress(selectedAddress)}
-                label="Delivery Address"
-                placeholder="Enter your delivery address"
+              <AddressForm
+                onAddressChange={(addressData, fullAddress) => setAddress(fullAddress)}
               />
             )}
 
