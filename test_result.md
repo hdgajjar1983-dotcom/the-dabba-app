@@ -135,11 +135,14 @@ backend:
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added location-based sorting. GET /driver/deliveries now accepts lat/lon query params and returns deliveries sorted by distance."
+      - working: true
+        agent: "testing" 
+        comment: "PASS - Location-based sorting working correctly. Endpoint accepts lat/lon params (44.6488,-63.5752). Returns deliveries sorted by distance (nearest first). All deliveries contain required fields: distance, estimated_time, latitude, longitude. Tested with 2 deliveries, distances: [2.47, 3.93] km."
         
   - task: "Driver Update Delivery Status with Photo"
     implemented: true
@@ -147,11 +150,14 @@ backend:
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated to accept photo_base64 in request body. Stores completed deliveries in MongoDB."
+      - working: true
+        agent: "testing"
+        comment: "PASS - Photo proof functionality working correctly. PUT /driver/delivery/{id}/status accepts photo_base64 field. Returns has_photo boolean correctly (false without photo, true with photo). Photo data properly stored in MongoDB."
 
 frontend:
   - task: "Driver Portal UI"
