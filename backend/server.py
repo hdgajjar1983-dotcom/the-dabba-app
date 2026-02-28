@@ -138,13 +138,14 @@ async def login(login_data: UserLogin):
     
     token = create_token(user["id"], user["role"])
     
-    user_response = {k: v for k, v in user.items() if k != "password"}
+    # Remove MongoDB _id and password from response
+    user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
     
     return {"token": token, "user": user_response}
 
 @api_router.get("/auth/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
-    return {k: v for k, v in current_user.items() if k != "password"}
+    return {k: v for k, v in current_user.items() if k not in ["password", "_id"]}
 
 # ==================== MENU ROUTES ====================
 
