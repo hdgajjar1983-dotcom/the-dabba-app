@@ -358,6 +358,10 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
     position: 'relative',
+    zIndex: 1,
+  },
+  inputGroupWithSuggestions: {
+    zIndex: 9999,
   },
   inputContainer: {
     backgroundColor: COLORS.inputBg,
