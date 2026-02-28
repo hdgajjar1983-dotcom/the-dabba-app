@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the backend API for 'The Dabba' tiffin delivery app"
+user_problem_statement: "Test the backend API for 'The Dabba' tiffin delivery app with new driver location features"
 
 backend:
   - task: "Auth Registration API"
@@ -113,12 +113,9 @@ backend:
     priority: "high"
     needs_retesting: false
     status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify user registration endpoint"
       - working: true
         agent: "testing"
-        comment: "PASS - User registration working for both customer and driver roles. Returns JWT token and user data properly."
+        comment: "PASS - User registration working for both customer and driver roles."
         
   - task: "Auth Login API"
     implemented: true
@@ -128,149 +125,61 @@ backend:
     priority: "high"
     needs_retesting: false
     status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify login endpoint with test credentials"
       - working: true
         agent: "testing"
-        comment: "PASS - Login working with test credentials (test2@dabba.com/test123, driver@dabba.com/driver123). Returns JWT token and user data."
+        comment: "PASS - Login working with test credentials."
         
-  - task: "Auth Get Current User API"
+  - task: "Driver Deliveries API with Location"
     implemented: true
     working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify authenticated user endpoint"
-      - working: true
-        agent: "testing"
-        comment: "PASS - /auth/me endpoint working correctly with Bearer token authentication."
+        agent: "main"
+        comment: "Added location-based sorting. GET /driver/deliveries now accepts lat/lon query params and returns deliveries sorted by distance."
         
-  - task: "Menu API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify weekly menu endpoint"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Menu endpoint returning 7-day menu with lunch and dinner items correctly."
-        
-  - task: "Subscription Create API"
+  - task: "Driver Update Delivery Status with Photo"
     implemented: true
     working: true
     file: "server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify subscription creation with auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Subscription creation working for new users. Correctly prevents duplicate subscriptions (returns 400 for existing). Fixed ObjectId serialization issue by converting created_at to ISO string and removing _id field."
-        
-  - task: "Subscription Get API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify get subscription endpoint with auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Get subscription working correctly. Fixed critical ObjectId serialization bug by removing MongoDB _id field from response."
-        
-  - task: "Skip Meal API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify meal skip functionality with auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Skip meal functionality working. Correctly adds skipped meal to subscription and credits ₹120 to user wallet."
-        
-  - task: "Wallet API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "medium"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify wallet balance and transactions with auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Wallet endpoint returning balance and transaction history correctly. Integration with skip meal credits working."
-        
-  - task: "Driver Deliveries API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify driver deliveries endpoint with driver auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Driver deliveries endpoint working. Returns active subscriptions as deliveries for driver role users."
-        
-  - task: "Driver Update Delivery Status API"
-    implemented: true
-    working: true
-    file: "server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "testing"
-        comment: "Initial testing - need to verify delivery status update with driver auth token"
-      - working: true
-        agent: "testing"
-        comment: "PASS - Delivery status update working correctly for driver role users."
+        agent: "main"
+        comment: "Updated to accept photo_base64 in request body. Stores completed deliveries in MongoDB."
 
-frontend: []
+frontend:
+  - task: "Driver Portal UI"
+    implemented: true
+    working: true
+    file: "app/(driver)/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Driver portal shows sequential delivery view with current stop, ETA, distance, customer info. Includes photo proof modal and location-based routing."
 
 metadata:
-  created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 0
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 1
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Driver Deliveries API with Location"
+    - "Driver Update Delivery Status with Photo"
   stuck_tasks: []
   test_all: false
-  test_priority: "completed"
+  test_priority: "high_first"
 
 agent_communication:
-  - agent: "testing"
-    message: "Starting comprehensive API testing for The Dabba tiffin delivery app. Will test all backend endpoints in specified order with proper authentication flow."
-  - agent: "testing"
-    message: "COMPLETED: All backend API testing successful. Fixed 2 critical ObjectId serialization bugs in subscription endpoints. All 10 backend endpoints working correctly with proper authentication, data flow, and business logic validation."
+  - agent: "main"
+    message: "Added location-based sorting to driver deliveries API. Now accepts lat/lon params and sorts by distance (nearest first). Also updated delivery status endpoint to store photo proof. Please test these new features."
