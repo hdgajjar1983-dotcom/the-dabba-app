@@ -204,7 +204,7 @@ async def create_subscription(sub_data: SubscriptionCreate, current_user: dict =
         "end_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
         "delivery_address": sub_data.delivery_address,
         "skipped_meals": [],
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await db.subscriptions.insert_one(subscription)
