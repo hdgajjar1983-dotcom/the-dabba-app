@@ -271,7 +271,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
 
       {/* State and Postal Code Row */}
       <View style={styles.rowContainer}>
-        {/* State/Province Dropdown */}
+        {/* Province/State Dropdown */}
         <View style={[styles.inputGroup, styles.halfWidth]}>
           <TouchableOpacity
             style={[
@@ -280,7 +280,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
             ]}
             onPress={() => setShowStateModal(true)}
           >
-            {renderFloatingLabel('State', state, true)}
+            {renderFloatingLabel('Province', state, true)}
             <Text style={[styles.dropdownText, !state && styles.dropdownPlaceholder]}>
               {state || 'Select'}
             </Text>
