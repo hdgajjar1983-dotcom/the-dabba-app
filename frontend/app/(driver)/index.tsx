@@ -328,7 +328,7 @@ export default function DriverDeliveries() {
                 <View style={styles.etaDivider} />
                 <View style={styles.etaItem}>
                   <Ionicons name="time" size={18} color={COLORS.white} />
-                  <Text style={styles.etaText}>{currentDelivery.estimatedTime} min</Text>
+                  <Text style={styles.etaText}>{currentDelivery.estimated_time} min</Text>
                 </View>
               </View>
 
