@@ -209,28 +209,44 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
           )}
         </View>
         
-        {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <View style={styles.suggestionsContainer}>
-            <FlatList
-              data={suggestions}
-              keyExtractor={(item) => item.place_id.toString()}
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.suggestionItem}
-                  onPress={() => handleSelectSuggestion(item)}
-                >
-                  <Ionicons name="location" size={18} color={COLORS.primary} />
-                  <Text style={styles.suggestionText} numberOfLines={2}>
-                    {item.display_name}
-                  </Text>
+        {/* Suggestions Dropdown - Using Modal for guaranteed overlay */}
+        <Modal
+          visible={showSuggestions && suggestions.length > 0}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSuggestions(false)}
+        >
+          <TouchableOpacity 
+            style={styles.suggestionsOverlay}
+            activeOpacity={1}
+            onPress={() => setShowSuggestions(false)}
+          >
+            <View style={styles.suggestionsModal}>
+              <View style={styles.suggestionsHeader}>
+                <Text style={styles.suggestionsTitle}>Select Address</Text>
+                <TouchableOpacity onPress={() => setShowSuggestions(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
+              </View>
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item.place_id.toString()}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.suggestionItem}
+                    onPress={() => handleSelectSuggestion(item)}
+                  >
+                    <Ionicons name="location" size={18} color={COLORS.primary} />
+                    <Text style={styles.suggestionText} numberOfLines={2}>
+                      {item.display_name}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
 
       {/* Apartment/Suite */}
