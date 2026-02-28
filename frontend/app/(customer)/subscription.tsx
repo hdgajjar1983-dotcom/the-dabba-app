@@ -267,15 +267,12 @@ export default function SubscriptionScreen() {
               {PLANS.find(p => p.id === selectedPlan)?.name} Plan - ₹{PLANS.find(p => p.id === selectedPlan)?.price}/week
             </Text>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Delivery Address</Text>
-              <TextInput
-                style={styles.addressInput}
-                placeholder="Enter your delivery address"
-                placeholderTextColor={COLORS.textLight}
+              <AddressAutocomplete
                 value={address}
                 onChangeText={setAddress}
-                multiline
-                numberOfLines={3}
+                onSelect={(selectedAddress) => setAddress(selectedAddress)}
+                label="Delivery Address"
+                placeholder="Enter your delivery address"
               />
             </View>
             <TouchableOpacity
