@@ -219,34 +219,97 @@ async def test_wallet_api(session, results):
         results.add_result("Wallet Get", "FAIL", f"Status {status}: {response}")
 
 async def test_driver_apis(session, results):
-    """Test driver endpoints"""
+    """Test driver endpoints with location-based sorting and photo proof"""
     print("\n🚚 Testing Driver APIs...")
     
     if not results.driver_token:
         results.add_result("Driver Tests", "FAIL", "No driver token available")
         return
     
-    # 1. Test Get Driver Deliveries
+    # 1. Test Get Driver Deliveries WITHOUT location params
     status, response = await make_request(session, "GET", "/driver/deliveries", token=results.driver_token)
     if status == 200 and "deliveries" in response:
-        deliveries = response["deliveries"]
-        results.add_result("Driver Get Deliveries", "PASS", f"Retrieved {len(deliveries)} deliveries")
-        
-        # 2. Test Update Delivery Status (if deliveries exist)
-        if deliveries:
-            delivery_id = deliveries[0].get("id", "test-id")
-            status_data = {"status": "delivered"}
-            
-            status, response = await make_request(session, "PUT", f"/driver/delivery/{delivery_id}/status", 
-                                                status_data, results.driver_token)
-            if status == 200 and "message" in response:
-                results.add_result("Driver Update Status", "PASS", f"Updated delivery status: {response['message']}")
-            else:
-                results.add_result("Driver Update Status", "FAIL", f"Status {status}: {response}")
-        else:
-            results.add_result("Driver Update Status", "PASS", "No deliveries to update (expected)")
+        deliveries_no_location = response["deliveries"]
+        results.add_result("Driver Get Deliveries Basic", "PASS", f"Retrieved {len(deliveries_no_location)} deliveries")
     else:
-        results.add_result("Driver Get Deliveries", "FAIL", f"Status {status}: {response}")
+        results.add_result("Driver Get Deliveries Basic", "FAIL", f"Status {status}: {response}")
+        return
+    
+    # 2. Test Get Driver Deliveries WITH location params (Halifax coordinates)
+    halifax_lat, halifax_lon = 44.6488, -63.5752
+    status, response = await make_request(session, "GET", f"/driver/deliveries?lat={halifax_lat}&lon={halifax_lon}", token=results.driver_token)
+    
+    if status == 200 and "deliveries" in response:
+        deliveries_with_location = response["deliveries"]
+        
+        # Verify location-based sorting
+        if deliveries_with_location:
+            # Check that each delivery has required fields
+            first_delivery = deliveries_with_location[0]
+            required_fields = ["distance", "estimated_time", "latitude", "longitude"]
+            missing_fields = [field for field in required_fields if field not in first_delivery]
+            
+            if not missing_fields:
+                # Check if deliveries are sorted by distance (ascending)
+                distances = [d.get("distance", 0) for d in deliveries_with_location]
+                is_sorted = all(distances[i] <= distances[i + 1] for i in range(len(distances) - 1))
+                
+                if is_sorted:
+                    results.add_result("Driver Deliveries Location Sorting", "PASS", 
+                                     f"Retrieved {len(deliveries_with_location)} deliveries sorted by distance. Nearest: {distances[0]}km")
+                else:
+                    results.add_result("Driver Deliveries Location Sorting", "FAIL", 
+                                     f"Deliveries not sorted by distance: {distances}")
+            else:
+                results.add_result("Driver Deliveries Location Sorting", "FAIL", 
+                                 f"Missing required fields: {missing_fields}")
+        else:
+            results.add_result("Driver Deliveries Location Sorting", "PASS", "No deliveries available for location testing")
+    else:
+        results.add_result("Driver Deliveries Location Sorting", "FAIL", f"Status {status}: {response}")
+        return
+    
+    # 3. Test Update Delivery Status WITHOUT photo
+    if deliveries_with_location:
+        delivery_id = deliveries_with_location[0].get("id", "test-delivery-123")
+        status_data = {"status": "delivered"}
+        
+        status, response = await make_request(session, "PUT", f"/driver/delivery/{delivery_id}/status", 
+                                            status_data, results.driver_token)
+        if status == 200 and "message" in response and "has_photo" in response:
+            has_photo = response.get("has_photo", False)
+            if not has_photo:
+                results.add_result("Driver Update Status No Photo", "PASS", 
+                                 f"Updated delivery status without photo: {response['message']}")
+            else:
+                results.add_result("Driver Update Status No Photo", "FAIL", 
+                                 f"has_photo should be false when no photo provided: {response}")
+        else:
+            results.add_result("Driver Update Status No Photo", "FAIL", f"Status {status}: {response}")
+    
+    # 4. Test Update Delivery Status WITH photo (base64 encoded)
+    if deliveries_with_location:
+        delivery_id = deliveries_with_location[0].get("id", "test-delivery-124")
+        # Sample base64 encoded 1x1 pixel PNG image
+        sample_photo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        
+        status_data = {
+            "status": "delivered",
+            "photo_base64": sample_photo_base64
+        }
+        
+        status, response = await make_request(session, "PUT", f"/driver/delivery/{delivery_id}/status", 
+                                            status_data, results.driver_token)
+        if status == 200 and "message" in response and "has_photo" in response:
+            has_photo = response.get("has_photo", False)
+            if has_photo:
+                results.add_result("Driver Update Status With Photo", "PASS", 
+                                 f"Updated delivery status with photo proof: {response['message']}")
+            else:
+                results.add_result("Driver Update Status With Photo", "FAIL", 
+                                 f"has_photo should be true when photo provided: {response}")
+        else:
+            results.add_result("Driver Update Status With Photo", "FAIL", f"Status {status}: {response}")
 
 async def test_integration_flow(session, results):
     """Test complete user flow integration"""
