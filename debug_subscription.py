@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 import json
 
-BASE_URL = "https://tiffin-tracker-11.preview.emergentagent.com/api"
+BASE_URL = "https://dabba-driver-portal.preview.emergentagent.com/api"
 
 async def debug_subscription():
     async with aiohttp.ClientSession() as session:
