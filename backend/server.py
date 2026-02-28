@@ -273,8 +273,50 @@ async def get_wallet(current_user: dict = Depends(get_current_user)):
 
 # ==================== DRIVER ROUTES ====================
 
+# Haversine formula to calculate distance between two coordinates
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371  # Earth's radius in km
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return round(R * c, 2)
+
+# Sample coordinates for demo addresses (Canadian cities)
+ADDRESS_COORDS = {
+    "default": {"lat": 44.6488, "lon": -63.5752},  # Halifax default
+    "halifax": {"lat": 44.6488, "lon": -63.5752},
+    "dartmouth": {"lat": 44.6717, "lon": -63.5732},
+    "bedford": {"lat": 44.7328, "lon": -63.6590},
+    "toronto": {"lat": 43.6532, "lon": -79.3832},
+    "vancouver": {"lat": 49.2827, "lon": -123.1207},
+}
+
+def get_coords_for_address(address: str) -> dict:
+    """Get approximate coordinates for an address (simplified for demo)"""
+    if not address:
+        return ADDRESS_COORDS["default"]
+    address_lower = address.lower()
+    for city, coords in ADDRESS_COORDS.items():
+        if city in address_lower:
+            return coords
+    # Add some variation for demo purposes
+    import random
+    base = ADDRESS_COORDS["default"]
+    return {
+        "lat": base["lat"] + random.uniform(-0.05, 0.05),
+        "lon": base["lon"] + random.uniform(-0.05, 0.05)
+    }
+
 @api_router.get("/driver/deliveries")
-async def get_driver_deliveries(current_user: dict = Depends(get_current_user)):
+async def get_driver_deliveries(
+    current_user: dict = Depends(get_current_user),
+    lat: Optional[float] = None,
+    lon: Optional[float] = None
+):
     if current_user.get("role") != "driver":
         raise HTTPException(status_code=403, detail="Access denied. Driver role required.")
     
@@ -294,15 +336,37 @@ async def get_driver_deliveries(current_user: dict = Depends(get_current_user)):
             )
             
             if not skipped_today:
+                address = sub.get("delivery_address", user.get("address", ""))
+                delivery_coords = get_coords_for_address(address)
+                
+                # Calculate distance if driver location provided
+                distance = 0
+                estimated_time = 5
+                if lat is not None and lon is not None:
+                    distance = calculate_distance(lat, lon, delivery_coords["lat"], delivery_coords["lon"])
+                    estimated_time = max(5, int(distance * 3))  # ~3 mins per km
+                else:
+                    # Simulate distances if no location
+                    import random
+                    distance = round(random.uniform(0.5, 5.0), 1)
+                    estimated_time = max(5, int(distance * 3))
+                
                 deliveries.append({
                     "id": str(uuid.uuid4()),
                     "customer_name": user.get("name", "Unknown"),
                     "customer_phone": user.get("phone", ""),
-                    "address": sub.get("delivery_address", user.get("address", "")),
+                    "address": address,
                     "meal_type": "dinner",
                     "status": "pending",
-                    "subscription_plan": sub.get("plan", "standard")
+                    "subscription_plan": sub.get("plan", "standard"),
+                    "latitude": delivery_coords["lat"],
+                    "longitude": delivery_coords["lon"],
+                    "distance": distance,
+                    "estimated_time": estimated_time
                 })
+    
+    # Sort by distance (nearest first)
+    deliveries.sort(key=lambda x: x["distance"])
     
     return {"deliveries": deliveries}
 
