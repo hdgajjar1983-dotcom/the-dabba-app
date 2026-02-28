@@ -185,7 +185,8 @@ async def get_subscription(current_user: dict = Depends(get_current_user)):
     subscription = await db.subscriptions.find_one({"user_id": current_user["id"]})
     if not subscription:
         raise HTTPException(status_code=404, detail="No subscription found")
-    return subscription
+    # Remove MongoDB _id to prevent serialization error
+    return {k: v for k, v in subscription.items() if k != "_id"}
 
 @api_router.post("/subscription")
 async def create_subscription(sub_data: SubscriptionCreate, current_user: dict = Depends(get_current_user)):
