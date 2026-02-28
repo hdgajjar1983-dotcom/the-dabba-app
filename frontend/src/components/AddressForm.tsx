@@ -309,12 +309,12 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
         </View>
       </View>
 
-      {/* State Selection Modal */}
+      {/* Province Selection Modal */}
       <Modal visible={showStateModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
+              <Text style={styles.modalTitle}>Select Province</Text>
               <TouchableOpacity onPress={() => setShowStateModal(false)}>
                 <Ionicons name="close" size={24} color={COLORS.text} />
               </TouchableOpacity>
