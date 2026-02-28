@@ -504,9 +504,9 @@ export default function DriverDeliveries() {
             )}
 
             <View style={styles.photoInfo}>
-              <Ionicons name="information-circle" size={20} color={COLORS.blue} />
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
               <Text style={styles.photoInfoText}>
-                Photo will be sent to customer via WhatsApp
+                Photo proof will be saved with delivery record
               </Text>
             </View>
 
