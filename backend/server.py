@@ -208,7 +208,8 @@ async def create_subscription(sub_data: SubscriptionCreate, current_user: dict =
     }
     
     await db.subscriptions.insert_one(subscription)
-    return subscription
+    # Remove MongoDB _id to prevent serialization error
+    return {k: v for k, v in subscription.items() if k != "_id"}
 
 @api_router.post("/subscription/skip")
 async def skip_meal(skip_data: SkipMeal, current_user: dict = Depends(get_current_user)):
