@@ -122,7 +122,8 @@ async def register(user_data: UserCreate):
     
     token = create_token(user["id"], user["role"])
     
-    user_response = {k: v for k, v in user.items() if k != "password"}
+    # Remove MongoDB _id and password from response
+    user_response = {k: v for k, v in user.items() if k not in ["password", "_id"]}
     
     return {"token": token, "user": user_response}
 
