@@ -185,7 +185,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
   return (
     <View style={styles.container}>
       {/* Street Address */}
-      <View style={styles.inputGroup}>
+      <View style={[styles.inputGroup, showSuggestions && styles.inputGroupWithSuggestions]}>
         <View style={[
           styles.inputContainer,
           focusedField === 'street' && styles.inputContainerFocused,
