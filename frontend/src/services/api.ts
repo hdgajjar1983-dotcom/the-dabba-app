@@ -1,8 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Use the external backend API
-const API_BASE_URL = 'https://subscription-meals-1.preview.emergentagent.com/api';
+// Use environment variable for API URL
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://subscription-meals-1.preview.emergentagent.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
