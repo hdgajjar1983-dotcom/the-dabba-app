@@ -67,6 +67,11 @@ class SkipMeal(BaseModel):
 
 class DeliveryStatusUpdate(BaseModel):
     status: str
+    photo_base64: Optional[str] = None
+
+class DriverLocationQuery(BaseModel):
+    latitude: float
+    longitude: float
 
 # ==================== HELPERS ====================
 
