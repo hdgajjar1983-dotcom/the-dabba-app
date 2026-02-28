@@ -266,15 +266,11 @@ export default function SubscriptionScreen() {
             <Text style={styles.modalSubtitle}>
               {PLANS.find(p => p.id === selectedPlan)?.name} Plan - ₹{PLANS.find(p => p.id === selectedPlan)?.price}/week
             </Text>
-            <View style={styles.inputContainer}>
-              <AddressAutocomplete
-                value={address}
-                onChangeText={setAddress}
-                onSelect={(selectedAddress) => setAddress(selectedAddress)}
-                label="Delivery Address"
-                placeholder="Enter your delivery address"
+            <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
+              <AddressForm
+                onAddressChange={(addressData, fullAddress) => setAddress(fullAddress)}
               />
-            </View>
+            </ScrollView>
             <TouchableOpacity
               style={[styles.confirmButton, isSubmitting && styles.confirmButtonDisabled]}
               onPress={confirmSubscription}
