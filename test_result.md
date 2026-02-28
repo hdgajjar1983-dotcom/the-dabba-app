@@ -179,9 +179,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Driver Deliveries API with Location"
-    - "Driver Update Delivery Status with Photo"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -189,3 +187,5 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Added location-based sorting to driver deliveries API. Now accepts lat/lon params and sorts by distance (nearest first). Also updated delivery status endpoint to store photo proof. Please test these new features."
+  - agent: "testing"
+    message: "TESTING COMPLETE ✅ Both driver API features working correctly: (1) Location-based delivery sorting with lat/lon params returns sorted deliveries with required fields (distance, estimated_time, latitude, longitude). (2) Photo proof delivery status updates work properly with has_photo boolean response. All backend APIs tested and functional. Ready for main agent to summarize and finish."
