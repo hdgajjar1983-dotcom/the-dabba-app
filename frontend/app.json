@@ -26,7 +26,12 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.thedabba.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
