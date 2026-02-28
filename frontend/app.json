@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "thedabba",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
@@ -37,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#FDFBF7"
@@ -49,7 +49,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "3476b33a-d63b-4572-a172-fa3415e8bffb"
       }
     },
     "owner": "thedabba"
