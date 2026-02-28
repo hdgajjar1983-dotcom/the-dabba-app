@@ -101,15 +101,11 @@ export default function DriverDeliveries() {
 
   const fetchDeliveries = useCallback(async () => {
     try {
-      const response = await driverAPI.getDeliveries();
+      const response = await driverAPI.getDeliveries(
+        driverLocation?.latitude,
+        driverLocation?.longitude
+      );
       let deliveryList = response.data.deliveries || [];
-      
-      // Add estimated distance and time (simulated for demo)
-      deliveryList = deliveryList.map((d: Delivery, index: number) => ({
-        ...d,
-        distance: (Math.random() * 5 + 0.5).toFixed(1),
-        estimatedTime: Math.floor(Math.random() * 15 + 5),
-      }));
       
       setAllDeliveries(deliveryList);
       setPendingDeliveries(deliveryList.filter((d: Delivery) => d.status === 'pending'));
@@ -119,11 +115,13 @@ export default function DriverDeliveries() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [driverLocation]);
 
   useEffect(() => {
-    fetchDeliveries();
-  }, [fetchDeliveries]);
+    if (driverLocation) {
+      fetchDeliveries();
+    }
+  }, [fetchDeliveries, driverLocation]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
