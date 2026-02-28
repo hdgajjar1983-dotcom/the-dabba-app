@@ -420,6 +420,32 @@ const styles = StyleSheet.create({
   loader: {
     marginLeft: 8,
   },
+  suggestionsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 150,
+    paddingHorizontal: 20,
+  },
+  suggestionsModal: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    maxHeight: 350,
+    overflow: 'hidden',
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  suggestionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',
