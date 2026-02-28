@@ -51,8 +51,10 @@ interface Delivery {
   meal_type: string;
   status: string;
   subscription_plan: string;
-  distance?: number;
-  estimatedTime?: number;
+  distance: number;
+  estimated_time: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function DriverDeliveries() {
