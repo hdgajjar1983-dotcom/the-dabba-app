@@ -320,7 +320,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.stateList}>
-              {INDIAN_STATES.map((stateName) => (
+              {CANADIAN_PROVINCES.map((stateName) => (
                 <TouchableOpacity
                   key={stateName}
                   style={[
