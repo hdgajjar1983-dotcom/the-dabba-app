@@ -22,7 +22,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#EA580C"
+        "backgroundColor": "#8B1538"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.thedabba.app",
