@@ -9,22 +9,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
+import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 
 const COLORS = {
-  primary: '#EA580C',
-  primaryLight: '#FFF7ED',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB',
+  ...BRAND_COLORS,
+  background: '#FDF8F3',
+  text: '#3D2914',
+  textLight: '#8B7355',
+  border: '#E8DED1',
   white: '#FFFFFF',
-  error: '#DC2626',
+  error: '#C41E3A',
+  inputBg: '#FFFFFF',
 };
 
 export default function LoginScreen() {
@@ -36,7 +36,6 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Navigate when user changes
   useEffect(() => {
     if (user) {
       if (user.role === 'driver') {
@@ -75,12 +74,18 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Decorative top pattern */}
+          <View style={styles.decorativeTop}>
+            <View style={styles.decorativeLine} />
+            <View style={styles.decorativeDot} />
+            <View style={styles.decorativeLine} />
+          </View>
+
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="fast-food" size={40} color={COLORS.primary} />
-            </View>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue to The Dabba</Text>
+            <DabbaLogo size={140} showText={false} />
+            <Text style={styles.title}>The Dabba</Text>
+            <Text style={styles.subtitle}>Gujarati Ghar Ka Swad</Text>
+            <Text style={styles.tagline}>Traditional homestyle meals delivered</Text>
           </View>
 
           <View style={styles.form}>
@@ -137,7 +142,7 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color={COLORS.white} />
+                <ActivityIndicator color={COLORS.goldLight} />
               ) : (
                 <Text style={styles.loginButtonText}>Sign In</Text>
               )}
@@ -151,6 +156,11 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
+          </View>
+
+          {/* Decorative bottom */}
+          <View style={styles.decorativeBottom}>
+            <Text style={styles.decorativeText}>~ Since 2024 ~</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -169,30 +179,49 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 20,
+  },
+  decorativeTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  decorativeLine: {
+    height: 1,
+    width: 60,
+    backgroundColor: COLORS.gold,
+  },
+  decorativeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.gold,
+    marginHorizontal: 12,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 8,
+    color: COLORS.maroon,
+    marginTop: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
+    color: COLORS.gold,
+    marginTop: 4,
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  tagline: {
+    fontSize: 14,
     color: COLORS.textLight,
+    marginTop: 8,
   },
   form: {
     flex: 1,
@@ -202,13 +231,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FEF2F2',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.error,
   },
   errorText: {
     color: COLORS.error,
     marginLeft: 8,
     flex: 1,
+    fontSize: 14,
   },
   inputContainer: {
     marginBottom: 20,
@@ -222,18 +254,18 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 48,
+    height: 52,
     fontSize: 16,
     color: COLORS.text,
   },
@@ -241,20 +273,26 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   loginButton: {
-    backgroundColor: COLORS.primary,
-    height: 52,
-    borderRadius: 12,
+    backgroundColor: COLORS.maroon,
+    height: 56,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    shadowColor: COLORS.maroonDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
   loginButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.goldLight,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   registerContainer: {
     flexDirection: 'row',
@@ -267,7 +305,18 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
+    fontWeight: '700',
+    color: COLORS.maroon,
+  },
+  decorativeBottom: {
+    alignItems: 'center',
+    marginTop: 40,
+    paddingBottom: 20,
+  },
+  decorativeText: {
+    fontSize: 12,
+    color: COLORS.gold,
+    fontStyle: 'italic',
+    letterSpacing: 2,
   },
 });
