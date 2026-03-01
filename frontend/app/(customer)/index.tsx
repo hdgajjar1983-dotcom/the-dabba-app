@@ -8,22 +8,23 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { menuAPI, subscriptionAPI } from '../../src/services/api';
+import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 
 const COLORS = {
-  primary: '#EA580C',
-  primaryLight: '#FFF7ED',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB',
-  white: '#FFFFFF',
-  success: '#10B981',
-  warning: '#F59E0B',
+  ...BRAND_COLORS,
+  background: '#FDF8F3',
+  card: '#FFFFFF',
+  text: '#3D2914',
+  textLight: '#8B7355',
+  border: '#E8DED1',
+  success: '#2E7D32',
+  successLight: '#E8F5E9',
 };
 
 interface MenuItem {
@@ -67,7 +68,6 @@ export default function CustomerDashboard() {
       const weeklyMenu = menuRes.data.menu || [];
       setMenu(weeklyMenu);
 
-      // Find today's menu
       const today = new Date().toISOString().split('T')[0];
       const todayItem = weeklyMenu.find((item: DayMenu) => item.date === today);
       setTodayMenu(todayItem || weeklyMenu[0] || null);
@@ -130,7 +130,8 @@ export default function CustomerDashboard() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <DabbaLogo size={100} />
+          <ActivityIndicator size="large" color={COLORS.maroon} style={{ marginTop: 20 }} />
         </View>
       </SafeAreaView>
     );
@@ -140,17 +141,30 @@ export default function CustomerDashboard() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.maroon} />
+        }
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'there'}!</Text>
-            <Text style={styles.subGreeting}>Ready for today's delicious meals?</Text>
+          <View style={styles.headerLeft}>
+            <DabbaLogo size={50} />
+            <View style={styles.headerText}>
+              <Text style={styles.greeting}>Namaste, {user?.name?.split(' ')[0] || 'there'}!</Text>
+              <Text style={styles.subGreeting}>Aaj ka swadisht bhojan</Text>
+            </View>
           </View>
-          <View style={styles.headerIcon}>
-            <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
-          </View>
+          <TouchableOpacity style={styles.notificationBtn}>
+            <Ionicons name="notifications-outline" size={22} color={COLORS.maroon} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Decorative Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <View style={styles.dividerDot} />
+          <View style={styles.dividerLine} />
         </View>
 
         {/* Subscription Status */}
@@ -158,69 +172,128 @@ export default function CustomerDashboard() {
           <View style={styles.subscriptionCard}>
             <View style={styles.subscriptionHeader}>
               <View style={styles.planBadge}>
-                <Ionicons name="star" size={16} color={COLORS.primary} />
+                <Ionicons name="star" size={16} color={COLORS.gold} />
                 <Text style={styles.planText}>{subscription.plan} Plan</Text>
               </View>
-              <View style={[styles.statusBadge, subscription.status === 'active' ? styles.statusActive : styles.statusInactive]}>
+              <View style={[styles.statusBadge, subscription.status === 'active' && styles.statusActive]}>
                 <Text style={styles.statusText}>{subscription.status}</Text>
               </View>
             </View>
             <View style={styles.subscriptionDetails}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textLight} />
+              <Ionicons name="location" size={18} color={COLORS.maroon} />
               <Text style={styles.addressText} numberOfLines={1}>{subscription.delivery_address}</Text>
             </View>
           </View>
         ) : (
           <TouchableOpacity style={styles.noSubscriptionCard}>
-            <Ionicons name="add-circle-outline" size={32} color={COLORS.primary} />
-            <Text style={styles.noSubscriptionText}>Subscribe to start receiving meals</Text>
+            <View style={styles.noSubIcon}>
+              <Ionicons name="add" size={28} color={COLORS.maroon} />
+            </View>
+            <View style={styles.noSubContent}>
+              <Text style={styles.noSubTitle}>Start Your Journey</Text>
+              <Text style={styles.noSubText}>Subscribe to receive traditional meals</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={COLORS.gold} />
           </TouchableOpacity>
         )}
 
-        {/* Today's Menu */}
+        {/* Today's Menu Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Today's Menu</Text>
-            <Text style={styles.dateText}>
-              {todayMenu ? `${todayMenu.day}, ${new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
-            </Text>
+            <View>
+              <Text style={styles.sectionTitle}>Today's Thali</Text>
+              <Text style={styles.sectionSubtitle}>
+                {todayMenu ? `${todayMenu.day}` : ''}
+              </Text>
+            </View>
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateText}>
+                {todayMenu ? new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+              </Text>
+            </View>
           </View>
 
           {todayMenu ? (
-            <>
-              {/* Dinner Card */}
-              <View style={[styles.mealCard, isSkipped('dinner') && styles.mealCardSkipped]}>
-                <View style={styles.mealHeader}>
-                  <View style={styles.mealTypeContainer}>
-                    <Ionicons name="moon" size={20} color={COLORS.primary} />
-                    <Text style={styles.mealType}>Dinner</Text>
-                  </View>
-                  {isSkipped('dinner') ? (
-                    <View style={styles.skippedBadge}>
-                      <Text style={styles.skippedText}>Skipped</Text>
-                    </View>
-                  ) : (
-                    subscription && (
-                      <TouchableOpacity style={styles.skipButton} onPress={() => handleSkipMeal('dinner')}>
-                        <Ionicons name="close-circle-outline" size={18} color={COLORS.textLight} />
-                        <Text style={styles.skipButtonText}>Skip (+₹120)</Text>
-                      </TouchableOpacity>
-                    )
-                  )}
+            <View style={[styles.mealCard, isSkipped('dinner') && styles.mealCardSkipped]}>
+              {/* Meal Header */}
+              <View style={styles.mealHeader}>
+                <View style={styles.mealIconContainer}>
+                  <Ionicons name="moon" size={24} color={COLORS.card} />
                 </View>
+                <View style={styles.mealHeaderText}>
+                  <Text style={styles.mealType}>Tonight's Dinner</Text>
+                  <Text style={styles.mealTypeSub}>Fresh & Hot Delivery</Text>
+                </View>
+                {isSkipped('dinner') ? (
+                  <View style={styles.skippedBadge}>
+                    <Text style={styles.skippedText}>Skipped</Text>
+                  </View>
+                ) : (
+                  subscription && (
+                    <TouchableOpacity style={styles.skipButton} onPress={() => handleSkipMeal('dinner')}>
+                      <Text style={styles.skipButtonText}>Skip +₹120</Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+
+              {/* Meal Content */}
+              <View style={styles.mealContent}>
                 <Text style={styles.mealName}>{todayMenu.dinner.name}</Text>
                 <Text style={styles.mealDescription}>{todayMenu.dinner.description}</Text>
-                <View style={styles.mealTypeBadge}>
-                  <Text style={styles.mealTypeBadgeText}>{todayMenu.dinner.type}</Text>
+                
+                <View style={styles.mealFooter}>
+                  <View style={styles.mealTypeBadge}>
+                    <Ionicons name="leaf" size={14} color={COLORS.success} />
+                    <Text style={styles.mealTypeBadgeText}>{todayMenu.dinner.type}</Text>
+                  </View>
+                  <View style={styles.deliveryInfo}>
+                    <Ionicons name="time-outline" size={16} color={COLORS.textLight} />
+                    <Text style={styles.deliveryText}>7:00 - 8:30 PM</Text>
+                  </View>
                 </View>
               </View>
-            </>
+
+              {/* Decorative Bottom */}
+              <View style={styles.mealDecor}>
+                <View style={styles.decorLine} />
+                <Ionicons name="restaurant" size={16} color={COLORS.gold} />
+                <View style={styles.decorLine} />
+              </View>
+            </View>
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="restaurant-outline" size={48} color={COLORS.textLight} />
               <Text style={styles.emptyStateText}>No menu available for today</Text>
             </View>
           )}
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.actionCard}>
+            <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="calendar-outline" size={24} color="#E65100" />
+            </View>
+            <Text style={styles.actionText}>Weekly Menu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard}>
+            <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="wallet-outline" size={24} color="#2E7D32" />
+            </View>
+            <Text style={styles.actionText}>Wallet</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard}>
+            <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="help-circle-outline" size={24} color="#1565C0" />
+            </View>
+            <Text style={styles.actionText}>Support</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>~ Ghar Ka Swad, Roz ~</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -245,77 +318,109 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerText: {
+    marginLeft: 12,
   },
   greeting: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.maroon,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subGreeting: {
-    fontSize: 14,
-    color: COLORS.textLight,
-    marginTop: 4,
+    fontSize: 13,
+    color: COLORS.gold,
+    marginTop: 2,
+    fontStyle: 'italic',
   },
-  headerIcon: {
+  notificationBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  dividerLine: {
+    height: 1,
+    width: 60,
+    backgroundColor: COLORS.gold,
+    opacity: 0.5,
+  },
+  dividerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.gold,
+    marginHorizontal: 10,
+  },
   subscriptionCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
+    padding: 18,
+    marginVertical: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   subscriptionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   planBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: COLORS.maroon,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   planText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
+    fontWeight: '700',
+    color: COLORS.goldLight,
+    textTransform: 'capitalize',
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
+    backgroundColor: '#FEE2E2',
   },
   statusActive: {
-    backgroundColor: '#D1FAE5',
-  },
-  statusInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: COLORS.successLight,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.success,
     textTransform: 'capitalize',
   },
   subscriptionDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   addressText: {
     fontSize: 14,
@@ -323,23 +428,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   noSubscriptionCard: {
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 18,
+    marginVertical: 16,
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.gold,
     borderStyle: 'dashed',
   },
-  noSubscriptionText: {
-    fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: '600',
-    marginTop: 8,
+  noSubIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.maroon,
+  },
+  noSubContent: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  noSubTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.maroon,
+  },
+  noSubText: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
   },
   section: {
-    marginBottom: 24,
+    marginTop: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -348,95 +472,154 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  dateBadge: {
+    backgroundColor: COLORS.maroon,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   dateText: {
-    fontSize: 14,
-    color: COLORS.textLight,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.goldLight,
   },
   mealCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   mealCardSkipped: {
     opacity: 0.6,
-    backgroundColor: '#F9FAFB',
   },
   mealHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    backgroundColor: COLORS.maroon,
+    padding: 16,
   },
-  mealTypeContainer: {
-    flexDirection: 'row',
+  mealIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+  },
+  mealHeaderText: {
+    flex: 1,
+    marginLeft: 12,
   },
   mealType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.goldLight,
+  },
+  mealTypeSub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   skipButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: COLORS.background,
   },
   skipButtonText: {
     fontSize: 12,
-    color: COLORS.textLight,
+    fontWeight: '700',
+    color: COLORS.goldLight,
   },
   skippedBadge: {
     backgroundColor: '#FEE2E2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   skippedText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#DC2626',
   },
+  mealContent: {
+    padding: 18,
+  },
   mealName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 6,
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   mealDescription: {
     fontSize: 14,
     color: COLORS.textLight,
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  mealFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   mealTypeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.successLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   mealTypeBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.success,
     textTransform: 'capitalize',
+  },
+  deliveryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deliveryText: {
+    fontSize: 13,
+    color: COLORS.textLight,
+  },
+  mealDecor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: COLORS.cream,
+  },
+  decorLine: {
+    height: 1,
+    width: 40,
+    backgroundColor: COLORS.gold,
+    marginHorizontal: 10,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -445,5 +628,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textLight,
     marginTop: 12,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    gap: 12,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  actionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  footer: {
+    alignItems: 'center',
+    marginTop: 32,
+    paddingBottom: 16,
+  },
+  footerText: {
+    fontSize: 13,
+    color: COLORS.gold,
+    fontStyle: 'italic',
+    letterSpacing: 2,
   },
 });
