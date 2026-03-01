@@ -3,12 +3,14 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 
+// Royal Gujarati Colors
 const COLORS = {
-  primary: '#EA580C',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB',
+  maroon: '#8B1538',
+  gold: '#D4AF37',
+  cream: '#FDF8F3',
+  text: '#3D2914',
+  textLight: '#8B7355',
+  border: '#E8DED1',
 };
 
 export default function CustomerLayout() {
@@ -16,17 +18,18 @@ export default function CustomerLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.maroon,
         tabBarInactiveTintColor: COLORS.textLight,
         tabBarStyle: {
-          backgroundColor: COLORS.background,
+          backgroundColor: COLORS.cream,
           borderTopColor: COLORS.border,
+          borderTopWidth: 1,
           paddingBottom: Platform.OS === 'ios' ? 20 : 8,
           paddingTop: 8,
           height: Platform.OS === 'ios' ? 85 : 65,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
