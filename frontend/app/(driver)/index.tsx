@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   Image,
   Modal,
   Dimensions,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,26 +23,25 @@ import { driverAPI } from '../../src/services/api';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
+// Uber Eats inspired dark theme
 const COLORS = {
-  primary: '#EA580C',
-  primaryDark: '#C2410C',
-  primaryLight: '#FFF7ED',
-  background: '#F8FAFC',
+  background: '#000000',
+  surface: '#1C1C1E',
+  surfaceLight: '#2C2C2E',
   card: '#FFFFFF',
-  text: '#0F172A',
-  textSecondary: '#64748B',
-  success: '#22C55E',
-  successLight: '#DCFCE7',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  blue: '#3B82F6',
-  purple: '#8B5CF6',
-  border: '#E2E8F0',
-  shadow: '#000',
+  primary: '#06C167', // Uber green
+  primaryDark: '#05A656',
+  text: '#FFFFFF',
+  textDark: '#000000',
+  textSecondary: '#8E8E93',
+  textMuted: '#636366',
+  success: '#06C167',
+  error: '#FF3B30',
+  warning: '#FF9500',
+  border: '#3A3A3C',
+  overlay: 'rgba(0,0,0,0.7)',
 };
 
 interface Delivery {
@@ -71,23 +72,50 @@ export default function DriverDeliveries() {
   const [failedToday, setFailedToday] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showDeliverySheet, setShowDeliverySheet] = useState(false);
 
-  // Request location permission and get current location
+  // Swipe animation
+  const swipeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const SWIPE_THRESHOLD = width * 0.4;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dx) > 10,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx > 0) {
+          swipeAnim.setValue(Math.min(gestureState.dx, width - 80));
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          Animated.spring(swipeAnim, {
+            toValue: width - 80,
+            useNativeDriver: false,
+          }).start(() => {
+            takePhoto();
+            swipeAnim.setValue(0);
+          });
+        } else {
+          Animated.spring(swipeAnim, {
+            toValue: 0,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // Request location permission
   useEffect(() => {
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setLocationError('Location permission denied');
-          // Use default location (Halifax) if permission denied
-          setDriverLocation({
-            latitude: 44.6488,
-            longitude: -63.5752,
-          });
+          setDriverLocation({ latitude: 44.6488, longitude: -63.5752 });
           return;
         }
-        
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -96,12 +124,7 @@ export default function DriverDeliveries() {
           longitude: location.coords.longitude,
         });
       } catch (error) {
-        console.error('Error getting location:', error);
-        // Use default location (Halifax) if location fails
-        setDriverLocation({
-          latitude: 44.6488,
-          longitude: -63.5752,
-        });
+        setDriverLocation({ latitude: 44.6488, longitude: -63.5752 });
       }
     })();
   }, []);
@@ -113,7 +136,6 @@ export default function DriverDeliveries() {
         driverLocation?.longitude
       );
       let deliveryList = response.data.deliveries || [];
-      
       setAllDeliveries(deliveryList);
       setPendingDeliveries(deliveryList.filter((d: Delivery) => d.status === 'pending'));
     } catch (error) {
@@ -154,7 +176,7 @@ export default function DriverDeliveries() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow camera access to take delivery photos');
+      Alert.alert('Permission Required', 'Camera access needed for delivery proof');
       return;
     }
 
@@ -172,36 +194,21 @@ export default function DriverDeliveries() {
     }
   };
 
-  const sendToWhatsApp = async (phone: string) => {
-    const message = encodeURIComponent('✅ Your Dabba has been delivered! Thank you for choosing The Dabba. 🍱');
-    const cleanPhone = phone.replace(/\D/g, '');
-    
-    try {
-      await Linking.openURL(`whatsapp://send?phone=${cleanPhone}&text=${message}`);
-    } catch {
-      // WhatsApp skipped as per user request
-      console.log('WhatsApp not available');
-    }
-  };
-
   const confirmDelivery = async () => {
     if (!deliveryPhoto || !currentDelivery) return;
 
     setIsSubmitting(true);
     try {
       await driverAPI.updateDeliveryStatus(
-        currentDelivery.id, 
+        currentDelivery.id,
         'delivered',
         deliveryPhotoBase64 || undefined
       );
-      
       setCompletedToday(prev => prev + 1);
       setPendingDeliveries(prev => prev.slice(1));
       setShowPhotoModal(false);
       setDeliveryPhoto(null);
       setDeliveryPhotoBase64(null);
-      
-      Alert.alert('Delivered! ✅', 'Great job! Moving to next delivery.');
     } catch (error) {
       Alert.alert('Error', 'Could not update delivery status');
     } finally {
@@ -209,28 +216,14 @@ export default function DriverDeliveries() {
     }
   };
 
-  const markFailed = async () => {
+  const markFailed = () => {
     if (!currentDelivery) return;
-
-    Alert.alert(
-      'Unable to Deliver?',
-      'Please select a reason:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Customer Unavailable', 
-          onPress: () => processFailure('Customer unavailable')
-        },
-        { 
-          text: 'Wrong Address', 
-          onPress: () => processFailure('Wrong address')
-        },
-        { 
-          text: 'Other Issue', 
-          onPress: () => processFailure('Other issue')
-        },
-      ]
-    );
+    Alert.alert('Unable to Deliver?', 'Select a reason:', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Customer Unavailable', onPress: () => processFailure('unavailable') },
+      { text: 'Wrong Address', onPress: () => processFailure('wrong_address') },
+      { text: 'Other', onPress: () => processFailure('other') },
+    ]);
   };
 
   const processFailure = async (reason: string) => {
@@ -238,246 +231,230 @@ export default function DriverDeliveries() {
       await driverAPI.updateDeliveryStatus(currentDelivery!.id, 'failed');
       setFailedToday(prev => prev + 1);
       setPendingDeliveries(prev => prev.slice(1));
-      Alert.alert('Marked as Failed', `Reason: ${reason}`);
     } catch (error) {
       Alert.alert('Error', 'Could not update status');
     }
   };
 
+  const swipeBackgroundColor = swipeAnim.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [COLORS.surfaceLight, COLORS.primary],
+  });
+
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading your route...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Finding deliveries near you...</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Top Header Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarLeft}>
-          <View style={styles.avatarSmall}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'D'}</Text>
+    <View style={styles.container}>
+      {/* Header */}
+      <SafeAreaView edges={['top']} style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'D'}</Text>
+            </View>
+            <View>
+              <Text style={styles.greeting}>Hi, {user?.name?.split(' ')[0] || 'Driver'}</Text>
+              <Text style={styles.deliveryCount}>
+                {pendingDeliveries.length} {pendingDeliveries.length === 1 ? 'delivery' : 'deliveries'} left
+              </Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.topBarGreeting}>Hi, {user?.name?.split(' ')[0] || 'Driver'}</Text>
-            <Text style={styles.topBarSubtext}>Let's deliver happiness!</Text>
+          <TouchableOpacity
+            style={[styles.onlineToggle, isOnline ? styles.onlineActive : styles.onlineInactive]}
+            onPress={() => setIsOnline(!isOnline)}
+          >
+            <View style={[styles.onlineDot, isOnline && styles.onlineDotActive]} />
+            <Text style={[styles.onlineText, isOnline && styles.onlineTextActive]}>
+              {isOnline ? 'Online' : 'Offline'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{completedToday}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{failedToday}</Text>
+            <Text style={styles.statLabel}>Failed</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: COLORS.primary }]}>
+              {completedToday + failedToday > 0
+                ? Math.round((completedToday / (completedToday + failedToday)) * 100)
+                : 100}%
+            </Text>
+            <Text style={styles.statLabel}>Success</Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={[styles.onlineToggle, isOnline ? styles.onlineActive : styles.onlineInactive]}
-          onPress={() => setIsOnline(!isOnline)}
-        >
-          <View style={[styles.onlineDot, isOnline && styles.onlineDotActive]} />
-          <Text style={[styles.onlineText, isOnline && styles.onlineTextActive]}>
-            {isOnline ? 'Online' : 'Offline'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />
+        }
         showsVerticalScrollIndicator={false}
       >
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.primaryLight }]}>
-              <Ionicons name="bicycle" size={20} color={COLORS.primary} />
-            </View>
-            <Text style={styles.statValue}>{pendingDeliveries.length}</Text>
-            <Text style={styles.statLabel}>Remaining</Text>
-          </View>
-          <View style={styles.statBox}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.successLight }]}>
-              <Ionicons name="checkmark-done" size={20} color={COLORS.success} />
-            </View>
-            <Text style={styles.statValue}>{completedToday}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statBox}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.errorLight }]}>
-              <Ionicons name="close" size={20} color={COLORS.error} />
-            </View>
-            <Text style={styles.statValue}>{failedToday}</Text>
-            <Text style={styles.statLabel}>Failed</Text>
-          </View>
-        </View>
-
-        {/* Current Delivery Card */}
         {currentDelivery && isOnline ? (
-          <View style={styles.currentSection}>
-            <View style={styles.currentHeader}>
-              <View style={styles.currentBadge}>
-                <Ionicons name="flash" size={14} color={COLORS.primary} />
-                <Text style={styles.currentBadgeText}>CURRENT STOP</Text>
+          <>
+            {/* Current Delivery Card */}
+            <View style={styles.currentDeliveryCard}>
+              <View style={styles.deliveryHeader}>
+                <View style={styles.deliveryBadge}>
+                  <Text style={styles.deliveryBadgeText}>CURRENT DELIVERY</Text>
+                </View>
+                <Text style={styles.deliveryProgress}>
+                  {completedToday + failedToday + 1} of {allDeliveries.length}
+                </Text>
               </View>
-              <Text style={styles.stopCounter}>
-                {completedToday + failedToday + 1} of {allDeliveries.length}
-              </Text>
-            </View>
 
-            <View style={styles.deliveryCard}>
-              {/* ETA Banner */}
-              <View style={styles.etaBanner}>
+              {/* ETA Section */}
+              <View style={styles.etaSection}>
                 <View style={styles.etaItem}>
-                  <Ionicons name="navigate-circle" size={18} color={COLORS.white} />
-                  <Text style={styles.etaText}>{currentDelivery.distance} km</Text>
+                  <Ionicons name="navigate" size={24} color={COLORS.primary} />
+                  <Text style={styles.etaValue}>{currentDelivery.distance}</Text>
+                  <Text style={styles.etaLabel}>km away</Text>
                 </View>
                 <View style={styles.etaDivider} />
                 <View style={styles.etaItem}>
-                  <Ionicons name="time" size={18} color={COLORS.white} />
-                  <Text style={styles.etaText}>{currentDelivery.estimated_time} min</Text>
+                  <Ionicons name="time" size={24} color={COLORS.primary} />
+                  <Text style={styles.etaValue}>{currentDelivery.estimated_time}</Text>
+                  <Text style={styles.etaLabel}>min ETA</Text>
                 </View>
               </View>
 
-              {/* Customer Info */}
-              <View style={styles.customerRow}>
+              {/* Customer Section */}
+              <View style={styles.customerSection}>
                 <View style={styles.customerAvatar}>
-                  <Ionicons name="person" size={24} color={COLORS.white} />
+                  <Ionicons name="person" size={28} color={COLORS.textDark} />
                 </View>
-                <View style={styles.customerDetails}>
+                <View style={styles.customerInfo}>
                   <Text style={styles.customerName}>{currentDelivery.customer_name}</Text>
-                  <View style={styles.orderInfo}>
-                    <View style={styles.orderBadge}>
-                      <Ionicons name="restaurant" size={12} color={COLORS.primary} />
-                      <Text style={styles.orderBadgeText}>{currentDelivery.subscription_plan}</Text>
-                    </View>
-                    <View style={styles.mealBadge}>
-                      <Ionicons name="moon" size={12} color={COLORS.purple} />
-                      <Text style={styles.mealBadgeText}>{currentDelivery.meal_type}</Text>
-                    </View>
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planBadgeText}>{currentDelivery.subscription_plan}</Text>
                   </View>
                 </View>
-                <TouchableOpacity 
-                  style={styles.callBtn}
+                <TouchableOpacity
+                  style={styles.callButton}
                   onPress={() => handleCall(currentDelivery.customer_phone)}
                 >
-                  <Ionicons name="call" size={20} color={COLORS.blue} />
+                  <Ionicons name="call" size={22} color={COLORS.primary} />
                 </TouchableOpacity>
               </View>
 
-              {/* Address Card */}
-              <TouchableOpacity 
-                style={styles.addressCard}
+              {/* Address Section */}
+              <TouchableOpacity
+                style={styles.addressSection}
                 onPress={() => handleNavigate(currentDelivery.address)}
-                activeOpacity={0.7}
               >
-                <View style={styles.addressPin}>
-                  <Ionicons name="location" size={22} color={COLORS.primary} />
+                <View style={styles.addressIcon}>
+                  <Ionicons name="location" size={24} color={COLORS.card} />
                 </View>
                 <View style={styles.addressContent}>
-                  <Text style={styles.addressLabel}>DELIVERY ADDRESS</Text>
-                  <Text style={styles.addressText}>{currentDelivery.address}</Text>
+                  <Text style={styles.addressLabel}>DELIVER TO</Text>
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    {currentDelivery.address}
+                  </Text>
                 </View>
-                <View style={styles.addressArrow}>
-                  <Ionicons name="arrow-forward-circle" size={28} color={COLORS.primary} />
-                </View>
+                <Ionicons name="chevron-forward" size={24} color={COLORS.textMuted} />
               </TouchableOpacity>
 
-              {/* Action Buttons */}
-              <View style={styles.actionContainer}>
-                <TouchableOpacity 
-                  style={styles.navigateBtn}
-                  onPress={() => handleNavigate(currentDelivery.address)}
+              {/* Navigation Button */}
+              <TouchableOpacity
+                style={styles.navigateButton}
+                onPress={() => handleNavigate(currentDelivery.address)}
+              >
+                <Ionicons name="navigate" size={22} color={COLORS.card} />
+                <Text style={styles.navigateButtonText}>Start Navigation</Text>
+              </TouchableOpacity>
+
+              {/* Swipe to Complete */}
+              <View style={styles.swipeContainer}>
+                <Animated.View
+                  style={[styles.swipeBackground, { backgroundColor: swipeBackgroundColor }]}
                 >
-                  <Ionicons name="navigate" size={22} color={COLORS.white} />
-                  <Text style={styles.navigateBtnText}>Start Navigation</Text>
-                </TouchableOpacity>
+                  <Text style={styles.swipeHint}>Delivered!</Text>
+                </Animated.View>
+                <Animated.View
+                  style={[styles.swipeButton, { transform: [{ translateX: swipeAnim }] }]}
+                  {...panResponder.panHandlers}
+                >
+                  <View style={styles.swipeButtonInner}>
+                    <Ionicons name="camera" size={28} color={COLORS.textDark} />
+                  </View>
+                </Animated.View>
+                <Text style={styles.swipeText}>Swipe to complete delivery</Text>
               </View>
 
-              {/* Delivery Actions */}
-              <View style={styles.deliveryActions}>
-                <TouchableOpacity 
-                  style={styles.deliverBtn}
-                  onPress={takePhoto}
-                >
-                  <Ionicons name="camera" size={22} color={COLORS.white} />
-                  <Text style={styles.deliverBtnText}>Photo & Complete</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.failBtn}
-                  onPress={markFailed}
-                >
-                  <Ionicons name="alert-circle" size={22} color={COLORS.error} />
-                </TouchableOpacity>
-              </View>
+              {/* Unable to Deliver */}
+              <TouchableOpacity style={styles.failButton} onPress={markFailed}>
+                <Text style={styles.failButtonText}>Unable to deliver?</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Upcoming Deliveries */}
             {pendingDeliveries.length > 1 && (
               <View style={styles.upcomingSection}>
-                <Text style={styles.upcomingTitle}>Coming Up Next</Text>
+                <Text style={styles.upcomingTitle}>Coming Up</Text>
                 {pendingDeliveries.slice(1, 4).map((delivery, index) => (
-                  <View key={delivery.id} style={styles.upcomingItem}>
-                    <View style={styles.upcomingNum}>
-                      <Text style={styles.upcomingNumText}>{index + 2}</Text>
+                  <View key={delivery.id} style={styles.upcomingCard}>
+                    <View style={styles.upcomingNumber}>
+                      <Text style={styles.upcomingNumberText}>{index + 2}</Text>
                     </View>
-                    <View style={styles.upcomingDetails}>
+                    <View style={styles.upcomingInfo}>
                       <Text style={styles.upcomingName}>{delivery.customer_name}</Text>
-                      <Text style={styles.upcomingAddr} numberOfLines={1}>{delivery.address}</Text>
+                      <Text style={styles.upcomingAddress} numberOfLines={1}>
+                        {delivery.address}
+                      </Text>
                     </View>
                     <View style={styles.upcomingMeta}>
-                      <Text style={styles.upcomingDist}>{delivery.distance} km</Text>
+                      <Text style={styles.upcomingDistance}>{delivery.distance} km</Text>
                     </View>
                   </View>
                 ))}
-                {pendingDeliveries.length > 4 && (
-                  <Text style={styles.moreDeliveries}>
-                    +{pendingDeliveries.length - 4} more deliveries
-                  </Text>
-                )}
               </View>
             )}
-          </View>
+          </>
         ) : !isOnline ? (
           <View style={styles.offlineState}>
             <View style={styles.offlineIcon}>
-              <Ionicons name="moon" size={48} color={COLORS.textSecondary} />
+              <Ionicons name="moon" size={64} color={COLORS.textMuted} />
             </View>
             <Text style={styles.offlineTitle}>You're Offline</Text>
-            <Text style={styles.offlineText}>Go online to start receiving deliveries</Text>
-            <TouchableOpacity 
-              style={styles.goOnlineBtn}
-              onPress={() => setIsOnline(true)}
-            >
-              <Text style={styles.goOnlineBtnText}>Go Online</Text>
+            <Text style={styles.offlineSubtitle}>Go online to start receiving deliveries</Text>
+            <TouchableOpacity style={styles.goOnlineButton} onPress={() => setIsOnline(true)}>
+              <Text style={styles.goOnlineButtonText}>Go Online</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="checkmark-done-circle" size={64} color={COLORS.success} />
+              <Ionicons name="checkmark-circle" size={80} color={COLORS.primary} />
             </View>
-            <Text style={styles.emptyTitle}>All Done for Today! 🎉</Text>
-            <Text style={styles.emptyText}>You've completed all your deliveries</Text>
-            
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryTitle}>Today's Performance</Text>
+            <Text style={styles.emptyTitle}>All Done!</Text>
+            <Text style={styles.emptySubtitle}>You've completed all deliveries for today</Text>
+            <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>{completedToday}</Text>
                   <Text style={styles.summaryLabel}>Delivered</Text>
                 </View>
-                <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryValue}>{failedToday}</Text>
                   <Text style={styles.summaryLabel}>Failed</Text>
-                </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={[styles.summaryValue, { color: COLORS.success }]}>
-                    {completedToday + failedToday > 0 
-                      ? Math.round((completedToday / (completedToday + failedToday)) * 100) 
-                      : 0}%
-                  </Text>
-                  <Text style={styles.summaryLabel}>Success</Text>
                 </View>
               </View>
             </View>
@@ -491,46 +468,41 @@ export default function DriverDeliveries() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Confirm Delivery</Text>
-              <TouchableOpacity onPress={() => {
-                setShowPhotoModal(false);
-                setDeliveryPhoto(null);
-              }}>
-                <Ionicons name="close-circle" size={28} color={COLORS.textSecondary} />
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPhotoModal(false);
+                  setDeliveryPhoto(null);
+                }}
+              >
+                <Ionicons name="close" size={28} color={COLORS.text} />
               </TouchableOpacity>
             </View>
 
             {deliveryPhoto && (
-              <View style={styles.photoContainer}>
-                <Image source={{ uri: deliveryPhoto }} style={styles.photoPreview} />
-                <View style={styles.photoOverlay}>
-                  <Ionicons name="checkmark-circle" size={32} color={COLORS.success} />
-                </View>
-              </View>
+              <Image source={{ uri: deliveryPhoto }} style={styles.photoPreview} />
             )}
 
-            <View style={styles.photoInfo}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-              <Text style={styles.photoInfoText}>
-                Photo proof will be saved with delivery record
-              </Text>
+            <View style={styles.photoNote}>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+              <Text style={styles.photoNoteText}>Photo proof will be saved</Text>
             </View>
 
-            <View style={styles.modalBtns}>
-              <TouchableOpacity style={styles.retakeBtn} onPress={takePhoto}>
-                <Ionicons name="camera-reverse" size={20} color={COLORS.primary} />
-                <Text style={styles.retakeBtnText}>Retake</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.retakeButton} onPress={takePhoto}>
+                <Ionicons name="camera-reverse" size={22} color={COLORS.text} />
+                <Text style={styles.retakeButtonText}>Retake</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.confirmBtn, isSubmitting && styles.btnDisabled]}
+              <TouchableOpacity
+                style={[styles.confirmButton, isSubmitting && styles.buttonDisabled]}
                 onPress={confirmDelivery}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color={COLORS.white} />
+                  <ActivityIndicator color={COLORS.textDark} />
                 ) : (
                   <>
-                    <Ionicons name="send" size={20} color={COLORS.white} />
-                    <Text style={styles.confirmBtnText}>Send & Complete</Text>
+                    <Ionicons name="checkmark" size={22} color={COLORS.textDark} />
+                    <Text style={styles.confirmButtonText}>Confirm</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -538,7 +510,7 @@ export default function DriverDeliveries() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -549,6 +521,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -557,111 +530,90 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
   },
-  topBar: {
+  header: {
+    backgroundColor: COLORS.surface,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  topBarLeft: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatarSmall: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.textDark,
   },
-  topBarGreeting: {
-    fontSize: 16,
+  greeting: {
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
   },
-  topBarSubtext: {
-    fontSize: 12,
+  deliveryCount: {
+    fontSize: 14,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
   onlineToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
   },
   onlineActive: {
-    backgroundColor: COLORS.successLight,
-    borderColor: COLORS.success,
+    backgroundColor: 'rgba(6, 193, 103, 0.15)',
   },
   onlineInactive: {
-    backgroundColor: COLORS.border,
-    borderColor: COLORS.textSecondary,
+    backgroundColor: COLORS.surfaceLight,
   },
   onlineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.textSecondary,
-    marginRight: 6,
+    backgroundColor: COLORS.textMuted,
+    marginRight: 8,
   },
   onlineDotActive: {
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
   },
   onlineText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
   },
   onlineTextActive: {
-    color: COLORS.success,
+    color: COLORS.primary,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  statsContainer: {
+  statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: COLORS.card,
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+    marginHorizontal: 20,
+    backgroundColor: COLORS.surfaceLight,
     borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 16,
   },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  statItem: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+    flex: 1,
   },
   statValue: {
     fontSize: 24,
@@ -669,345 +621,341 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   statLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
+    fontSize: 12,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
-  currentSection: {
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.border,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 100,
+  },
+  currentDeliveryCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 24,
   },
-  currentHeader: {
+  deliveryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  currentBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
+  deliveryBadge: {
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 8,
   },
-  currentBadgeText: {
+  deliveryBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
-    marginLeft: 4,
+    color: COLORS.textDark,
+    letterSpacing: 0.5,
   },
-  stopCounter: {
-    fontSize: 13,
+  deliveryProgress: {
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
   },
-  deliveryCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  etaBanner: {
-    backgroundColor: COLORS.primary,
+  etaSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
   },
   etaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  etaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginLeft: 6,
+  etaValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginTop: 8,
+  },
+  etaLabel: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   etaDivider: {
     width: 1,
-    height: 16,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    height: 60,
+    backgroundColor: '#E5E7EB',
     marginHorizontal: 20,
   },
-  customerRow: {
+  customerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    marginBottom: 16,
   },
   customerAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  customerDetails: {
+  customerInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   customerName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text,
+    color: COLORS.textDark,
   },
-  orderInfo: {
-    flexDirection: 'row',
+  planBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
     marginTop: 6,
-    gap: 8,
   },
-  orderBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  orderBadgeText: {
-    fontSize: 11,
+  planBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: COLORS.primary,
-    marginLeft: 4,
+    color: COLORS.textMuted,
     textTransform: 'capitalize',
   },
-  mealBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  mealBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.purple,
-    marginLeft: 4,
-    textTransform: 'capitalize',
-  },
-  callBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#EFF6FF',
+  callButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(6, 193, 103, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addressCard: {
+  addressSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
     padding: 16,
-    backgroundColor: COLORS.background,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    borderRadius: 12,
+    marginBottom: 16,
   },
-  addressPin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryLight,
+  addressIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addressContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   addressLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     letterSpacing: 0.5,
+    marginBottom: 4,
   },
   addressText: {
-    fontSize: 14,
-    color: COLORS.text,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  addressArrow: {
-    marginLeft: 8,
-  },
-  actionContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  navigateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.blue,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  navigateBtnText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginLeft: 8,
+    color: COLORS.textDark,
+    lineHeight: 22,
   },
-  deliveryActions: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  deliverBtn: {
-    flex: 1,
+  navigateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.success,
+    backgroundColor: '#3B82F6',
+    borderRadius: 14,
     paddingVertical: 16,
-    borderRadius: 12,
+    marginBottom: 16,
   },
-  deliverBtnText: {
-    fontSize: 15,
+  navigateButtonText: {
+    fontSize: 16,
     fontWeight: '700',
-    color: COLORS.white,
-    marginLeft: 8,
+    color: COLORS.card,
+    marginLeft: 10,
   },
-  failBtn: {
+  swipeContainer: {
+    height: 64,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 32,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  swipeBackground: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeHint: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    opacity: 0.8,
+  },
+  swipeButton: {
+    position: 'absolute',
+    left: 4,
+    top: 4,
     width: 56,
     height: 56,
-    borderRadius: 12,
-    backgroundColor: COLORS.errorLight,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  upcomingSection: {
-    marginTop: 24,
+  swipeButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  upcomingTitle: {
+  swipeText: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    lineHeight: 64,
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 12,
+    color: COLORS.textSecondary,
+    marginLeft: 70,
   },
-  upcomingItem: {
+  failButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  failButtonText: {
+    fontSize: 14,
+    color: COLORS.error,
+    fontWeight: '600',
+  },
+  upcomingSection: {
+    marginTop: 8,
+  },
+  upcomingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 16,
+  },
+  upcomingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
-  upcomingNum: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.border,
+  upcomingNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  upcomingNumText: {
-    fontSize: 12,
+  upcomingNumberText: {
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },
-  upcomingDetails: {
+  upcomingInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
   upcomingName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
   },
-  upcomingAddr: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+  upcomingAddress: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 4,
   },
   upcomingMeta: {
     alignItems: 'flex-end',
   },
-  upcomingDist: {
-    fontSize: 12,
-    fontWeight: '600',
+  upcomingDistance: {
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.primary,
-  },
-  moreDeliveries: {
-    fontSize: 13,
-    color: COLORS.primary,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 8,
   },
   offlineState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingTop: 80,
   },
   offlineIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.border,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-  },
-  offlineTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 8,
-  },
-  offlineText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
     marginBottom: 24,
   },
-  goOnlineBtn: {
-    backgroundColor: COLORS.success,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  goOnlineBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 22,
+  offlineTitle: {
+    fontSize: 26,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 8,
   },
-  emptyText: {
-    fontSize: 14,
+  offlineSubtitle: {
+    fontSize: 16,
     color: COLORS.textSecondary,
     marginBottom: 32,
   },
-  summaryBox: {
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
+  goOnlineButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 14,
   },
-  summaryTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+  goOnlineButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.textDark,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyIcon: {
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 28,
+    fontWeight: '700',
     color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 32,
+  },
+  summaryCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1017,30 +965,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryValue: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: '700',
     color: COLORS.text,
   },
   summaryLabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    color: COLORS.textMuted,
     marginTop: 4,
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: COLORS.border,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLORS.overlay,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: COLORS.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 24,
+    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1049,77 +993,66 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.text,
   },
-  photoContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
   photoPreview: {
     width: '100%',
-    height: 220,
+    height: 240,
     borderRadius: 16,
+    marginBottom: 16,
   },
-  photoOverlay: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 4,
-  },
-  photoInfo: {
+  photoNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    padding: 12,
+    backgroundColor: 'rgba(6, 193, 103, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  photoInfoText: {
-    fontSize: 13,
-    color: COLORS.blue,
-    marginLeft: 8,
-    flex: 1,
+  photoNoteText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    marginLeft: 10,
+    fontWeight: '500',
   },
-  modalBtns: {
+  modalActions: {
     flexDirection: 'row',
     gap: 12,
   },
-  retakeBtn: {
+  retakeButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: 14,
     paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
   },
-  retakeBtnText: {
-    fontSize: 15,
+  retakeButtonText: {
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary,
-    marginLeft: 6,
+    color: COLORS.text,
+    marginLeft: 8,
   },
-  confirmBtn: {
+  confirmButton: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.success,
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
     paddingVertical: 16,
-    borderRadius: 12,
   },
-  confirmBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginLeft: 6,
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textDark,
+    marginLeft: 8,
   },
-  btnDisabled: {
+  buttonDisabled: {
     opacity: 0.7,
   },
 });
