@@ -1,14 +1,14 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
+import DabbaLogo, { BRAND_COLORS } from '../src/components/DabbaLogo';
 
 const COLORS = {
-  primary: '#EA580C',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
+  ...BRAND_COLORS,
+  background: '#FDF8F3',
+  text: '#3D2914',
+  textLight: '#8B7355',
 };
 
 export default function Index() {
@@ -31,14 +31,26 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="fast-food" size={48} color={COLORS.primary} />
-        </View>
-        <Text style={styles.title}>The Dabba</Text>
-        <Text style={styles.subtitle}>Fresh homestyle meals delivered</Text>
+      {/* Decorative top pattern */}
+      <View style={styles.decorativePattern}>
+        <View style={styles.patternLine} />
+        <View style={styles.patternDot} />
+        <View style={styles.patternLine} />
       </View>
-      <ActivityIndicator size="large" color={COLORS.primary} style={styles.loader} />
+
+      <View style={styles.logoContainer}>
+        <DabbaLogo size={180} showText={false} />
+        <Text style={styles.title}>The Dabba</Text>
+        <Text style={styles.subtitle}>Gujarati Ghar Ka Swad</Text>
+        <Text style={styles.tagline}>Traditional homestyle meals delivered</Text>
+      </View>
+
+      <ActivityIndicator size="large" color={COLORS.maroon} style={styles.loader} />
+
+      {/* Decorative bottom pattern */}
+      <View style={styles.decorativeBottom}>
+        <Text style={styles.bottomText}>~ Since 2024 ~</Text>
+      </View>
     </View>
   );
 }
@@ -50,29 +62,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  decorativePattern: {
+    position: 'absolute',
+    top: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  patternLine: {
+    height: 1,
+    width: 80,
+    backgroundColor: COLORS.gold,
+  },
+  patternDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.gold,
+    marginHorizontal: 16,
+  },
   logoContainer: {
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
   title: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '700',
-    color: COLORS.primary,
-    marginBottom: 8,
+    color: COLORS.maroon,
+    marginTop: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    letterSpacing: 3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
+    color: COLORS.gold,
+    marginTop: 8,
+    fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  tagline: {
+    fontSize: 14,
     color: COLORS.textLight,
+    marginTop: 12,
   },
   loader: {
-    marginTop: 32,
+    marginTop: 40,
+  },
+  decorativeBottom: {
+    position: 'absolute',
+    bottom: 60,
+  },
+  bottomText: {
+    fontSize: 13,
+    color: COLORS.gold,
+    fontStyle: 'italic',
+    letterSpacing: 3,
   },
 });
