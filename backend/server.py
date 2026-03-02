@@ -74,6 +74,26 @@ class DriverLocationQuery(BaseModel):
     latitude: float
     longitude: float
 
+# Kitchen Portal Models
+class DishCreate(BaseModel):
+    name: str
+    description: str
+    type: str = "vegetarian"
+    price: float = 120.0
+    image_url: Optional[str] = None
+
+class DishUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    price: Optional[float] = None
+    image_url: Optional[str] = None
+
+class MenuDaySet(BaseModel):
+    date: str
+    lunch_dish_id: str
+    dinner_dish_id: str
+
 # ==================== HELPERS ====================
 
 def hash_password(password: str) -> str:
@@ -402,6 +422,222 @@ async def update_delivery_status(delivery_id: str, status_data: DeliveryStatusUp
 @api_router.get("/")
 async def root():
     return {"message": "Welcome to The Dabba API", "status": "running"}
+
+# ==================== KITCHEN PORTAL ROUTES ====================
+
+# Helper to check kitchen role
+async def get_kitchen_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token_data = verify_token(credentials.credentials)
+    user = await db.users.find_one({"id": token_data["user_id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.get("role") not in ["kitchen", "admin"]:
+        raise HTTPException(status_code=403, detail="Kitchen access required")
+    return user
+
+# Dashboard Stats
+@api_router.get("/kitchen/dashboard")
+async def kitchen_dashboard(current_user: dict = Depends(get_kitchen_user)):
+    total_customers = await db.users.count_documents({"role": "customer"})
+    active_subscriptions = await db.subscriptions.count_documents({"status": "active"})
+    total_dishes = await db.dishes.count_documents({})
+    
+    # Today's deliveries
+    today = datetime.now().date().isoformat()
+    completed_today = await db.completed_deliveries.count_documents({
+        "completed_at": {"$regex": f"^{today}"}
+    })
+    
+    return {
+        "total_customers": total_customers,
+        "active_subscriptions": active_subscriptions,
+        "total_dishes": total_dishes,
+        "deliveries_today": active_subscriptions,
+        "completed_today": completed_today,
+        "pending_today": max(0, active_subscriptions - completed_today)
+    }
+
+# ==================== DISH MANAGEMENT ====================
+
+@api_router.get("/kitchen/dishes")
+async def get_all_dishes(current_user: dict = Depends(get_kitchen_user)):
+    dishes = await db.dishes.find({}).to_list(100)
+    return {"dishes": [{k: v for k, v in d.items() if k != "_id"} for d in dishes]}
+
+@api_router.post("/kitchen/dishes")
+async def create_dish(dish: DishCreate, current_user: dict = Depends(get_kitchen_user)):
+    dish_data = {
+        "id": str(uuid.uuid4()),
+        "name": dish.name,
+        "description": dish.description,
+        "type": dish.type,
+        "price": dish.price,
+        "image_url": dish.image_url,
+        "created_at": datetime.utcnow().isoformat(),
+        "created_by": current_user["id"]
+    }
+    await db.dishes.insert_one(dish_data)
+    return {"message": "Dish created", "dish": {k: v for k, v in dish_data.items() if k != "_id"}}
+
+@api_router.put("/kitchen/dishes/{dish_id}")
+async def update_dish(dish_id: str, dish: DishUpdate, current_user: dict = Depends(get_kitchen_user)):
+    update_data = {k: v for k, v in dish.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.utcnow().isoformat()
+    result = await db.dishes.update_one({"id": dish_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Dish not found")
+    
+    return {"message": "Dish updated"}
+
+@api_router.delete("/kitchen/dishes/{dish_id}")
+async def delete_dish(dish_id: str, current_user: dict = Depends(get_kitchen_user)):
+    result = await db.dishes.delete_one({"id": dish_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Dish not found")
+    return {"message": "Dish deleted"}
+
+# ==================== MENU MANAGEMENT ====================
+
+@api_router.get("/kitchen/menu")
+async def get_kitchen_menu(current_user: dict = Depends(get_kitchen_user)):
+    # Get menu for next 14 days
+    today = datetime.now().date()
+    menu_items = await db.menu_schedule.find({
+        "date": {"$gte": today.isoformat()}
+    }).sort("date", 1).to_list(14)
+    
+    # Get all dishes for reference
+    dishes = await db.dishes.find({}).to_list(100)
+    dish_map = {d["id"]: d for d in dishes}
+    
+    result = []
+    for item in menu_items:
+        lunch = dish_map.get(item.get("lunch_dish_id"), {})
+        dinner = dish_map.get(item.get("dinner_dish_id"), {})
+        result.append({
+            "date": item["date"],
+            "lunch": {k: v for k, v in lunch.items() if k != "_id"} if lunch else None,
+            "dinner": {k: v for k, v in dinner.items() if k != "_id"} if dinner else None
+        })
+    
+    return {"menu": result, "dishes": [{k: v for k, v in d.items() if k != "_id"} for d in dishes]}
+
+@api_router.post("/kitchen/menu")
+async def set_menu_day(menu_data: MenuDaySet, current_user: dict = Depends(get_kitchen_user)):
+    menu_entry = {
+        "date": menu_data.date,
+        "lunch_dish_id": menu_data.lunch_dish_id,
+        "dinner_dish_id": menu_data.dinner_dish_id,
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    await db.menu_schedule.update_one(
+        {"date": menu_data.date},
+        {"$set": menu_entry},
+        upsert=True
+    )
+    
+    return {"message": f"Menu set for {menu_data.date}"}
+
+# ==================== CUSTOMER MANAGEMENT ====================
+
+@api_router.get("/kitchen/customers")
+async def get_all_customers(current_user: dict = Depends(get_kitchen_user)):
+    customers = await db.users.find({"role": "customer"}).to_list(200)
+    
+    result = []
+    for c in customers:
+        sub = await db.subscriptions.find_one({"user_id": c["id"]})
+        result.append({
+            "id": c["id"],
+            "name": c.get("name", ""),
+            "email": c.get("email", ""),
+            "phone": c.get("phone", ""),
+            "address": c.get("address", ""),
+            "created_at": c.get("created_at", ""),
+            "subscription": {
+                "plan": sub.get("plan") if sub else None,
+                "status": sub.get("status") if sub else None,
+                "delivery_address": sub.get("delivery_address") if sub else None
+            } if sub else None
+        })
+    
+    return {"customers": result}
+
+# ==================== ORDER/DELIVERY MANAGEMENT ====================
+
+@api_router.get("/kitchen/orders")
+async def get_kitchen_orders(current_user: dict = Depends(get_kitchen_user)):
+    today = datetime.now().date().isoformat()
+    
+    # Get all active subscriptions (today's orders)
+    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(200)
+    
+    orders = []
+    for sub in subscriptions:
+        user = await db.users.find_one({"id": sub["user_id"]})
+        
+        # Check if skipped today
+        skipped_today = any(
+            s.get("date") == today 
+            for s in sub.get("skipped_meals", [])
+        )
+        
+        # Check if delivered
+        delivery = await db.completed_deliveries.find_one({
+            "completed_at": {"$regex": f"^{today}"}
+        })
+        
+        if user:
+            orders.append({
+                "id": sub["id"],
+                "customer_name": user.get("name", "Unknown"),
+                "customer_phone": user.get("phone", ""),
+                "customer_email": user.get("email", ""),
+                "plan": sub.get("plan", ""),
+                "delivery_address": sub.get("delivery_address", user.get("address", "")),
+                "status": "skipped" if skipped_today else ("delivered" if delivery else "pending"),
+                "skipped": skipped_today
+            })
+    
+    return {"orders": orders, "date": today}
+
+# ==================== SEED DEFAULT DISHES ====================
+
+@api_router.post("/kitchen/seed-dishes")
+async def seed_default_dishes(current_user: dict = Depends(get_kitchen_user)):
+    """Seed database with default Gujarati dishes"""
+    default_dishes = [
+        {"name": "Dal Tadka", "description": "Yellow lentils tempered with cumin, garlic and spices. Served with Jeera Rice, Papad, and Gulab Jamun", "type": "vegetarian", "price": 120},
+        {"name": "Paneer Butter Masala", "description": "Cottage cheese in rich tomato gravy. Served with Butter Naan, Raita, and Kheer", "type": "vegetarian", "price": 140},
+        {"name": "Chole Bhature", "description": "Spiced chickpea curry with fried bread. Served with Pickle, Onion, and Jalebi", "type": "vegetarian", "price": 130},
+        {"name": "Rajma Chawal", "description": "Kidney beans curry with steamed rice. Served with Salad, Papad, and Rasmalai", "type": "vegetarian", "price": 120},
+        {"name": "Aloo Gobi", "description": "Potato and cauliflower dry curry. Served with Roti, Dal, and Gajar Halwa", "type": "vegetarian", "price": 110},
+        {"name": "Palak Paneer", "description": "Spinach curry with cottage cheese. Served with Jeera Rice, Raita, and Ladoo", "type": "vegetarian", "price": 140},
+        {"name": "Mixed Veg Curry", "description": "Assorted vegetables in spiced gravy. Served with Pulao, Pickle, and Ice Cream", "type": "vegetarian", "price": 120},
+        {"name": "Undhiyu", "description": "Traditional Gujarati mixed vegetable dish. Served with Puri, Shrikhand, and Papad", "type": "vegetarian", "price": 150},
+        {"name": "Gujarati Kadhi", "description": "Sweet and tangy yogurt curry with pakoras. Served with Rice, Papad, and Mohanthal", "type": "vegetarian", "price": 110},
+        {"name": "Sev Tameta Nu Shaak", "description": "Tomato curry topped with crispy sev. Served with Roti, Dal, and Gulab Jamun", "type": "vegetarian", "price": 100},
+        {"name": "Dhokla Chaat", "description": "Steamed gram flour cake with chutneys. Served with Khichdi, Kadhi, and Basundi", "type": "vegetarian", "price": 120},
+        {"name": "Thepla Combo", "description": "Spiced flatbreads with pickle and curd. Served with Aam Ras, Sev, and Sweet Lassi", "type": "vegetarian", "price": 100},
+    ]
+    
+    count = 0
+    for dish in default_dishes:
+        existing = await db.dishes.find_one({"name": dish["name"]})
+        if not existing:
+            dish["id"] = str(uuid.uuid4())
+            dish["created_at"] = datetime.utcnow().isoformat()
+            dish["created_by"] = current_user["id"]
+            await db.dishes.insert_one(dish)
+            count += 1
+    
+    return {"message": f"Seeded {count} dishes", "total": len(default_dishes)}
 
 # Include the router
 app.include_router(api_router)

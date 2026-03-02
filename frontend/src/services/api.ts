@@ -72,4 +72,30 @@ export const driverAPI = {
     }),
 };
 
+// Kitchen Portal APIs
+export const kitchenAPI = {
+  // Dashboard
+  getDashboard: () => api.get('/kitchen/dashboard'),
+  
+  // Dishes
+  getDishes: () => api.get('/kitchen/dishes'),
+  createDish: (data: { name: string; description: string; type: string; price: number; image_url?: string }) =>
+    api.post('/kitchen/dishes', data),
+  updateDish: (id: string, data: { name?: string; description?: string; type?: string; price?: number; image_url?: string }) =>
+    api.put(`/kitchen/dishes/${id}`, data),
+  deleteDish: (id: string) => api.delete(`/kitchen/dishes/${id}`),
+  seedDishes: () => api.post('/kitchen/seed-dishes'),
+  
+  // Menu
+  getMenu: () => api.get('/kitchen/menu'),
+  setMenuDay: (data: { date: string; lunch_dish_id: string; dinner_dish_id: string }) =>
+    api.post('/kitchen/menu', data),
+  
+  // Customers
+  getCustomers: () => api.get('/kitchen/customers'),
+  
+  // Orders
+  getOrders: () => api.get('/kitchen/orders'),
+};
+
 export default api;

@@ -18,7 +18,9 @@ export default function Index() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        if (user.role === 'driver') {
+        if (user.role === 'kitchen' || user.role === 'admin') {
+          router.replace('/(kitchen)');
+        } else if (user.role === 'driver') {
           router.replace('/(driver)');
         } else {
           router.replace('/(customer)');
