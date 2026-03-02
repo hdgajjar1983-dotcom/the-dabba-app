@@ -95,15 +95,15 @@ gujarati,tiffin,dabba,food delivery,indian food,homemade,thali,meal subscription
 
 ## 🔒 PRIVACY POLICY URL
 ```
-https://thedabba.com/privacy
+https://dabba-driver-portal.preview.emergentagent.com/privacy
 ```
-(You need to create this page)
+(In-app page created - also available as HTML at /assets/legal/privacy-policy.html)
 
 ## 📞 SUPPORT URL
 ```
-https://thedabba.com/support
+https://dabba-driver-portal.preview.emergentagent.com/support
 ```
-(You need to create this page)
+(In-app page created - also available as HTML at /assets/legal/support.html)
 
 ---
 
