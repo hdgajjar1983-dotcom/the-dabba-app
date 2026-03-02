@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 # Backend URL from environment
-BASE_URL = "https://dabba-driver-portal.preview.emergentagent.com/api"
+BASE_URL = "https://royalgujarat-build.preview.emergentagent.com/api"
 
 class FocusedTestResults:
     def __init__(self):
