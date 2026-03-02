@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
+      "entitlements": {
+        "com.apple.developer.game-center": false
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Take delivery proof photos",
         "NSPhotoLibraryUsageDescription": "Select photos for your profile",
