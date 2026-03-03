@@ -733,14 +733,29 @@
             margin: 0 auto;
         }
 
+        .pricing-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
         .pricing-card {
             background: var(--white);
-            padding: 45px 35px;
+            padding: 35px 28px;
             border-radius: 25px;
             text-align: center;
             position: relative;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+        }
+
+        .plan-subtitle {
+            color: var(--gold-dark);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
         }
 
         .pricing-card.featured {
@@ -1322,37 +1337,84 @@
         <div class="section-header">
             <div class="section-badge">
                 <i class="fas fa-tag"></i>
-                <span>Pricing</span>
+                <span>Meal Plans</span>
             </div>
-            <h2>Simple, Affordable Plans</h2>
-            <p>Choose the plan that works best for you.</p>
+            <h2>Choose Your Tiffin Size</h2>
+            <p>Monthly plans with fresh homestyle meals. All prices + 5% GST.</p>
         </div>
 
-        <div class="pricing-cards">
+        <div class="pricing-cards-grid">
+            <!-- Small Plan -->
             <div class="pricing-card">
-                <h3>Weekly Plan</h3>
-                <div class="price">$60<span>/week</span></div>
-                <p class="price-note">6 meals (Mon-Sat)</p>
+                <h3>Small</h3>
+                <div class="plan-subtitle">4 Roti Tiffin</div>
+                <div class="price">$250<span>/month</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> Fresh daily meals</li>
-                    <li><i class="fas fa-check"></i> Full Gujarati thali</li>
-                    <li><i class="fas fa-check"></i> Skip anytime</li>
-                    <li><i class="fas fa-check"></i> Earn $8 credit per skip</li>
-                    <li><i class="fas fa-check"></i> Free delivery</li>
+                    <li><i class="fas fa-check"></i> 227g Daal</li>
+                    <li><i class="fas fa-check"></i> 113g Sabzi</li>
+                    <li><i class="fas fa-check"></i> Dessert once a week</li>
+                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
+                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
                 </ul>
                 <a href="#download" class="btn-primary">Get Started</a>
             </div>
 
-            <div class="pricing-card featured">
-                <h3>Monthly Plan</h3>
-                <div class="price">$200<span>/month</span></div>
-                <p class="price-note">24 meals (Save $40!)</p>
+            <!-- Medium Plan -->
+            <div class="pricing-card">
+                <h3>Medium</h3>
+                <div class="plan-subtitle">6 Roti Tiffin</div>
+                <div class="price">$280<span>/month</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> Everything in Weekly</li>
-                    <li><i class="fas fa-check"></i> Priority delivery</li>
-                    <li><i class="fas fa-check"></i> Special weekend dishes</li>
-                    <li><i class="fas fa-check"></i> Festival specials included</li>
-                    <li><i class="fas fa-check"></i> 24/7 support</li>
+                    <li><i class="fas fa-check"></i> 227g Daal</li>
+                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
+                    <li><i class="fas fa-check"></i> Dessert once a week</li>
+                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
+                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
+                </ul>
+                <a href="#download" class="btn-primary">Get Started</a>
+            </div>
+
+            <!-- Regular Plan - Featured -->
+            <div class="pricing-card featured">
+                <h3>Regular</h3>
+                <div class="plan-subtitle">8 Roti Tiffin</div>
+                <div class="price">$330<span>/month</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> 340g Daal</li>
+                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
+                    <li><i class="fas fa-check"></i> Dessert once a week</li>
+                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
+                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
+                </ul>
+                <a href="#download" class="btn-primary">Get Started</a>
+            </div>
+
+            <!-- Large Plan -->
+            <div class="pricing-card">
+                <h3>Large</h3>
+                <div class="plan-subtitle">10 Roti Tiffin</div>
+                <div class="price">$360<span>/month</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> 340g Daal</li>
+                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
+                    <li><i class="fas fa-check"></i> Dessert once a week</li>
+                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
+                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
+                </ul>
+                <a href="#download" class="btn-primary">Get Started</a>
+            </div>
+
+            <!-- Extra Large Plan -->
+            <div class="pricing-card">
+                <h3>Extra Large</h3>
+                <div class="plan-subtitle">12 Roti Tiffin</div>
+                <div class="price">$450<span>/month</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> 340g Daal</li>
+                    <li><i class="fas fa-check"></i> 340g Sabzi</li>
+                    <li><i class="fas fa-check"></i> Dessert once a week</li>
+                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
+                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
                 </ul>
                 <a href="#download" class="btn-primary">Get Started</a>
             </div>
@@ -1453,5 +1515,18 @@
             });
         });
     </script>
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/69a5fd2014810b1c32a13e6d/1jio69hhl';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
 </body>
 </html>
