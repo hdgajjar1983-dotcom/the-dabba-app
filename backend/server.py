@@ -70,9 +70,16 @@ class DeliveryStatusUpdate(BaseModel):
     status: str
     photo_base64: Optional[str] = None
 
+class DriverLocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
+
 class DriverLocationQuery(BaseModel):
     latitude: float
     longitude: float
+
+class MarkReadyForDelivery(BaseModel):
+    order_ids: List[str]
 
 # Kitchen Portal Models
 class DishCreate(BaseModel):
@@ -578,6 +585,10 @@ async def get_kitchen_orders(current_user: dict = Depends(get_kitchen_user)):
     # Get all active subscriptions (today's orders)
     subscriptions = await db.subscriptions.find({"status": "active"}).to_list(200)
     
+    # Get today's delivery queue
+    delivery_queue = await db.delivery_queue.find({"date": today}).to_list(200)
+    queue_map = {d["subscription_id"]: d for d in delivery_queue}
+    
     orders = []
     for sub in subscriptions:
         user = await db.users.find_one({"id": sub["user_id"]})
@@ -588,10 +599,16 @@ async def get_kitchen_orders(current_user: dict = Depends(get_kitchen_user)):
             for s in sub.get("skipped_meals", [])
         )
         
-        # Check if delivered
-        delivery = await db.completed_deliveries.find_one({
-            "completed_at": {"$regex": f"^{today}"}
-        })
+        # Check delivery status
+        queue_item = queue_map.get(sub["id"])
+        delivery_status = "pending"
+        delivery_number = None
+        
+        if skipped_today:
+            delivery_status = "skipped"
+        elif queue_item:
+            delivery_status = queue_item.get("status", "ready")
+            delivery_number = queue_item.get("delivery_number")
         
         if user:
             orders.append({
@@ -601,11 +618,351 @@ async def get_kitchen_orders(current_user: dict = Depends(get_kitchen_user)):
                 "customer_email": user.get("email", ""),
                 "plan": sub.get("plan", ""),
                 "delivery_address": sub.get("delivery_address", user.get("address", "")),
-                "status": "skipped" if skipped_today else ("delivered" if delivery else "pending"),
+                "status": delivery_status,
+                "delivery_number": delivery_number,
                 "skipped": skipped_today
             })
     
     return {"orders": orders, "date": today}
+
+# ==================== SMART DELIVERY SYSTEM ====================
+
+@api_router.post("/kitchen/mark-ready")
+async def mark_orders_ready(data: MarkReadyForDelivery, current_user: dict = Depends(get_kitchen_user)):
+    """Mark orders as ready for delivery and auto-generate delivery numbers"""
+    today = datetime.now().date().isoformat()
+    
+    # Get current max delivery number for today
+    last_delivery = await db.delivery_queue.find_one(
+        {"date": today},
+        sort=[("delivery_number", -1)]
+    )
+    next_number = (last_delivery.get("delivery_number", 0) if last_delivery else 0) + 1
+    
+    ready_orders = []
+    for order_id in data.order_ids:
+        sub = await db.subscriptions.find_one({"id": order_id})
+        if sub:
+            user = await db.users.find_one({"id": sub["user_id"]})
+            address = sub.get("delivery_address", user.get("address", "") if user else "")
+            coords = get_coords_for_address(address)
+            
+            delivery_item = {
+                "id": str(uuid.uuid4()),
+                "subscription_id": order_id,
+                "user_id": sub["user_id"],
+                "date": today,
+                "delivery_number": next_number,
+                "customer_name": user.get("name", "Unknown") if user else "Unknown",
+                "customer_phone": user.get("phone", "") if user else "",
+                "address": address,
+                "plan": sub.get("plan", ""),
+                "latitude": coords["lat"],
+                "longitude": coords["lon"],
+                "status": "ready",
+                "ready_at": datetime.utcnow().isoformat(),
+                "created_by": current_user["id"]
+            }
+            
+            await db.delivery_queue.update_one(
+                {"subscription_id": order_id, "date": today},
+                {"$set": delivery_item},
+                upsert=True
+            )
+            
+            ready_orders.append({
+                "delivery_number": next_number,
+                "customer_name": delivery_item["customer_name"],
+                "address": address,
+                "plan": delivery_item["plan"]
+            })
+            next_number += 1
+    
+    return {"message": f"Marked {len(ready_orders)} orders as ready", "orders": ready_orders}
+
+@api_router.get("/kitchen/print-labels")
+async def get_print_labels(current_user: dict = Depends(get_kitchen_user)):
+    """Get all ready orders for label printing"""
+    today = datetime.now().date().isoformat()
+    
+    ready_orders = await db.delivery_queue.find({
+        "date": today,
+        "status": "ready"
+    }).sort("delivery_number", 1).to_list(200)
+    
+    labels = []
+    for order in ready_orders:
+        labels.append({
+            "delivery_number": order.get("delivery_number"),
+            "customer_name": order.get("customer_name"),
+            "address": order.get("address"),
+            "plan": order.get("plan"),
+            "phone": order.get("customer_phone", "")
+        })
+    
+    return {"labels": labels, "date": today}
+
+# ==================== DRIVER REAL-TIME TRACKING ====================
+
+@api_router.post("/driver/update-location")
+async def update_driver_location(location: DriverLocationUpdate, current_user: dict = Depends(get_current_user)):
+    """Update driver's real-time location"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    location_data = {
+        "driver_id": current_user["id"],
+        "driver_name": current_user.get("name", "Driver"),
+        "latitude": location.latitude,
+        "longitude": location.longitude,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.driver_locations.update_one(
+        {"driver_id": current_user["id"]},
+        {"$set": location_data},
+        upsert=True
+    )
+    
+    return {"message": "Location updated", "location": location_data}
+
+@api_router.get("/driver/optimized-route")
+async def get_optimized_route(
+    lat: float,
+    lon: float,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get deliveries sorted by optimized route from driver's current location"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    # Get all ready deliveries
+    deliveries = await db.delivery_queue.find({
+        "date": today,
+        "status": {"$in": ["ready", "out_for_delivery"]}
+    }).to_list(200)
+    
+    # Calculate distances and sort
+    for delivery in deliveries:
+        distance = calculate_distance(
+            lat, lon,
+            delivery.get("latitude", 0),
+            delivery.get("longitude", 0)
+        )
+        delivery["distance"] = distance
+        delivery["estimated_time"] = max(5, int(distance * 3))  # ~3 mins per km
+    
+    # Sort by distance (nearest first)
+    deliveries.sort(key=lambda x: x["distance"])
+    
+    # Assign route order
+    route = []
+    for idx, delivery in enumerate(deliveries):
+        route.append({
+            "route_order": idx + 1,
+            "delivery_id": delivery.get("id"),
+            "delivery_number": delivery.get("delivery_number"),
+            "customer_name": delivery.get("customer_name"),
+            "customer_phone": delivery.get("customer_phone"),
+            "address": delivery.get("address"),
+            "plan": delivery.get("plan"),
+            "latitude": delivery.get("latitude"),
+            "longitude": delivery.get("longitude"),
+            "distance": delivery.get("distance"),
+            "estimated_time": delivery.get("estimated_time"),
+            "status": delivery.get("status")
+        })
+    
+    return {"route": route, "total_deliveries": len(route)}
+
+@api_router.put("/driver/start-delivery/{delivery_id}")
+async def start_delivery(delivery_id: str, current_user: dict = Depends(get_current_user)):
+    """Mark delivery as out for delivery"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    result = await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "status": "out_for_delivery",
+            "driver_id": current_user["id"],
+            "driver_name": current_user.get("name"),
+            "started_at": datetime.utcnow().isoformat()
+        }}
+    )
+    
+    return {"message": "Delivery started", "delivery_id": delivery_id}
+
+@api_router.put("/driver/complete-delivery/{delivery_id}")
+async def complete_delivery(
+    delivery_id: str,
+    status_data: DeliveryStatusUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark delivery as completed with photo proof"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    # Update delivery queue
+    await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "status": "delivered",
+            "delivered_at": datetime.utcnow().isoformat(),
+            "photo_base64": status_data.photo_base64
+        }}
+    )
+    
+    # Also store in completed deliveries
+    delivery = await db.delivery_queue.find_one({"id": delivery_id})
+    if delivery:
+        completion_record = {
+            "id": delivery_id,
+            "delivery_number": delivery.get("delivery_number"),
+            "customer_name": delivery.get("customer_name"),
+            "address": delivery.get("address"),
+            "driver_id": current_user["id"],
+            "driver_name": current_user.get("name"),
+            "completed_at": datetime.utcnow().isoformat(),
+            "photo_base64": status_data.photo_base64
+        }
+        await db.completed_deliveries.update_one(
+            {"id": delivery_id},
+            {"$set": completion_record},
+            upsert=True
+        )
+    
+    return {"message": "Delivery completed", "delivery_id": delivery_id}
+
+# ==================== CUSTOMER TRACKING ====================
+
+@api_router.get("/customer/delivery-status")
+async def get_customer_delivery_status(current_user: dict = Depends(get_current_user)):
+    """Get real-time delivery status for customer"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    # Find customer's subscription
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        return {"status": "no_subscription", "message": "No active subscription found"}
+    
+    # Check if skipped today
+    skipped = any(
+        s.get("date") == today 
+        for s in subscription.get("skipped_meals", [])
+    )
+    
+    if skipped:
+        return {"status": "skipped", "message": "You skipped today's meal"}
+    
+    # Get delivery status
+    delivery = await db.delivery_queue.find_one({
+        "subscription_id": subscription["id"],
+        "date": today
+    })
+    
+    if not delivery:
+        return {
+            "status": "preparing",
+            "message": "Your meal is being prepared in the kitchen"
+        }
+    
+    # Get driver location if out for delivery
+    driver_location = None
+    if delivery.get("status") == "out_for_delivery" and delivery.get("driver_id"):
+        driver_loc = await db.driver_locations.find_one({"driver_id": delivery["driver_id"]})
+        if driver_loc:
+            driver_location = {
+                "latitude": driver_loc.get("latitude"),
+                "longitude": driver_loc.get("longitude"),
+                "updated_at": driver_loc.get("updated_at")
+            }
+    
+    response = {
+        "status": delivery.get("status", "pending"),
+        "delivery_number": delivery.get("delivery_number"),
+        "estimated_time": delivery.get("estimated_time"),
+        "driver_name": delivery.get("driver_name"),
+        "driver_location": driver_location,
+        "message": get_status_message(delivery.get("status"))
+    }
+    
+    if delivery.get("status") == "delivered":
+        response["delivered_at"] = delivery.get("delivered_at")
+        response["photo_url"] = delivery.get("photo_base64") is not None
+    
+    return response
+
+def get_status_message(status: str) -> str:
+    messages = {
+        "pending": "Your order is pending",
+        "ready": "Your tiffin is ready for delivery",
+        "out_for_delivery": "Driver is on the way with your tiffin!",
+        "delivered": "Your tiffin has been delivered. Enjoy!",
+    }
+    return messages.get(status, "Processing your order")
+
+@api_router.get("/customer/track-driver")
+async def track_driver(current_user: dict = Depends(get_current_user)):
+    """Get real-time driver location for customer"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription")
+    
+    delivery = await db.delivery_queue.find_one({
+        "subscription_id": subscription["id"],
+        "date": today,
+        "status": "out_for_delivery"
+    })
+    
+    if not delivery:
+        return {"tracking": False, "message": "Driver not dispatched yet"}
+    
+    driver_loc = await db.driver_locations.find_one({"driver_id": delivery.get("driver_id")})
+    
+    if not driver_loc:
+        return {"tracking": False, "message": "Driver location not available"}
+    
+    # Calculate distance to customer
+    customer_coords = get_coords_for_address(delivery.get("address", ""))
+    distance = calculate_distance(
+        driver_loc["latitude"], driver_loc["longitude"],
+        customer_coords["lat"], customer_coords["lon"]
+    )
+    
+    return {
+        "tracking": True,
+        "driver_name": delivery.get("driver_name"),
+        "driver_location": {
+            "latitude": driver_loc["latitude"],
+            "longitude": driver_loc["longitude"]
+        },
+        "customer_location": {
+            "latitude": customer_coords["lat"],
+            "longitude": customer_coords["lon"]
+        },
+        "distance_km": distance,
+        "estimated_minutes": max(3, int(distance * 3)),
+        "updated_at": driver_loc.get("updated_at")
+    }
 
 # ==================== SEED DEFAULT DISHES ====================
 

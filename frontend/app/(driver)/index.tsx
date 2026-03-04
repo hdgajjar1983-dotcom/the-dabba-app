@@ -46,12 +46,16 @@ const COLORS = {
 
 interface Delivery {
   id: string;
+  delivery_id?: string;
+  delivery_number?: number;
+  route_order?: number;
   customer_name: string;
   customer_phone: string;
   address: string;
-  meal_type: string;
+  meal_type?: string;
+  plan?: string;
   status: string;
-  subscription_plan: string;
+  subscription_plan?: string;
   distance: number;
   estimated_time: number;
   latitude?: number;
@@ -107,8 +111,10 @@ export default function DriverDeliveries() {
     })
   ).current;
 
-  // Request location permission
+  // Request location permission and start tracking
   useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+    
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -116,6 +122,8 @@ export default function DriverDeliveries() {
           setDriverLocation({ latitude: 44.6488, longitude: -63.5752 });
           return;
         }
+        
+        // Get initial location
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
@@ -123,23 +131,79 @@ export default function DriverDeliveries() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
+        
+        // Update server with location
+        try {
+          await driverAPI.updateLocation(
+            location.coords.latitude,
+            location.coords.longitude
+          );
+        } catch (e) {
+          console.log('Location update failed:', e);
+        }
+        
+        // Start continuous location tracking
+        locationSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            distanceInterval: 50, // Update every 50 meters
+            timeInterval: 10000, // Or every 10 seconds
+          },
+          async (newLocation) => {
+            setDriverLocation({
+              latitude: newLocation.coords.latitude,
+              longitude: newLocation.coords.longitude,
+            });
+            // Update server with new location
+            try {
+              await driverAPI.updateLocation(
+                newLocation.coords.latitude,
+                newLocation.coords.longitude
+              );
+            } catch (e) {
+              console.log('Location update failed:', e);
+            }
+          }
+        );
       } catch (error) {
         setDriverLocation({ latitude: 44.6488, longitude: -63.5752 });
       }
     })();
+    
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, []);
 
   const fetchDeliveries = useCallback(async () => {
     try {
-      const response = await driverAPI.getDeliveries(
-        driverLocation?.latitude,
-        driverLocation?.longitude
-      );
-      let deliveryList = response.data.deliveries || [];
-      setAllDeliveries(deliveryList);
-      setPendingDeliveries(deliveryList.filter((d: Delivery) => d.status === 'pending'));
+      // Use optimized route API for better sorting
+      if (driverLocation) {
+        const response = await driverAPI.getOptimizedRoute(
+          driverLocation.latitude,
+          driverLocation.longitude
+        );
+        let deliveryList = response.data.route || [];
+        setAllDeliveries(deliveryList);
+        setPendingDeliveries(deliveryList.filter((d: any) => 
+          d.status === 'ready' || d.status === 'out_for_delivery'
+        ));
+      }
     } catch (error) {
-      console.error('Error fetching deliveries:', error);
+      // Fallback to regular API
+      try {
+        const response = await driverAPI.getDeliveries(
+          driverLocation?.latitude,
+          driverLocation?.longitude
+        );
+        let deliveryList = response.data.deliveries || [];
+        setAllDeliveries(deliveryList);
+        setPendingDeliveries(deliveryList.filter((d: Delivery) => d.status === 'pending'));
+      } catch (e) {
+        console.error('Error fetching deliveries:', e);
+      }
     } finally {
       setIsLoading(false);
       setRefreshing(false);

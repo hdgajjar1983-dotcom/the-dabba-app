@@ -55,23 +55,6 @@ export const walletAPI = {
   getWallet: () => api.get('/wallet'),
 };
 
-// Driver APIs
-export const driverAPI = {
-  getDeliveries: (lat?: number, lon?: number) => {
-    const params: Record<string, string> = {};
-    if (lat !== undefined && lon !== undefined) {
-      params.lat = lat.toString();
-      params.lon = lon.toString();
-    }
-    return api.get('/driver/deliveries', { params });
-  },
-  updateDeliveryStatus: (id: string, status: string, photoBase64?: string) =>
-    api.put(`/driver/delivery/${id}/status`, { 
-      status,
-      photo_base64: photoBase64 
-    }),
-};
-
 // Kitchen Portal APIs
 export const kitchenAPI = {
   // Dashboard
@@ -96,6 +79,41 @@ export const kitchenAPI = {
   
   // Orders
   getOrders: () => api.get('/kitchen/orders'),
+  
+  // Smart Delivery System
+  markOrdersReady: (orderIds: string[]) => api.post('/kitchen/mark-ready', { order_ids: orderIds }),
+  getPrintLabels: () => api.get('/kitchen/print-labels'),
+};
+
+// Driver APIs (Enhanced)
+export const driverAPI = {
+  getDeliveries: (lat?: number, lon?: number) => {
+    const params: Record<string, string> = {};
+    if (lat !== undefined && lon !== undefined) {
+      params.lat = lat.toString();
+      params.lon = lon.toString();
+    }
+    return api.get('/driver/deliveries', { params });
+  },
+  getOptimizedRoute: (lat: number, lon: number) => 
+    api.get('/driver/optimized-route', { params: { lat, lon } }),
+  updateLocation: (latitude: number, longitude: number) =>
+    api.post('/driver/update-location', { latitude, longitude }),
+  startDelivery: (deliveryId: string) =>
+    api.put(`/driver/start-delivery/${deliveryId}`),
+  completeDelivery: (deliveryId: string, status: string, photoBase64?: string) =>
+    api.put(`/driver/complete-delivery/${deliveryId}`, { status, photo_base64: photoBase64 }),
+  updateDeliveryStatus: (id: string, status: string, photoBase64?: string) =>
+    api.put(`/driver/delivery/${id}/status`, { 
+      status,
+      photo_base64: photoBase64 
+    }),
+};
+
+// Customer APIs (Enhanced with tracking)
+export const customerAPI = {
+  getDeliveryStatus: () => api.get('/customer/delivery-status'),
+  trackDriver: () => api.get('/customer/track-driver'),
 };
 
 export default api;
