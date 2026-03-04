@@ -3,10 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Use local backend API
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'https://royalgujarat-build.preview.emergentagent.com/api';
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl;
+if (!API_BASE_URL) {
+  console.warn('API URL not configured, using default');
+}
+const FALLBACK_URL = 'https://royalgujarat-build.preview.emergentagent.com/api';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || FALLBACK_URL,
   headers: {
     'Content-Type': 'application/json',
   },

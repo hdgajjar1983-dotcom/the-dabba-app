@@ -23,7 +23,9 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ.get('DB_NAME', 'thedabba')]
 
 # JWT Secret
-JWT_SECRET = os.environ.get('JWT_SECRET', 'thedabba-secret-key-2024')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET environment variable is required")
 JWT_ALGORITHM = "HS256"
 
 # Create the main app
