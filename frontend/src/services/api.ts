@@ -2,14 +2,26 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Get API URL from Expo config - required for deployment
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl;
-if (!API_BASE_URL) {
-  throw new Error('API URL not configured. Please set apiUrl in app.config.js extra field.');
-}
+// Get API URL from Expo config or environment
+const getApiUrl = () => {
+  // Try expo config first
+  const configUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (configUrl) return configUrl;
+  
+  // Fallback to environment variable for Expo Go
+  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (envUrl) return `${envUrl}/api`;
+  
+  // Default for development
+  return 'https://dabba-delivery-2.preview.emergentagent.com/api';
+};
+
+const API_BASE_URL = getApiUrl();
+console.log('API URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000, // 30 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
