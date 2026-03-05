@@ -12,6 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
       "buildNumber": "3",
+      "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false
       },
