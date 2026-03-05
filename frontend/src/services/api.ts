@@ -2,15 +2,14 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Use local backend API
+// Get API URL from Expo config - required for deployment
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl;
 if (!API_BASE_URL) {
-  console.warn('API URL not configured, using default');
+  throw new Error('API URL not configured. Please set apiUrl in app.config.js extra field.');
 }
-const FALLBACK_URL = 'https://dabba-delivery-2.preview.emergentagent.com/api';
 
 const api = axios.create({
-  baseURL: API_BASE_URL || FALLBACK_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

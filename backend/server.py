@@ -354,9 +354,14 @@ async def get_driver_deliveries(
     
     subscriptions = await db.subscriptions.find({"status": "active"}).to_list(100)
     
+    # Batch fetch all users to avoid N+1 queries
+    user_ids = [sub["user_id"] for sub in subscriptions]
+    users = await db.users.find({"id": {"$in": user_ids}}).to_list(100)
+    user_map = {u["id"]: u for u in users}
+    
     deliveries = []
     for sub in subscriptions:
-        user = await db.users.find_one({"id": sub["user_id"]})
+        user = user_map.get(sub["user_id"])
         if user:
             # Check if not skipped
             skipped_today = any(
@@ -559,9 +564,14 @@ async def set_menu_day(menu_data: MenuDaySet, current_user: dict = Depends(get_k
 async def get_all_customers(current_user: dict = Depends(get_kitchen_user)):
     customers = await db.users.find({"role": "customer"}).to_list(200)
     
+    # Batch fetch all subscriptions to avoid N+1 queries
+    customer_ids = [c["id"] for c in customers]
+    subs = await db.subscriptions.find({"user_id": {"$in": customer_ids}}).to_list(200)
+    sub_map = {s["user_id"]: s for s in subs}
+    
     result = []
     for c in customers:
-        sub = await db.subscriptions.find_one({"user_id": c["id"]})
+        sub = sub_map.get(c["id"])
         result.append({
             "id": c["id"],
             "name": c.get("name", ""),
@@ -587,13 +597,18 @@ async def get_kitchen_orders(current_user: dict = Depends(get_kitchen_user)):
     # Get all active subscriptions (today's orders)
     subscriptions = await db.subscriptions.find({"status": "active"}).to_list(200)
     
+    # Batch fetch all users to avoid N+1 queries
+    user_ids = [sub["user_id"] for sub in subscriptions]
+    users = await db.users.find({"id": {"$in": user_ids}}).to_list(200)
+    user_map = {u["id"]: u for u in users}
+    
     # Get today's delivery queue
     delivery_queue = await db.delivery_queue.find({"date": today}).to_list(200)
     queue_map = {d["subscription_id"]: d for d in delivery_queue}
     
     orders = []
     for sub in subscriptions:
-        user = await db.users.find_one({"id": sub["user_id"]})
+        user = user_map.get(sub["user_id"])
         
         # Check if skipped today
         skipped_today = any(
