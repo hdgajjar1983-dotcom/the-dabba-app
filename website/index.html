@@ -1630,6 +1630,89 @@
     <!--End of Tawk.to Script-->
 
     <script>
+        // ========== DISABLE INSPECT / DEV TOOLS ==========
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable keyboard shortcuts for dev tools
+        document.addEventListener('keydown', function(e) {
+            // F12
+            if (e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+Shift+I (Inspect)
+            if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+Shift+J (Console)
+            if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+Shift+C (Element picker)
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+U (View Source)
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+S (Save)
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Disable text selection
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Disable drag
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        // Detect DevTools open (basic detection)
+        (function() {
+            const devtools = {
+                isOpen: false,
+                orientation: undefined
+            };
+            const threshold = 170;
+            const emitEvent = (isOpen, orientation) => {
+                globalThis.dispatchEvent(new globalThis.CustomEvent('devtoolschange', {
+                    detail: { isOpen, orientation }
+                }));
+            };
+            setInterval(() => {
+                const widthThreshold = globalThis.outerWidth - globalThis.innerWidth > threshold;
+                const heightThreshold = globalThis.outerHeight - globalThis.innerHeight > threshold;
+                if (widthThreshold || heightThreshold) {
+                    if (!devtools.isOpen) {
+                        emitEvent(true, widthThreshold ? 'vertical' : 'horizontal');
+                    }
+                    devtools.isOpen = true;
+                } else {
+                    if (devtools.isOpen) {
+                        emitEvent(false, undefined);
+                    }
+                    devtools.isOpen = false;
+                }
+            }, 500);
+        })();
+
+        // ========== SITE FUNCTIONALITY ==========
         // Hide loader after page loads
         window.addEventListener('load', function() {
             setTimeout(function() {
