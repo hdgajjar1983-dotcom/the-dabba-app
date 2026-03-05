@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 # Backend URL from environment
-BASE_URL = "https://royalgujarat-build.preview.emergentagent.com/api"
+BASE_URL = "https://dabba-delivery-2.preview.emergentagent.com/api"
 
 class TestResults:
     def __init__(self):

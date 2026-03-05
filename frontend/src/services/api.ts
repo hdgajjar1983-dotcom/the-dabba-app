@@ -7,7 +7,7 @@ const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl;
 if (!API_BASE_URL) {
   console.warn('API URL not configured, using default');
 }
-const FALLBACK_URL = 'https://royalgujarat-build.preview.emergentagent.com/api';
+const FALLBACK_URL = 'https://dabba-delivery-2.preview.emergentagent.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL || FALLBACK_URL,
