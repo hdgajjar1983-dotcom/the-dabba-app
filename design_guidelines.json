@@ -1,0 +1,128 @@
+{
+  "project_name": "Tha Dabba - The Greatest Tiffin Website on Earth",
+  "brand_identity": {
+    "persona": "E1: The Anti-AI Designer",
+    "tone": "Sophisticated, Authentic, High-Energy, Invite-Only Feel",
+    "core_philosophy": "Fusion over Imitation. Dark Mode Luxury. 8K Textures.",
+    "emotional_archetype": "The Royal Feast (Jewel & Luxury + Organic & Earthy)",
+    "keywords": ["Charcoal", "Saffron", "Gold", "Stainless Steel", "Aroma", "Night"]
+  },
+  "typography": {
+    "headings": {
+      "family": "Playfair Display",
+      "weights": ["400", "700", "900"],
+      "usage": "Hero titles, Section headers, Menu categories",
+      "letter_spacing": "tracking-tight",
+      "line_height": "leading-none"
+    },
+    "body": {
+      "family": "Manrope",
+      "weights": ["400", "500", "600"],
+      "usage": "Interface text, Descriptions, Buttons",
+      "letter_spacing": "tracking-wide"
+    },
+    "accent": {
+      "family": "Rozha One",
+      "usage": "Special offers, 'Authentic' stamps, Pull quotes"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "charcoal": "#121212",
+        "charcoal_light": "#1E1E1E",
+        "deep_saffron": "#FF9933",
+        "brushed_gold": "#D4AF37"
+      },
+      "secondary": {
+        "spice_red": "#C41E3A",
+        "turmeric_yellow": "#FFC30B",
+        "cardamom_green": "#3F704D"
+      },
+      "neutral": {
+        "off_white": "#F5F5F7",
+        "steel_grey": "#A0A0A0",
+        "black": "#000000"
+      }
+    },
+    "usage_rules": {
+      "background": "Use Charcoal (#121212) as the main background. NEVER use pure black (#000000) except for deep contrast layers.",
+      "accents": "Use Deep Saffron (#FF9933) for Primary CTAs. Use Brushed Gold (#D4AF37) for borders, icons, and text highlights.",
+      "gradients": "Avoid generic linear gradients. Use radial gradients of Saffron/Gold with 0-20% opacity on Charcoal backgrounds to create 'Glow' spots.",
+      "glassmorphism": "Use 'Smoked Glass': bg-charcoal/70 backdrop-blur-xl border-white/10."
+    }
+  },
+  "layout_strategy": {
+    "spacing_system": "Generous. Use p-6, p-8, p-12. Avoid cramped layouts.",
+    "grid_system": {
+      "bento_grid": "Use for Menu and Features. Mix 1x1, 2x1, and 2x2 cells. Asymmetrical layouts preferred.",
+      "mobile_first": "Single column on mobile, expanding to 12-col grid on desktop (if web target)."
+    },
+    "containers": {
+      "cards": "No flat cards. Use 'Tracing Beam' borders or 'Smoked Glass' backgrounds.",
+      "sections": "Full-screen hero sections with parallax scrolling."
+    }
+  },
+  "visual_enhancers": {
+    "textures": {
+      "noise": "Overlay a subtle 5% noise texture on the Charcoal background to prevent banding and add grit.",
+      "patterns": "Use low-opacity Indian geometric patterns (Rangoli/Mandala) in the negative space."
+    },
+    "shadows": {
+      "glow": "shadow-[0_0_30px_rgba(255,153,51,0.3)] for active states (Saffron Glow).",
+      "depth": "shadow-2xl for floating elements."
+    },
+    "borders": {
+      "gold_trim": "1px solid #D4AF37 with 30% opacity for card borders.",
+      "tracing_beam": "Animated gradient borders for high-value plans."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-deep_saffron text-charcoal font-bold rounded-full hover:shadow-glow transition-all",
+      "secondary": "border border-brushed_gold text-brushed_gold bg-transparent rounded-full hover:bg-brushed_gold/10"
+    },
+    "inputs": {
+      "style": "bg-charcoal_light border-white/20 text-off_white focus:border-deep_saffron rounded-lg p-4"
+    },
+    "navigation": {
+      "style": "Floating glass bar at the bottom (mobile) or top (desktop). Backdrop blur required."
+    }
+  },
+  "media": {
+    "image_style": "Cinematic, High Contrast, Warm Lighting. Food should look steaming hot. Spices should look textured.",
+    "image_urls": {
+      "hero_background": "https://images.unsplash.com/photo-1731823336267-46628565e809",
+      "spice_texture": "https://images.unsplash.com/photo-1568445984440-f65a9169ae61",
+      "tiffin_showcase": "https://images.unsplash.com/photo-1632486082762-c597cdcc26c4",
+      "halifax_night": "https://images.unsplash.com/photo-1731823336267-46628565e809",
+      "food_platter": "https://images.unsplash.com/photo-1756821753095-64134f5c0c5c"
+    }
+  },
+  "three_d_strategy": {
+    "library": "React Three Fiber (@react-three/fiber, @react-three/drei)",
+    "concept": "The Royal Tiffin Builder",
+    "implementation": [
+      "Use <Stage> for studio lighting.",
+      "Use <OrbitControls> for interaction.",
+      "Model: Stacked Stainless Steel Tiffin. Each layer customizable (Curry, Rice, Bread, Dessert).",
+      "Materials: StandardMaterial with high 'metalness' (0.8) and 'roughness' (0.2) for the tiffin. Realistic food textures for contents."
+    ],
+    "fallback": "If 3D fails or on low-end devices, fallback to high-res PNG sequence of the tiffin."
+  },
+  "universal_guidelines": [
+    "INSTALL NativeWind (v4) for Tailwind styling in Expo.",
+    "INSTALL lucide-react-native for icons.",
+    "DO NOT use generic AI emojis.",
+    "Ensure 100% Dark Mode compliance. No white backgrounds.",
+    "Accessibility: Ensure Gold text on Charcoal meets 4.5:1 contrast (adjust shade if needed).",
+    "Animation: Use React Native Reanimated for smooth transitions (entering screens, button presses)."
+  ],
+  "instructions_to_main_agent": {
+    "step_1": "Install NativeWind and Tailwind CSS. Create tailwind.config.js.",
+    "step_2": "Set up the font system with Expo Font (Playfair Display, Manrope).",
+    "step_3": "Build the 'Glass' layout wrapper.",
+    "step_4": "Implement the 3D Tiffin Customizer using React Three Fiber.",
+    "step_5": "Create the 'Bento' Menu Grid."
+  }
+}
