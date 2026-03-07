@@ -3,1781 +3,751 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dabba - Gujarati Ghar Ka Swad | Premium Tiffin Delivery</title>
-    <meta name="description" content="Experience authentic Gujarati home cooking delivered fresh to your doorstep in Halifax.">
+    <meta name="description" content="Tha Dabba - Premium Indian Tiffin Service in Halifax. Authentic home-style meals delivered daily to Halifax, Bedford, and Dartmouth.">
+    <meta name="keywords" content="tiffin service Halifax, Indian food delivery, meal subscription Halifax, Bedford tiffin, Dartmouth Indian meals">
+    <title>Tha Dabba | Premium Indian Tiffin Service in Halifax</title>
+    
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root {
-            --maroon: #8B1538;
-            --maroon-dark: #5D0E24;
-            --maroon-light: #A91D47;
-            --gold: #D4AF37;
-            --gold-light: #F4E4BA;
-            --gold-dark: #B8962E;
-            --cream: #FDF8F3;
-            --cream-dark: #F5EDE4;
-            --text-dark: #2D1810;
-            --text-light: #8B7355;
-            --white: #FFFFFF;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--cream);
-            color: var(--text-dark);
-            overflow-x: hidden;
-        }
-
-        /* Premium Loading Screen */
-        .loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--maroon-dark), var(--maroon));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.8s ease, visibility 0.8s ease;
-        }
-
-        .loader.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-
-        .loader-content {
-            text-align: center;
-        }
-
-        .loader-logo {
-            width: 100px;
-            height: 100px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            animation: pulse 1.5s ease-in-out infinite;
-            border: 3px solid var(--gold);
-        }
-
-        .loader-logo i {
-            font-size: 40px;
-            color: var(--gold-light);
-        }
-
-        .loader-text {
-            font-family: 'Playfair Display', serif;
-            font-size: 32px;
-            color: var(--gold-light);
-            animation: fadeInUp 1s ease;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(212, 175, 55, 0); }
-        }
-
-        /* Animated Background */
-        .bg-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-
-        .bg-animation::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 20% 80%, rgba(139, 21, 56, 0.03) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
-                        radial-gradient(circle at 40% 40%, rgba(139, 21, 56, 0.02) 0%, transparent 30%);
-            animation: bgMove 20s ease-in-out infinite;
-        }
-
-        @keyframes bgMove {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(2%, 2%) rotate(1deg); }
-            66% { transform: translate(-1%, 1%) rotate(-1deg); }
-        }
-
-        /* Floating Particles */
-        .particles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .particle {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            background: var(--gold);
-            border-radius: 50%;
-            opacity: 0.3;
-            animation: float 15s infinite;
-        }
-
-        .particle:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 20s; }
-        .particle:nth-child(2) { left: 20%; animation-delay: 2s; animation-duration: 18s; }
-        .particle:nth-child(3) { left: 30%; animation-delay: 4s; animation-duration: 22s; }
-        .particle:nth-child(4) { left: 40%; animation-delay: 1s; animation-duration: 19s; }
-        .particle:nth-child(5) { left: 50%; animation-delay: 3s; animation-duration: 21s; }
-        .particle:nth-child(6) { left: 60%; animation-delay: 5s; animation-duration: 17s; }
-        .particle:nth-child(7) { left: 70%; animation-delay: 2s; animation-duration: 23s; }
-        .particle:nth-child(8) { left: 80%; animation-delay: 4s; animation-duration: 20s; }
-        .particle:nth-child(9) { left: 90%; animation-delay: 1s; animation-duration: 18s; }
-
-        @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.3; }
-            90% { opacity: 0.3; }
-            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Premium Navigation */
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            padding: 25px 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .navbar.scrolled {
-            background: rgba(253, 248, 243, 0.95);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 4px 30px rgba(139, 21, 56, 0.1);
-            padding: 15px 5%;
-        }
-
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            opacity: 0;
-            animation: fadeInLeft 1s ease 0.5s forwards;
-        }
-
-        .nav-logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--gold);
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(139, 21, 56, 0.3);
-        }
-
-        .nav-logo:hover .nav-logo-icon {
-            transform: rotate(360deg) scale(1.1);
-            box-shadow: 0 8px 25px rgba(139, 21, 56, 0.4);
-        }
-
-        .nav-logo-icon i {
-            color: var(--gold-light);
-            font-size: 22px;
-        }
-
-        .nav-logo-text {
-            font-family: 'Playfair Display', serif;
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--maroon);
-            letter-spacing: -0.5px;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 40px;
-            list-style: none;
-            opacity: 0;
-            animation: fadeInDown 1s ease 0.7s forwards;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-dark);
-            font-weight: 500;
-            font-size: 15px;
-            position: relative;
-            padding: 5px 0;
-            transition: all 0.3s ease;
-        }
-
-        .nav-links a::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--gold), var(--maroon));
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
-
-        .nav-links a:hover {
-            color: var(--maroon);
-        }
-
-        .nav-links a:hover::before {
-            width: 100%;
-        }
-
-        .nav-cta {
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            color: var(--gold-light);
-            padding: 14px 32px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 20px rgba(139, 21, 56, 0.3);
-            opacity: 0;
-            animation: fadeInRight 1s ease 0.9s forwards;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .nav-cta::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .nav-cta:hover::before {
-            left: 100%;
-        }
-
-        .nav-cta:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 30px rgba(139, 21, 56, 0.4);
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 26px;
-            color: var(--maroon);
-            cursor: pointer;
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes fadeInRight {
-            from { opacity: 0; transform: translateX(40px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(60px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Hero Section - Premium */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding: 140px 5% 100px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-content {
-            max-width: 620px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold));
-            color: var(--maroon-dark);
-            padding: 10px 22px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 30px;
-            opacity: 0;
-            animation: fadeInUp 1s ease 1.1s forwards;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .hero-badge i {
-            animation: pulse 2s infinite;
-        }
-
-        .hero h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(48px, 7vw, 82px);
-            color: var(--maroon);
-            line-height: 1.05;
-            margin-bottom: 20px;
-            opacity: 0;
-            animation: fadeInUp 1s ease 1.3s forwards;
-            letter-spacing: -2px;
-        }
-
-        .hero h1 span {
-            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-style: italic;
-            position: relative;
-        }
-
-        .hero h1 span::after {
-            content: '';
-            position: absolute;
-            bottom: 5px;
-            left: 0;
-            width: 100%;
-            height: 8px;
-            background: linear-gradient(90deg, var(--gold-light), transparent);
-            z-index: -1;
-            opacity: 0.5;
-        }
-
-        .hero-tagline {
-            font-family: 'Playfair Display', serif;
-            font-size: 26px;
-            color: var(--gold-dark);
-            font-style: italic;
-            margin-bottom: 25px;
-            opacity: 0;
-            animation: fadeInUp 1s ease 1.5s forwards;
-            letter-spacing: 1px;
-        }
-
-        .hero p {
-            font-size: 18px;
-            color: var(--text-light);
-            line-height: 1.9;
-            margin-bottom: 40px;
-            opacity: 0;
-            animation: fadeInUp 1s ease 1.7s forwards;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 18px;
-            flex-wrap: wrap;
-            opacity: 0;
-            animation: fadeInUp 1s ease 1.9s forwards;
-        }
-
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            color: var(--gold-light);
-            padding: 18px 38px;
-            border-radius: 60px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 40px rgba(139, 21, 56, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-            transition: left 0.6s ease;
-        }
-
-        .btn-primary:hover::before {
-            left: 100%;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 15px 50px rgba(139, 21, 56, 0.4);
-        }
-
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: transparent;
-            color: var(--maroon);
-            padding: 18px 38px;
-            border-radius: 60px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 15px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid var(--maroon);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-secondary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 100%;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            transition: width 0.4s ease;
-            z-index: -1;
-        }
-
-        .btn-secondary:hover::before {
-            width: 100%;
-        }
-
-        .btn-secondary:hover {
-            color: var(--gold-light);
-            border-color: var(--maroon);
-            transform: translateY(-4px);
-        }
-
-        /* Hero Image */
-        .hero-image {
-            position: absolute;
-            right: 3%;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 48%;
-            max-width: 650px;
-            opacity: 0;
-            animation: scaleIn 1.2s ease 1.5s forwards;
-        }
-
-        .hero-image-container {
-            position: relative;
-            perspective: 1000px;
-        }
-
-        .hero-food-image {
-            width: 100%;
-            border-radius: 30px;
-            box-shadow: 0 40px 80px rgba(139, 21, 56, 0.25), 
-                        0 20px 40px rgba(0, 0, 0, 0.1);
-            transition: transform 0.5s ease;
-            animation: floatSlow 8s ease-in-out infinite;
-        }
-
-        @keyframes floatSlow {
-            0%, 100% { transform: translateY(0) rotateX(2deg) rotateY(-2deg); }
-            50% { transform: translateY(-20px) rotateX(-2deg) rotateY(2deg); }
-        }
-
-        .floating-element {
-            position: absolute;
-            animation: floatBadge 4s ease-in-out infinite;
-        }
-
-        .floating-element.el-1 {
-            top: 5%;
-            left: -8%;
-            animation-delay: 0s;
-        }
-
-        .floating-element.el-2 {
-            bottom: 10%;
-            right: -5%;
-            animation-delay: 2s;
-        }
-
-        @keyframes floatBadge {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-
-        .floating-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 16px 24px;
-            border-radius: 60px;
-            box-shadow: 0 15px 40px rgba(139, 21, 56, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-
-        .floating-card i {
-            font-size: 22px;
-            color: var(--maroon);
-        }
-
-        .floating-card span {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--text-dark);
-            letter-spacing: 0.5px;
-        }
-
-        /* Stats Section */
-        .stats-section {
-            padding: 60px 5%;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stats-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L30 60M0 30L60 30' stroke='%23D4AF37' stroke-width='0.5' fill='none' opacity='0.1'/%3E%3C/svg%3E");
-        }
-
-        .stats-container {
-            display: flex;
-            justify-content: center;
-            gap: 80px;
-            flex-wrap: wrap;
-            position: relative;
-            z-index: 1;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-family: 'Playfair Display', serif;
-            font-size: 56px;
-            font-weight: 700;
-            color: var(--gold);
-            line-height: 1;
-            margin-bottom: 10px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: rgba(255,255,255,0.8);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        /* Features Section - Premium */
-        .features {
-            padding: 120px 5%;
-            background: var(--white);
-            position: relative;
-        }
-
-        .section-header {
-            text-align: center;
-            max-width: 700px;
-            margin: 0 auto 80px;
-        }
-
-        .section-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--gold-light), rgba(212, 175, 55, 0.3));
-            color: var(--maroon);
-            padding: 10px 22px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 25px;
-            letter-spacing: 1px;
-        }
-
-        .section-header h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(36px, 5vw, 56px);
-            color: var(--maroon);
-            margin-bottom: 20px;
-            letter-spacing: -1px;
-        }
-
-        .section-header p {
-            color: var(--text-light);
-            font-size: 18px;
-            line-height: 1.8;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 35px;
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-
-        .feature-card {
-            background: linear-gradient(145deg, var(--cream), var(--white));
-            padding: 50px 40px;
-            border-radius: 30px;
-            text-align: center;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            opacity: 0;
-            transition: opacity 0.5s ease;
-            z-index: 0;
-        }
-
-        .feature-card:hover::before {
-            opacity: 1;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-15px) scale(1.02);
-            box-shadow: 0 30px 60px rgba(139, 21, 56, 0.2);
-        }
-
-        .feature-card:hover .feature-icon {
-            background: var(--gold);
-            transform: scale(1.1) rotate(10deg);
-        }
-
-        .feature-card:hover .feature-icon i {
-            color: var(--maroon-dark);
-        }
-
-        .feature-card:hover h3,
-        .feature-card:hover p {
-            color: var(--white);
-        }
-
-        .feature-card > * {
-            position: relative;
-            z-index: 1;
-        }
-
-        .feature-icon {
-            width: 90px;
-            height: 90px;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 30px;
-            box-shadow: 0 15px 40px rgba(139, 21, 56, 0.25);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .feature-icon i {
-            font-size: 36px;
-            color: var(--gold-light);
-            transition: color 0.5s ease;
-        }
-
-        .feature-card h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 26px;
-            color: var(--maroon);
-            margin-bottom: 15px;
-            transition: color 0.5s ease;
-        }
-
-        .feature-card p {
-            color: var(--text-light);
-            font-size: 16px;
-            line-height: 1.8;
-            transition: color 0.5s ease;
-        }
-
-        /* How It Works - Premium */
-        .how-it-works {
-            padding: 120px 5%;
-            background: var(--cream);
-            position: relative;
-        }
-
-        .steps-container {
-            display: flex;
-            justify-content: center;
-            gap: 50px;
-            flex-wrap: wrap;
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .step {
-            flex: 1;
-            min-width: 280px;
-            max-width: 350px;
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 30px;
-            font-family: 'Playfair Display', serif;
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--maroon-dark);
-            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
-            transition: all 0.4s ease;
-        }
-
-        .step:hover .step-number {
-            transform: scale(1.15) rotate(10deg);
-            box-shadow: 0 20px 50px rgba(212, 175, 55, 0.5);
-        }
-
-        .step h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 24px;
-            color: var(--maroon);
-            margin-bottom: 15px;
-        }
-
-        .step p {
-            color: var(--text-light);
-            font-size: 16px;
-            line-height: 1.8;
-        }
-
-        /* Pricing - Premium */
-        .pricing {
-            padding: 120px 5%;
-            background: var(--white);
-        }
-
-        .pricing-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            max-width: 1500px;
-            margin: 0 auto;
-        }
-
-        .pricing-card {
-            background: linear-gradient(145deg, var(--cream), var(--white));
-            padding: 45px 35px;
-            border-radius: 30px;
-            text-align: center;
-            position: relative;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-            overflow: hidden;
-        }
-
-        .pricing-card.featured {
-            background: linear-gradient(145deg, var(--maroon), var(--maroon-dark));
-            transform: scale(1.05);
-        }
-
-        .pricing-card.featured::before {
-            content: 'Most Popular';
-            position: absolute;
-            top: 20px;
-            right: -35px;
-            background: var(--gold);
-            color: var(--maroon-dark);
-            padding: 8px 50px;
-            font-size: 11px;
-            font-weight: 700;
-            transform: rotate(45deg);
-            letter-spacing: 1px;
-        }
-
-        .pricing-card:hover {
-            transform: translateY(-15px);
-            box-shadow: 0 30px 60px rgba(139, 21, 56, 0.15);
-        }
-
-        .pricing-card.featured:hover {
-            transform: scale(1.05) translateY(-15px);
-        }
-
-        .pricing-card h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 28px;
-            color: var(--maroon);
-            margin-bottom: 10px;
-        }
-
-        .pricing-card.featured h3 {
-            color: var(--gold-light);
-        }
-
-        .plan-subtitle {
-            color: var(--gold-dark);
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .pricing-card.featured .plan-subtitle {
-            color: var(--gold);
-        }
-
-        .price {
-            font-size: 52px;
-            font-weight: 700;
-            color: var(--maroon);
-            margin-bottom: 5px;
-            font-family: 'Playfair Display', serif;
-        }
-
-        .pricing-card.featured .price {
-            color: var(--gold);
-        }
-
-        .price span {
-            font-size: 18px;
-            color: var(--text-light);
-            font-weight: 400;
-        }
-
-        .pricing-card.featured .price span {
-            color: rgba(255,255,255,0.7);
-        }
-
-        .pricing-features {
-            list-style: none;
-            margin: 25px 0 30px;
-            text-align: left;
-        }
-
-        .pricing-features li {
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(139, 21, 56, 0.1);
-            color: var(--text-dark);
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .pricing-card.featured .pricing-features li {
-            color: rgba(255,255,255,0.9);
-            border-bottom-color: rgba(255,255,255,0.1);
-        }
-
-        .pricing-features li i {
-            color: var(--gold-dark);
-            font-size: 16px;
-        }
-
-        .pricing-card.featured .pricing-features li i {
-            color: var(--gold);
-        }
-
-        .pricing-card .btn-primary {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .pricing-card.featured .btn-primary {
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            color: var(--maroon-dark);
-        }
-
-        /* CTA Section */
-        .cta-section {
-            padding: 120px 5%;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 50%);
-            animation: rotateSlow 30s linear infinite;
-        }
-
-        @keyframes rotateSlow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .cta-content {
-            position: relative;
-            z-index: 1;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .cta-content h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: clamp(36px, 5vw, 56px);
-            color: var(--gold-light);
-            margin-bottom: 25px;
-        }
-
-        .cta-content p {
-            color: rgba(255,255,255,0.85);
-            font-size: 20px;
-            margin-bottom: 45px;
-            line-height: 1.8;
-        }
-
-        .app-store-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 25px;
-            flex-wrap: wrap;
-        }
-
-        .store-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 18px 35px;
-            border-radius: 16px;
-            text-decoration: none;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-        }
-
-        .store-btn:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            background: #000;
-            border-color: var(--gold);
-        }
-
-        .store-btn i {
-            font-size: 32px;
-        }
-
-        .store-btn-text {
-            text-align: left;
-        }
-
-        .store-btn-text span {
-            display: block;
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        .store-btn-text strong {
-            font-size: 20px;
-        }
-
-        /* Footer - Premium */
-        .footer {
-            background: var(--text-dark);
-            padding: 100px 5% 40px;
-            color: var(--cream);
-        }
-
-        .footer-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 60px;
-            max-width: 1300px;
-            margin: 0 auto 60px;
-        }
-
-        .footer-brand h3 {
-            font-family: 'Playfair Display', serif;
-            font-size: 32px;
-            color: var(--gold);
-            margin-bottom: 20px;
-        }
-
-        .footer-brand p {
-            color: rgba(255,255,255,0.7);
-            font-size: 16px;
-            line-height: 1.8;
-            margin-bottom: 25px;
-        }
-
-        .footer-social {
-            display: flex;
-            gap: 15px;
-        }
-
-        .footer-social a {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gold-light);
-            text-decoration: none;
-            transition: all 0.4s ease;
-            font-size: 20px;
-        }
-
-        .footer-social a:hover {
-            background: var(--gold);
-            color: var(--maroon-dark);
-            transform: translateY(-5px) rotate(10deg);
-        }
-
-        .footer-links h4 {
-            color: var(--gold);
-            font-size: 18px;
-            margin-bottom: 25px;
-            font-weight: 600;
-        }
-
-        .footer-links ul {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 15px;
-        }
-
-        .footer-links a {
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .footer-links a:hover {
-            color: var(--gold);
-            transform: translateX(5px);
-        }
-
-        .footer-contact p {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: rgba(255,255,255,0.7);
-            font-size: 15px;
-            margin-bottom: 18px;
-        }
-
-        .footer-contact i {
-            color: var(--gold);
-            width: 20px;
-            font-size: 18px;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 40px;
-            text-align: center;
-        }
-
-        .footer-bottom p {
-            color: rgba(255,255,255,0.5);
-            font-size: 14px;
-        }
-
-        .footer-bottom a {
-            color: var(--gold);
-            text-decoration: none;
-        }
-
-        /* Scroll to Top */
-        .scroll-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 55px;
-            height: 55px;
-            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--gold-light);
-            font-size: 22px;
-            cursor: pointer;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.4s ease;
-            z-index: 999;
-            box-shadow: 0 10px 30px rgba(139, 21, 56, 0.3);
-        }
-
-        .scroll-top.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .scroll-top:hover {
-            transform: translateY(-5px) scale(1.1);
-            box-shadow: 0 15px 40px rgba(139, 21, 56, 0.4);
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .footer-content {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 992px) {
-            .hero-image {
-                display: none;
-            }
-
-            .hero-content {
-                max-width: 100%;
-                text-align: center;
-            }
-
-            .hero-buttons {
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .nav-links, .nav-cta {
-                display: none;
-            }
-
-            .mobile-menu-btn {
-                display: block;
-            }
-
-            .footer-content {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-
-            .footer-social {
-                justify-content: center;
-            }
-
-            .pricing-card.featured {
-                transform: scale(1);
-            }
-
-            .stats-container {
-                gap: 40px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 38px;
-            }
-
-            .btn-primary, .btn-secondary {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .store-btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Manrope:wght@300;400;500;600;700&family=Rozha+One&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Premium Loader -->
-    <div class="loader" id="loader">
+    <!-- Loader -->
+    <div id="loader" class="loader">
         <div class="loader-content">
-            <div class="loader-logo">
-                <i class="fas fa-bowl-food"></i>
+            <div class="loader-tiffin">
+                <div class="tiffin-layer"></div>
+                <div class="tiffin-layer"></div>
+                <div class="tiffin-layer"></div>
             </div>
-            <div class="loader-text">The Dabba</div>
+            <p class="loader-text">Preparing Your Feast...</p>
         </div>
-    </div>
-
-    <!-- Animated Background -->
-    <div class="bg-animation"></div>
-
-    <!-- Floating Particles -->
-    <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
     </div>
 
     <!-- Navigation -->
-    <nav class="navbar">
-        <a href="#" class="nav-logo">
-            <div class="nav-logo-icon">
-                <i class="fas fa-bowl-food"></i>
+    <nav id="navbar" class="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="logo-icon">
+                    <i data-lucide="utensils-crossed"></i>
+                </span>
+                <span class="logo-text">Tha Dabba</span>
+            </a>
+            
+            <div class="nav-links" id="navLinks">
+                <a href="#menu" class="nav-link">Menu</a>
+                <a href="#customizer" class="nav-link">Build Your Dabba</a>
+                <a href="#plans" class="nav-link">Plans</a>
+                <a href="#delivery" class="nav-link">Delivery</a>
+                <a href="#about" class="nav-link">About</a>
             </div>
-            <span class="nav-logo-text">The Dabba</span>
-        </a>
-        <ul class="nav-links">
-            <li><a href="#features">Features</a></li>
-            <li><a href="#pricing">Pricing</a></li>
-            <li><a href="#contact">Contact</a></li>
-        </ul>
-        <a href="#download" class="nav-cta">Download App</a>
-        <button class="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+            
+            <div class="nav-actions">
+                <a href="#plans" class="btn btn-primary" data-testid="subscribe-nav-btn">
+                    <i data-lucide="crown"></i>
+                    Subscribe Now
+                </a>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" data-testid="mobile-menu-btn">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
     </nav>
 
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <span class="logo-text">Tha Dabba</span>
+            <button class="close-menu" id="closeMenu" data-testid="close-menu-btn">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="mobile-menu-links">
+            <a href="#menu" class="mobile-link">Menu</a>
+            <a href="#customizer" class="mobile-link">Build Your Dabba</a>
+            <a href="#plans" class="mobile-link">Plans</a>
+            <a href="#delivery" class="mobile-link">Delivery</a>
+            <a href="#about" class="mobile-link">About</a>
+            <a href="#plans" class="btn btn-primary btn-block">Subscribe Now</a>
+        </div>
+    </div>
+
     <!-- Hero Section -->
-    <section class="hero">
+    <section id="hero" class="hero" data-testid="hero-section">
+        <div class="hero-bg">
+            <div class="hero-gradient"></div>
+            <div class="hero-noise"></div>
+        </div>
+        
         <div class="hero-content">
             <div class="hero-badge">
-                <i class="fas fa-star"></i>
-                <span>Now Serving in Halifax</span>
+                <i data-lucide="sparkles"></i>
+                <span>Halifax's #1 Premium Tiffin Service</span>
             </div>
-            <h1>Authentic <span>Gujarati</span> Home Cooking</h1>
-            <p class="hero-tagline">Gujarati Ghar Ka Swad</p>
-            <p>Experience the warmth of traditional homestyle Gujarati meals, prepared fresh daily and delivered right to your doorstep. Just like Maa's kitchen.</p>
-            <div class="hero-buttons">
-                <a href="#download" class="btn-primary">
-                    <i class="fas fa-mobile-alt"></i>
-                    Download App
+            
+            <h1 class="hero-title">
+                <span class="title-line">Authentic Indian</span>
+                <span class="title-line highlight">Home Cooking</span>
+                <span class="title-line">Delivered Daily</span>
+            </h1>
+            
+            <p class="hero-subtitle">
+                Experience the warmth of traditional Indian cuisine, crafted with love and delivered fresh to your doorstep in Halifax, Bedford, and Dartmouth.
+            </p>
+            
+            <div class="hero-cta">
+                <a href="#customizer" class="btn btn-primary btn-lg" data-testid="build-dabba-btn">
+                    <i data-lucide="box"></i>
+                    Build Your Dabba
                 </a>
-                <a href="#pricing" class="btn-secondary">
-                    <i class="fas fa-utensils"></i>
-                    View Plans
+                <a href="#menu" class="btn btn-secondary btn-lg" data-testid="view-menu-btn">
+                    <i data-lucide="utensils"></i>
+                    View Today's Menu
                 </a>
+            </div>
+            
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">500+</span>
+                    <span class="stat-label">Happy Families</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">15+</span>
+                    <span class="stat-label">Regional Cuisines</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">99%</span>
+                    <span class="stat-label">On-Time Delivery</span>
+                </div>
             </div>
         </div>
-
+        
         <div class="hero-image">
-            <div class="hero-image-container">
-                <img src="https://static.prod-images.emergentagent.com/jobs/587ba5ff-8e48-4628-8188-5906c92972d2/images/fc25eab5fae528ca96f8066d2a12ddbb2f850693dfd6893c6daff65e94a15ce6.png" alt="Fresh Gujarati Tiffin Meals" class="hero-food-image">
+            <div class="tiffin-showcase">
+                <img src="https://images.unsplash.com/photo-1672477179695-7276b0602fa9?w=800" alt="Premium Indian Thali" class="hero-food-img">
+                <div class="floating-badge badge-1">
+                    <i data-lucide="flame"></i>
+                    <span>Fresh & Hot</span>
+                </div>
+                <div class="floating-badge badge-2">
+                    <i data-lucide="leaf"></i>
+                    <span>100% Natural</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="scroll-indicator">
+            <i data-lucide="chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section id="menu" class="menu-section" data-testid="menu-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">Today's Selection</span>
+                <h2 class="section-title">The Royal Menu</h2>
+                <p class="section-subtitle">Explore our daily rotating menu featuring regional specialties</p>
+            </div>
+            
+            <div class="menu-tabs">
+                <button class="menu-tab active" data-day="monday" data-testid="menu-tab-monday">
+                    <span class="day-name">Punjabi</span>
+                    <span class="day-label">Monday</span>
+                </button>
+                <button class="menu-tab" data-day="tuesday" data-testid="menu-tab-tuesday">
+                    <span class="day-name">Gujarati</span>
+                    <span class="day-label">Tuesday</span>
+                </button>
+                <button class="menu-tab" data-day="wednesday" data-testid="menu-tab-wednesday">
+                    <span class="day-name">Rajasthani</span>
+                    <span class="day-label">Wednesday</span>
+                </button>
+                <button class="menu-tab" data-day="thursday" data-testid="menu-tab-thursday">
+                    <span class="day-name">Bengali</span>
+                    <span class="day-label">Thursday</span>
+                </button>
+                <button class="menu-tab" data-day="friday" data-testid="menu-tab-friday">
+                    <span class="day-name">South Indian</span>
+                    <span class="day-label">Friday</span>
+                </button>
+            </div>
+            
+            <div class="menu-grid" data-testid="menu-grid">
+                <!-- Main Dish -->
+                <div class="menu-card card-large">
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1755090154823-2832067d402b?w=600" alt="Dal Makhani">
+                        <div class="card-overlay">
+                            <span class="dish-type">Main Course</span>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="dish-name">Dal Makhani</h3>
+                        <p class="dish-description">Creamy black lentils slow-cooked overnight with butter and aromatic spices</p>
+                        <div class="dish-macros">
+                            <span><i data-lucide="flame"></i> 320 kcal</span>
+                            <span><i data-lucide="dumbbell"></i> 14g protein</span>
+                            <span><i data-lucide="wheat"></i> 8g fiber</span>
+                        </div>
+                    </div>
+                </div>
                 
-                <div class="floating-element el-1">
-                    <div class="floating-card">
-                        <i class="fas fa-fire"></i>
-                        <span>Fresh & Hot</span>
+                <!-- Rice -->
+                <div class="menu-card">
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1671970922492-4d2a4c7a2ffe?w=400" alt="Jeera Rice">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="dish-name">Jeera Pulao</h3>
+                        <p class="dish-description">Fragrant basmati rice with cumin</p>
+                        <div class="dish-macros">
+                            <span><i data-lucide="flame"></i> 180 kcal</span>
+                        </div>
                     </div>
                 </div>
-
-                <div class="floating-element el-2">
-                    <div class="floating-card">
-                        <i class="fas fa-leaf"></i>
-                        <span>100% Veg</span>
+                
+                <!-- Bread -->
+                <div class="menu-card">
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1690951784638-1f9039d74a6c?w=400" alt="Butter Naan">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="dish-name">Butter Naan</h3>
+                        <p class="dish-description">Soft leavened bread with ghee</p>
+                        <div class="dish-macros">
+                            <span><i data-lucide="flame"></i> 150 kcal</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sabzi -->
+                <div class="menu-card">
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1695568179748-b4482723899b?w=400" alt="Aloo Gobi">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="dish-name">Aloo Gobi</h3>
+                        <p class="dish-description">Spiced cauliflower & potatoes</p>
+                        <div class="dish-macros">
+                            <span><i data-lucide="flame"></i> 140 kcal</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dessert -->
+                <div class="menu-card card-accent">
+                    <div class="card-image">
+                        <img src="https://images.unsplash.com/photo-1704520836459-e12b4e6373aa?w=400" alt="Gulab Jamun">
+                    </div>
+                    <div class="card-content">
+                        <h3 class="dish-name">Gulab Jamun</h3>
+                        <p class="dish-description">Sweet milk dumplings in rose syrup</p>
+                        <div class="dish-macros">
+                            <span><i data-lucide="flame"></i> 180 kcal</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section">
-        <div class="stats-container">
-            <div class="stat-item">
-                <div class="stat-number">500+</div>
-                <div class="stat-label">Happy Customers</div>
+    <!-- 3D Customizer Section -->
+    <section id="customizer" class="customizer-section" data-testid="customizer-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">Interactive Experience</span>
+                <h2 class="section-title">Build Your Royal Dabba</h2>
+                <p class="section-subtitle">Customize your perfect 3-tier or 4-tier tiffin</p>
             </div>
-            <div class="stat-item">
-                <div class="stat-number">5000+</div>
-                <div class="stat-label">Meals Delivered</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">100%</div>
-                <div class="stat-label">Vegetarian</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">4.9</div>
-                <div class="stat-label">Customer Rating</div>
+            
+            <div class="customizer-wrapper">
+                <div class="customizer-3d" id="tiffin3D" data-testid="tiffin-3d-visual">
+                    <div class="tiffin-visual">
+                        <div class="tiffin-container">
+                            <div class="tiffin-tier tier-1" data-tier="1">
+                                <div class="tier-content">Dal</div>
+                            </div>
+                            <div class="tiffin-tier tier-2" data-tier="2">
+                                <div class="tier-content">Rice</div>
+                            </div>
+                            <div class="tiffin-tier tier-3" data-tier="3">
+                                <div class="tier-content">Sabzi</div>
+                            </div>
+                            <div class="tiffin-tier tier-4" data-tier="4">
+                                <div class="tier-content">Roti</div>
+                            </div>
+                            <div class="tiffin-lid"></div>
+                            <div class="tiffin-handle"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customizer-options">
+                    <div class="option-group">
+                        <h4 class="option-title">
+                            <i data-lucide="layers"></i>
+                            Select Tiers
+                        </h4>
+                        <div class="tier-selector">
+                            <button class="tier-btn" data-tiers="3" data-testid="tier-3-btn">3 Tier</button>
+                            <button class="tier-btn active" data-tiers="4" data-testid="tier-4-btn">4 Tier</button>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <h4 class="option-title">
+                            <i data-lucide="soup"></i>
+                            Tier 1: Dal/Curry
+                        </h4>
+                        <div class="option-choices">
+                            <button class="choice-btn active" data-testid="choice-dal-makhani">Dal Makhani</button>
+                            <button class="choice-btn" data-testid="choice-rajma">Rajma</button>
+                            <button class="choice-btn" data-testid="choice-chole">Chole</button>
+                            <button class="choice-btn" data-testid="choice-paneer">Paneer Butter</button>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <h4 class="option-title">
+                            <i data-lucide="wheat"></i>
+                            Tier 2: Rice
+                        </h4>
+                        <div class="option-choices">
+                            <button class="choice-btn active">Jeera Rice</button>
+                            <button class="choice-btn">Pulao</button>
+                            <button class="choice-btn">Biryani</button>
+                            <button class="choice-btn">Plain Rice</button>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <h4 class="option-title">
+                            <i data-lucide="salad"></i>
+                            Tier 3: Sabzi
+                        </h4>
+                        <div class="option-choices">
+                            <button class="choice-btn active">Aloo Gobi</button>
+                            <button class="choice-btn">Bhindi</button>
+                            <button class="choice-btn">Mixed Veg</button>
+                            <button class="choice-btn">Baingan</button>
+                        </div>
+                    </div>
+                    
+                    <div class="option-group">
+                        <h4 class="option-title">
+                            <i data-lucide="circle"></i>
+                            Tier 4: Bread
+                        </h4>
+                        <div class="option-choices">
+                            <button class="choice-btn active">Roti (4 pcs)</button>
+                            <button class="choice-btn">Naan (2 pcs)</button>
+                            <button class="choice-btn">Paratha (2 pcs)</button>
+                            <button class="choice-btn">Puri (4 pcs)</button>
+                        </div>
+                    </div>
+                    
+                    <div class="customizer-summary">
+                        <div class="summary-price">
+                            <span class="price-label">Your Dabba</span>
+                            <span class="price-value" data-testid="dabba-price">$14.99</span>
+                        </div>
+                        <button class="btn btn-primary btn-block" data-testid="add-to-cart-btn">
+                            <i data-lucide="shopping-cart"></i>
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="section-header">
-            <div class="section-badge">
-                <i class="fas fa-heart"></i>
-                <span>Why Choose Us</span>
+    <!-- Subscription Plans -->
+    <section id="plans" class="plans-section" data-testid="plans-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">Smart Savings</span>
+                <h2 class="section-title">Subscription Plans</h2>
+                <p class="section-subtitle">Choose your perfect meal plan and save up to 25%</p>
             </div>
-            <h2>Homestyle Meals, Delivered Daily</h2>
-            <p>We bring the authentic taste of Gujarat to your table with fresh, nutritious meals prepared with love and tradition.</p>
-        </div>
-
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-bowl-rice"></i>
+            
+            <div class="plans-grid">
+                <!-- Daily Plan -->
+                <div class="plan-card" data-testid="plan-daily">
+                    <div class="plan-header">
+                        <i data-lucide="calendar" class="plan-icon"></i>
+                        <h3 class="plan-name">Daily</h3>
+                        <p class="plan-tagline">Try before you commit</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="price-amount">$14.99</span>
+                        <span class="price-period">per meal</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i data-lucide="check"></i> One complete dabba</li>
+                        <li><i data-lucide="check"></i> Free delivery</li>
+                        <li><i data-lucide="check"></i> No commitment</li>
+                        <li class="disabled"><i data-lucide="x"></i> No savings</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-block" data-testid="order-daily-btn">Order Now</a>
                 </div>
-                <h3>Fresh Daily</h3>
-                <p>Every meal is prepared fresh on the day of delivery using authentic recipes passed down through generations.</p>
+                
+                <!-- Weekly Plan -->
+                <div class="plan-card featured" data-testid="plan-weekly">
+                    <div class="plan-badge">Most Popular</div>
+                    <div class="plan-header">
+                        <i data-lucide="calendar-days" class="plan-icon"></i>
+                        <h3 class="plan-name">Weekly</h3>
+                        <p class="plan-tagline">Perfect for busy professionals</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="price-amount">$12.99</span>
+                        <span class="price-period">per meal</span>
+                        <span class="price-savings">Save 15%</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i data-lucide="check"></i> 5 meals per week</li>
+                        <li><i data-lucide="check"></i> Free priority delivery</li>
+                        <li><i data-lucide="check"></i> Skip any day</li>
+                        <li><i data-lucide="check"></i> Weekly menu preview</li>
+                    </ul>
+                    <a href="#" class="btn btn-primary btn-block" data-testid="subscribe-weekly-btn">
+                        <i data-lucide="crown"></i>
+                        Subscribe Now
+                    </a>
+                </div>
+                
+                <!-- Monthly Plan -->
+                <div class="plan-card premium" data-testid="plan-monthly">
+                    <div class="plan-badge gold">Best Value</div>
+                    <div class="plan-header">
+                        <i data-lucide="calendar-range" class="plan-icon"></i>
+                        <h3 class="plan-name">Monthly</h3>
+                        <p class="plan-tagline">Maximum savings for families</p>
+                    </div>
+                    <div class="plan-price">
+                        <span class="price-amount">$10.99</span>
+                        <span class="price-period">per meal</span>
+                        <span class="price-savings">Save 25%</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li><i data-lucide="check"></i> 20 meals per month</li>
+                        <li><i data-lucide="check"></i> VIP priority delivery</li>
+                        <li><i data-lucide="check"></i> Unlimited skips</li>
+                        <li><i data-lucide="check"></i> Exclusive recipes</li>
+                        <li><i data-lucide="check"></i> Free dessert Fridays</li>
+                    </ul>
+                    <a href="#" class="btn btn-gold btn-block" data-testid="subscribe-monthly-btn">
+                        <i data-lucide="sparkles"></i>
+                        Go Premium
+                    </a>
+                </div>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-calendar-check"></i>
+            
+            <!-- Calendar Widget -->
+            <div class="delivery-calendar" data-testid="delivery-calendar">
+                <h3 class="calendar-title">
+                    <i data-lucide="calendar-check"></i>
+                    Manage Your Deliveries
+                </h3>
+                <p class="calendar-subtitle">Skip or reschedule anytime with our smart calendar</p>
+                <div class="calendar-preview">
+                    <div class="calendar-header">
+                        <button class="cal-nav" data-testid="cal-prev"><i data-lucide="chevron-left"></i></button>
+                        <span class="cal-month">March 2026</span>
+                        <button class="cal-nav" data-testid="cal-next"><i data-lucide="chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-days">
+                        <span class="day-header">Mon</span>
+                        <span class="day-header">Tue</span>
+                        <span class="day-header">Wed</span>
+                        <span class="day-header">Thu</span>
+                        <span class="day-header">Fri</span>
+                        <span class="day-header">Sat</span>
+                        <span class="day-header">Sun</span>
+                    </div>
+                    <div class="calendar-grid">
+                        <span class="day disabled">24</span>
+                        <span class="day disabled">25</span>
+                        <span class="day disabled">26</span>
+                        <span class="day disabled">27</span>
+                        <span class="day disabled">28</span>
+                        <span class="day disabled">1</span>
+                        <span class="day disabled">2</span>
+                        <span class="day delivery">3</span>
+                        <span class="day delivery">4</span>
+                        <span class="day delivery">5</span>
+                        <span class="day delivery">6</span>
+                        <span class="day delivery">7</span>
+                        <span class="day">8</span>
+                        <span class="day">9</span>
+                        <span class="day delivery">10</span>
+                        <span class="day delivery">11</span>
+                        <span class="day skipped">12</span>
+                        <span class="day delivery">13</span>
+                        <span class="day delivery">14</span>
+                        <span class="day">15</span>
+                        <span class="day">16</span>
+                    </div>
+                    <div class="calendar-legend">
+                        <span class="legend-item"><span class="dot delivery"></span> Delivery</span>
+                        <span class="legend-item"><span class="dot skipped"></span> Skipped</span>
+                    </div>
                 </div>
-                <h3>Flexible Plans</h3>
-                <p>Choose from multiple tiffin sizes. Skip meals anytime and earn wallet credits for unused days.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-truck"></i>
-                </div>
-                <h3>Fast Delivery</h3>
-                <p>Hot meals delivered between 7-8:30 PM daily. Track your delivery in real-time through our app.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-heart"></i>
-                </div>
-                <h3>Made with Love</h3>
-                <p>Authentic Gujarati recipes made with pure ingredients. No preservatives, just home-style goodness.</p>
             </div>
         </div>
     </section>
 
-    <!-- How It Works -->
-    <section class="how-it-works">
-        <div class="section-header">
-            <div class="section-badge">
-                <i class="fas fa-magic"></i>
-                <span>Simple Process</span>
+    <!-- Delivery Map Section -->
+    <section id="delivery" class="delivery-section" data-testid="delivery-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">Halifax Heritage</span>
+                <h2 class="section-title">We Deliver Across HRM</h2>
+                <p class="section-subtitle">Halifax, Bedford, Dartmouth - Fresh and on time</p>
             </div>
-            <h2>How It Works</h2>
-            <p>Getting delicious homestyle meals is as easy as 1-2-3.</p>
-        </div>
-
-        <div class="steps-container">
-            <div class="step">
-                <div class="step-number">1</div>
-                <h3>Choose Your Plan</h3>
-                <p>Select from our 5 tiffin sizes based on your appetite - from 4 rotis to 12 rotis.</p>
-            </div>
-
-            <div class="step">
-                <div class="step-number">2</div>
-                <h3>We Cook Fresh</h3>
-                <p>Our chefs prepare authentic Gujarati meals fresh every day using traditional recipes.</p>
-            </div>
-
-            <div class="step">
-                <div class="step-number">3</div>
-                <h3>Enjoy at Home</h3>
-                <p>Hot meals delivered to your door between 7-8:30 PM. Sit back and enjoy!</p>
+            
+            <div class="delivery-wrapper">
+                <div class="delivery-map" id="deliveryMap" data-testid="delivery-map">
+                    <div class="map-placeholder">
+                        <div class="map-visual">
+                            <div class="map-area halifax">
+                                <span class="area-name">Halifax</span>
+                                <span class="area-time">30 min</span>
+                            </div>
+                            <div class="map-area bedford">
+                                <span class="area-name">Bedford</span>
+                                <span class="area-time">40 min</span>
+                            </div>
+                            <div class="map-area dartmouth">
+                                <span class="area-name">Dartmouth</span>
+                                <span class="area-time">35 min</span>
+                            </div>
+                            <div class="delivery-truck">
+                                <i data-lucide="truck"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="delivery-info">
+                    <div class="info-card">
+                        <i data-lucide="clock"></i>
+                        <h4>Delivery Windows</h4>
+                        <p>Lunch: 11:30 AM - 1:30 PM<br>Dinner: 6:00 PM - 8:00 PM</p>
+                    </div>
+                    <div class="info-card">
+                        <i data-lucide="map-pin"></i>
+                        <h4>Coverage Area</h4>
+                        <p>All of Halifax Regional Municipality including Downtown, South End, North End, Bedford, and Dartmouth</p>
+                    </div>
+                    <div class="info-card">
+                        <i data-lucide="phone"></i>
+                        <h4>Real-time Tracking</h4>
+                        <p>Track your dabba in real-time with our live GPS tracking system</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Pricing -->
-    <section class="pricing" id="pricing">
-        <div class="section-header">
-            <div class="section-badge">
-                <i class="fas fa-tag"></i>
-                <span>Meal Plans</span>
+    <!-- Testimonials -->
+    <section id="testimonials" class="testimonials-section" data-testid="testimonials-section">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">Social Proof</span>
+                <h2 class="section-title">What Halifax Loves About Us</h2>
+                <p class="section-subtitle">Join 500+ happy families</p>
             </div>
-            <h2>Choose Your Tiffin Size</h2>
-            <p>Monthly plans with fresh homestyle meals. All prices + 5% GST.</p>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card" data-testid="testimonial-1">
+                    <div class="testimonial-header">
+                        <div class="reviewer-avatar">SK</div>
+                        <div class="reviewer-info">
+                            <h4>Sanjay Kumar</h4>
+                            <div class="stars">
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"Finally, authentic home-style Indian food in Halifax! The dal makhani reminds me of my mother's cooking. Absolutely incredible service."</p>
+                    <span class="testimonial-source">Google Review</span>
+                </div>
+                
+                <div class="testimonial-card featured" data-testid="testimonial-2">
+                    <div class="testimonial-header">
+                        <div class="reviewer-avatar">PM</div>
+                        <div class="reviewer-info">
+                            <h4>Priya Mehta</h4>
+                            <div class="stars">
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"As a busy professional, Tha Dabba has been a lifesaver. The weekly subscription is perfect - healthy, delicious, and always on time. The best investment in my health!"</p>
+                    <span class="testimonial-source">Instagram</span>
+                </div>
+                
+                <div class="testimonial-card" data-testid="testimonial-3">
+                    <div class="testimonial-header">
+                        <div class="reviewer-avatar">JD</div>
+                        <div class="reviewer-info">
+                            <h4>John Davidson</h4>
+                            <div class="stars">
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                                <i data-lucide="star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="testimonial-text">"I'm not Indian but I'm absolutely hooked! The variety of regional cuisines every day keeps things exciting. My colleagues are jealous of my lunches."</p>
+                    <span class="testimonial-source">Google Review</span>
+                </div>
+            </div>
         </div>
+    </section>
 
-        <div class="pricing-cards-grid">
-            <div class="pricing-card">
-                <h3>Small</h3>
-                <div class="plan-subtitle">4 Roti Tiffin</div>
-                <div class="price">$250<span>/month</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> 227g Daal</li>
-                    <li><i class="fas fa-check"></i> 113g Sabzi</li>
-                    <li><i class="fas fa-check"></i> Dessert once a week</li>
-                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
-                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
-                </ul>
-                <a href="#download" class="btn-primary">Get Started</a>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Medium</h3>
-                <div class="plan-subtitle">6 Roti Tiffin</div>
-                <div class="price">$280<span>/month</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> 227g Daal</li>
-                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
-                    <li><i class="fas fa-check"></i> Dessert once a week</li>
-                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
-                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
-                </ul>
-                <a href="#download" class="btn-primary">Get Started</a>
-            </div>
-
-            <div class="pricing-card featured">
-                <h3>Regular</h3>
-                <div class="plan-subtitle">8 Roti Tiffin</div>
-                <div class="price">$330<span>/month</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> 340g Daal</li>
-                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
-                    <li><i class="fas fa-check"></i> Dessert once a week</li>
-                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
-                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
-                </ul>
-                <a href="#download" class="btn-primary">Get Started</a>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Large</h3>
-                <div class="plan-subtitle">10 Roti Tiffin</div>
-                <div class="price">$360<span>/month</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> 340g Daal</li>
-                    <li><i class="fas fa-check"></i> 227g Sabzi</li>
-                    <li><i class="fas fa-check"></i> Dessert once a week</li>
-                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
-                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
-                </ul>
-                <a href="#download" class="btn-primary">Get Started</a>
-            </div>
-
-            <div class="pricing-card">
-                <h3>Extra Large</h3>
-                <div class="plan-subtitle">12 Roti Tiffin</div>
-                <div class="price">$450<span>/month</span></div>
-                <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> 340g Daal</li>
-                    <li><i class="fas fa-check"></i> 340g Sabzi</li>
-                    <li><i class="fas fa-check"></i> Dessert once a week</li>
-                    <li><i class="fas fa-check"></i> Yogurt 4 days a week</li>
-                    <li><i class="fas fa-check"></i> Mint Chatni & Pickle weekly</li>
-                </ul>
-                <a href="#download" class="btn-primary">Get Started</a>
+    <!-- About Section -->
+    <section id="about" class="about-section" data-testid="about-section">
+        <div class="section-container">
+            <div class="about-wrapper">
+                <div class="about-content">
+                    <span class="section-badge">Our Story</span>
+                    <h2 class="section-title">The Dabba Heritage</h2>
+                    <p class="about-text">
+                        Born from a passion for authentic Indian home cooking, Tha Dabba brings the warmth and love of a traditional Indian kitchen to Halifax. Our recipes have been passed down through generations, perfected over decades, and now delivered fresh to your doorstep.
+                    </p>
+                    <p class="about-text">
+                        Every meal is prepared with the finest ingredients, traditional spices imported directly from India, and the same care your grandmother would put into cooking for her family.
+                    </p>
+                    <div class="about-features">
+                        <div class="feature">
+                            <i data-lucide="leaf"></i>
+                            <span>100% Natural Ingredients</span>
+                        </div>
+                        <div class="feature">
+                            <i data-lucide="heart"></i>
+                            <span>Made with Love</span>
+                        </div>
+                        <div class="feature">
+                            <i data-lucide="award"></i>
+                            <span>NS Food Safety Certified</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <img src="https://images.unsplash.com/photo-1605028301192-dd803ffbc071?w=600" alt="Spices" class="spice-img">
+                </div>
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section" id="download">
+    <section class="cta-section" data-testid="cta-section">
         <div class="cta-content">
-            <h2>Ready to Taste Home?</h2>
-            <p>Download The Dabba app now and experience authentic Gujarati home cooking delivered to your doorstep.</p>
-            <div class="app-store-buttons">
-                <a href="#" class="store-btn">
-                    <i class="fab fa-apple"></i>
-                    <div class="store-btn-text">
-                        <span>Download on the</span>
-                        <strong>App Store</strong>
-                    </div>
+            <h2 class="cta-title">Ready to Taste the Difference?</h2>
+            <p class="cta-subtitle">Join 500+ families enjoying authentic Indian meals daily</p>
+            <div class="cta-buttons">
+                <a href="#plans" class="btn btn-primary btn-lg" data-testid="cta-subscribe-btn">
+                    <i data-lucide="crown"></i>
+                    Start Your Subscription
                 </a>
-                <a href="#" class="store-btn">
-                    <i class="fab fa-google-play"></i>
-                    <div class="store-btn-text">
-                        <span>Get it on</span>
-                        <strong>Google Play</strong>
-                    </div>
+                <a href="tel:+19025551234" class="btn btn-secondary btn-lg" data-testid="cta-call-btn">
+                    <i data-lucide="phone"></i>
+                    Call (902) 555-1234
                 </a>
+            </div>
+            <div class="payment-methods">
+                <span>We Accept:</span>
+                <div class="payment-icons">
+                    <i data-lucide="credit-card"></i>
+                    <span>Apple Pay</span>
+                    <span>Google Pay</span>
+                    <span>Interac</span>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="footer" id="contact">
-        <div class="footer-content">
-            <div class="footer-brand">
-                <h3>The Dabba</h3>
-                <p>Bringing authentic Gujarati home cooking to Halifax. Fresh, nutritious, and delicious meals delivered daily with love.</p>
-                <div class="footer-social">
-                    <a href="#"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-youtube"></i></a>
+    <footer class="footer" data-testid="footer">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <span class="logo-icon"><i data-lucide="utensils-crossed"></i></span>
+                        <span class="logo-text">Tha Dabba</span>
+                    </a>
+                    <p class="footer-tagline">Premium Indian Tiffin Service in Halifax</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link" data-testid="social-instagram"><i data-lucide="instagram"></i></a>
+                        <a href="#" class="social-link" data-testid="social-facebook"><i data-lucide="facebook"></i></a>
+                        <a href="#" class="social-link" data-testid="social-twitter"><i data-lucide="twitter"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>Quick Links</h4>
+                        <a href="#menu">Today's Menu</a>
+                        <a href="#plans">Subscription Plans</a>
+                        <a href="#customizer">Build Your Dabba</a>
+                        <a href="#delivery">Delivery Areas</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Service Areas</h4>
+                        <a href="#">Halifax Tiffin Service</a>
+                        <a href="#">Bedford Tiffin Service</a>
+                        <a href="#">Dartmouth Indian Meals</a>
+                        <a href="#">Downtown Halifax</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Support</h4>
+                        <a href="support.html">Contact Us</a>
+                        <a href="#">FAQs</a>
+                        <a href="privacy.html">Privacy Policy</a>
+                        <a href="terms.html">Terms of Service</a>
+                    </div>
                 </div>
             </div>
-
-            <div class="footer-links">
-                <h4>Quick Links</h4>
-                <ul>
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#pricing">Pricing</a></li>
-                    <li><a href="#download">Download App</a></li>
-                </ul>
+            
+            <div class="footer-bottom">
+                <div class="footer-badges">
+                    <span class="badge">
+                        <i data-lucide="shield-check"></i>
+                        NS Food Safety Certified
+                    </span>
+                    <span class="badge">
+                        <i data-lucide="leaf"></i>
+                        Eco-Friendly Packaging
+                    </span>
+                </div>
+                <p class="copyright">&copy; 2026 Tha Dabba. All rights reserved. Made with <i data-lucide="heart"></i> in Halifax</p>
             </div>
-
-            <div class="footer-links">
-                <h4>Legal</h4>
-                <ul>
-                    <li><a href="privacy.html">Privacy Policy</a></li>
-                    <li><a href="support.html">Support</a></li>
-                    <li><a href="terms.html">Terms of Service</a></li>
-                </ul>
-            </div>
-
-            <div class="footer-links footer-contact">
-                <h4>Contact Us</h4>
-                <p><i class="fas fa-envelope"></i> hello@thedabba.ca</p>
-                <p><i class="fas fa-phone"></i> (902) 123-4567</p>
-                <p><i class="fas fa-map-marker-alt"></i> Halifax, Nova Scotia</p>
-            </div>
-        </div>
-
-        <div class="footer-bottom">
-            <p>&copy; 2025 The Dabba. All rights reserved. | Made with <i class="fas fa-heart" style="color: var(--gold);"></i> in Halifax</p>
         </div>
     </footer>
 
-    <!-- Scroll to Top -->
-    <div class="scroll-top" id="scrollTop">
-        <i class="fas fa-arrow-up"></i>
-    </div>
-
-    <!--Start of Tawk.to Script-->
-    <script type="text/javascript">
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-    (function(){
-    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-    s1.async=true;
-    s1.src='https://embed.tawk.to/69a5fd2014810b1c32a13e6d/1jio69hhl';
-    s1.charset='UTF-8';
-    s1.setAttribute('crossorigin','*');
-    s0.parentNode.insertBefore(s1,s0);
-    })();
-    </script>
-    <!--End of Tawk.to Script-->
-
-    <script>
-        // ========== DISABLE INSPECT / DEV TOOLS ==========
-        // Disable right-click
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        // Disable keyboard shortcuts for dev tools
-        document.addEventListener('keydown', function(e) {
-            // F12
-            if (e.key === 'F12') {
-                e.preventDefault();
-                return false;
-            }
-            // Ctrl+Shift+I (Inspect)
-            if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-                e.preventDefault();
-                return false;
-            }
-            // Ctrl+Shift+J (Console)
-            if (e.ctrlKey && e.shiftKey && e.key === 'J') {
-                e.preventDefault();
-                return false;
-            }
-            // Ctrl+Shift+C (Element picker)
-            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-                e.preventDefault();
-                return false;
-            }
-            // Ctrl+U (View Source)
-            if (e.ctrlKey && e.key === 'u') {
-                e.preventDefault();
-                return false;
-            }
-            // Ctrl+S (Save)
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                return false;
-            }
-        });
-
-        // Disable text selection
-        document.addEventListener('selectstart', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        // Disable drag
-        document.addEventListener('dragstart', function(e) {
-            e.preventDefault();
-            return false;
-        });
-
-        // Detect DevTools open (basic detection)
-        (function() {
-            const devtools = {
-                isOpen: false,
-                orientation: undefined
-            };
-            const threshold = 170;
-            const emitEvent = (isOpen, orientation) => {
-                globalThis.dispatchEvent(new globalThis.CustomEvent('devtoolschange', {
-                    detail: { isOpen, orientation }
-                }));
-            };
-            setInterval(() => {
-                const widthThreshold = globalThis.outerWidth - globalThis.innerWidth > threshold;
-                const heightThreshold = globalThis.outerHeight - globalThis.innerHeight > threshold;
-                if (widthThreshold || heightThreshold) {
-                    if (!devtools.isOpen) {
-                        emitEvent(true, widthThreshold ? 'vertical' : 'horizontal');
-                    }
-                    devtools.isOpen = true;
-                } else {
-                    if (devtools.isOpen) {
-                        emitEvent(false, undefined);
-                    }
-                    devtools.isOpen = false;
-                }
-            }, 500);
-        })();
-
-        // ========== SITE FUNCTIONALITY ==========
-        // Hide loader after page loads
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                document.getElementById('loader').classList.add('hidden');
-            }, 1500);
-        });
-
-        // Navbar scroll effect
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            const scrollTop = document.getElementById('scrollTop');
-            
-            if (window.scrollY > 50) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-
-            if (window.scrollY > 500) {
-                scrollTop.classList.add('visible');
-            } else {
-                scrollTop.classList.remove('visible');
-            }
-        });
-
-        // Scroll to top
-        document.getElementById('scrollTop').addEventListener('click', function() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-
-        // Intersection Observer for animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('.feature-card, .step, .pricing-card, .stat-item').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(30px)';
-            el.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-            observer.observe(el);
-        });
-    </script>
+    <script src="js/main.js"></script>
 </body>
 </html>

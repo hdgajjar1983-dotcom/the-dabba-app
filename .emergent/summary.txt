@@ -1,170 +1,183 @@
-<analysis>**original_problem_statement**: The user wants to build a full-featured tiffin delivery app called The Dabba. The project includes a customer app, a driver portal, and a kitchen admin portal.
+<analysis>**original_problem_statement**: The user initially wanted to build a full-featured tiffin delivery app called The Dabba for iOS, including customer, driver, and kitchen portals. After encountering repeated iOS build failures, the user has requested a pivot to build the Greatest Tiffin Website on Earth for .
 
-Key requirements that have been implemented or are in progress include:
-1.  **Three Portals**: A customer-facing app for ordering, an Uber Eats style driver portal for deliveries, and a kitchen portal for managing operations.
-2.  **Smart Delivery System**: An automated workflow where the kitchen marks tiffins as ready, which then automatically generates numbered labels, creates an optimized delivery route for the driver, and allows the customer to track the delivery in real-time.
-3.  **Brand Identity**: A royal Gujarati theme, including a logo, color scheme, and overall aesthetic for the app and a new website.
-4.  **Website**: A professional, themed website for  to serve as a landing page and provide company information (privacy, support).
-5.  **App Store Submission**: Assistance with generating all necessary assets (screenshots, icons) and metadata to submit the iOS app to the Apple App Store. The app was recently submitted but rejected.
+This new website has very specific and high-end requirements:
+- **Visuals**: A Dark Mode aesthetic with Charcoal, Deep Saffron, and Brushed Gold. Use of 8K hyper-realistic textures.
+- **Typography**: Elegant Serif for headings, clean Sans-Serif for UI.
+- **Advanced Features**:
+    - **3D Interactive Tiffin Customizer** (Three.js/WebGL).
+    - **Smart Subscription Engine** with a calendar.
+    - **'Halifax Heritage' Map** with real-time delivery tracking (Mapbox).
+    - **Dynamic Menu System** with macro-nutrient breakdowns.
+    - **Social Proof Wall** with Instagram/Google Reviews integration.
+- **Goal**: A mobile-first, lightning-fast (Lighthouse score 100) site that feels like a 5-star concierge service with One-Tap Checkout (Apple Pay, Google Pay, Interac).
 
 **User's preferred language**: English
 
 **what currently exists?**
--   **Full-Stack Application**: A complete Expo/React Native and FastAPI application with three distinct user portals (Customer, Driver, Kitchen). The entire backend is currently mocked in  with an in-memory database structure.
--   **Smart Delivery System**: The backend APIs and frontend UI components for the automated delivery flow have been implemented. This includes marking orders as ready, generating optimized routes, and basic structures for real-time tracking.
--   **Professional Website**: A multi-page, themed, and animated website has been created, including pages for , , , and . The site features the royal Gujarati theme, new food photos, a Tawk.to chatbot integration, and code to prevent inspection. All files are available in a downloadable ZIP ().
--   **App Store Assets**: A complete set of App Store screenshots for iPhone, iPad, and Apple Watch, along with multiple logo options and flyer designs, have been generated and provided to the user.
+-   **Full-Stack Mobile App**: An Expo/React Native and FastAPI application with three portals (Customer, Driver, Kitchen). The backend is mocked in . The app is deployed, but the iOS build process is failing.
+-   **Initial Website Files**: The agent has created the initial structure for the new premium website in  and , based on the user's detailed prompt.
 
 **Last working item**:
--   Last item agent was working: Investigating the Apple App Store rejection. The agent correctly diagnosed that the rejection (2.1.0 App Completeness) was because Apple's reviewers could not log in, as the application's backend is not publicly deployed and is only accessible in the development environment.
--   Status: BLOCKED
+-   Last item agent was working: Building the new premium website. The agent created the basic HTML structure () and the initial CSS file () with the requested dark, luxury theme.
+-   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? . The user has requested the agent to deploy the app, so the  must be called to start the production deployment process.
+-   Which testing method agent to use? manual testing by curl
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: App Store Rejection - Backend Not Public (P0)**
-    -   **Description**: The iOS app was rejected by Apple because it's incomplete. The root cause is that the backend API is not live on the public internet, preventing Apple's review team from logging in and testing the app's functionality.
-    -   **Attempted fixes**: The agent correctly identified the issue and explained it to the user. The agent also proactively fixed several potential deployment blockers in the  files and .
+-   **Issue 1: iOS Build Failure - Invalid Certificate & Bundle ID Mismatch (P0)**
+    -   **Description**: The user is completely blocked from building the iOS app for the App Store. Apple rejected the build due to an Invalid Signature (ITMS-90035), caused by a revoked iOS Distribution Certificate. The agent guided the user (on Windows) to create a new certificate () and provisioning profile (). However, the user is now blocked because they cannot find where to upload these new credentials in the Emergent UI. There is also a secondary issue: the bundle ID in the Emergent build settings () does not match the one used for the new provisioning profile (). The user is extremely frustrated with these recurring build failures.
+    -   **Attempted fixes**: Guided user to create new credentials via OpenSSL on Windows. Increased build number. Enabled New Architecture in .
     -   **Next debug checklist**:
-        1.  Call the  to deploy the entire application to a production environment.
-        2.  After deployment, obtain the new public production backend URL.
-        3.  Update the  variable in  with this new production URL.
-        4.  Inform the user that the app has been deployed and they need to rebuild and resubmit it to the App Store using the An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username and An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username commands.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the final and most critical blocker preventing the app from being approved and published on the Apple App Store.
+        1.  Follow up on the user's communication with Emergent support regarding where to upload the new iOS signing credentials.
+        2.  Once support provides a path, guide the user to upload the  file (password: ) and the  file.
+        3.  Address the bundle ID mismatch with support. The bundle ID in the build settings must match the one on the provisioning profile ().
+        4.  Once credentials and bundle ID are fixed, trigger a new iOS build.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is the absolute highest priority. The user's primary goal is to get the app on the App Store. Resolving this will unblock the entire iOS submission process.
     -   **Status**: BLOCKED
-    -   **Is recurring issue?**: Y (This is the second rejection, the first was for metadata).
-    -   **Should Test frontend/backend/both after fix?**: Both. After deployment, the full app functionality should be tested.
-    -   **Blocked on other issue**: None.
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: Blocked on Emergent Support response.
+
+-   **Issue 2: Website Not Live on  (P2)**
+    -   **Description**: The user's original website (not the new premium one) is hosted on GoDaddy but shows a Launching Soon page. This is a parked page setting.
+    -   **Next debug checklist**: Guide the user to call GoDaddy support and ask them to remove the parked page placeholder.
+    -   **Why fix this issue and what will be achieved with the fix?**: To make the user's business website publicly accessible at their domain.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: NA
 
 **In progress Task List**:
-None. The app rejection is the only active task.
+-   **Task 1: Build the Premium Website (P1)**
+    -   **Where to resume**: The agent has created  and . The next step is to add the JavaScript file () and start implementing the advanced features requested by the user, such as the hero section animation, interactive menu, and placeholder sections for the 3D customizer and Mapbox integration.
+    -   **What will be achieved with this?**: Fulfills the user's latest and very detailed request for a new high-end website.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **Task 1: Guide User to Rebuild and Resubmit App (P0)**: After the deployment is successful, provide clear, step-by-step instructions for the user to run An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username and An Expo user account is required to proceed.
-
-Log in to EAS with email or username (exit and run eas login --help to see other login options)
-Input is required, but stdin is not readable. Failed to display prompt: Email or username to get the updated app to Apple for review.
-    -   **Task 2: Finalize Website Deployment (P1)**: The user purchased GoDaddy hosting but their site still shows a Launching Soon page. This is likely a parked page setting on GoDaddy's side. The agent needs to guide the user to call GoDaddy support and ask them to disable it.
-    -   **Task 3: Implement Payment Links (P2)**: The user requested multiple payment options (Stripe, PayPal, Interac e-Transfer). This requires integration with a payment provider.
+    -   **Task 1: Implement Advanced Website Features (P1)**: After creating the basic structure, implement the complex features for the premium website:
+        -   3D Tiffin Customizer (Three.js/WebGL)
+        -   Smart Subscription Engine
+        -   Mapbox Delivery Tracking Map
+        -   Dynamic Menu System
+        -   Social Proof Wall
+    -   **Task 2: Guide User to Rebuild and Resubmit App (P0)**: Once the iOS credential issue is resolved, provide clear steps for the user to trigger a new build and submit to Apple.
 -   **Future Tasks**:
-    -   **Task 4: Configure  with Apple Credentials (P2)**: An earlier request to add the user's Apple ID and an App-Specific Password to  to streamline future submissions was never completed.
-    -   **Task 5: Finalize and Implement New Logo (P2)**: The user was shown several logo options (variants of Option 4) but has not made a final choice. The selected logo needs to be formally applied to the app and website.
+    -   **Task 3: Implement Payment Links (P2)**: Integrate Stripe, PayPal, and Interac e-Transfer for the app and/or new website.
+    -   **Task 4: Finalize and Implement New Logo (P2)**: The user has not made a final choice on the logo. Apply the selected logo to the app and website.
 
 **Completed work in this session**
--   **App Store Rejection Diagnosis**: Identified that a non-public backend was the cause of the App Completeness rejection.
--   **Smart Delivery System Implementation**:
-    -   **Backend**: Added new FastAPI endpoints for optimized routes, driver tracking, and marking orders ready ().
-    -   **Frontend**: Updated Kitchen () and Driver () portals to use the new smart features.
--   **Full Website Overhaul**:
-    -   Created a premium Aura website with advanced animations, a loading screen, and hover effects ().
-    -   Integrated Tawk.to chatbot script.
-    -   Added user-provided meal plans and new food photos.
-    -   Implemented JavaScript to disable right-click, inspect element, and copy-pasting.
--   **Deployment Hardening**: Fixed multiple issues preventing deployment, such as quoted values in  files, missing , and hardcoded URLs.
--   **Extensive Asset Generation**:
-    -   Created and provided multiple logo options and flyer designs.
-    -   Generated a complete set of App Store screenshots for iPhone, iPad, and Apple Watch.
-    -   Generated new, high-quality food photos based on user reference.
--   **User Support**: Provided extensive step-by-step guidance for debugging website deployment issues on Netlify and GoDaddy.
+-   **Guided iOS Credential Generation on Windows**: Successfully guided the user through a complex manual process of creating a new , , , and  file using OpenSSL on a Windows machine.
+-   **Diagnosed iOS Build Failures**: Identified multiple layers of build issues:
+    -   Initial App Completeness rejection due to non-public backend.
+    -   Invalid Signature rejection due to a revoked certificate.
+    -    version requiring New Architecture.
+    -   Mismatched  and  files.
+-   **Applied Multiple Build Fixes**:
+    -   Enabled  in .
+    -   Removed  and added  to .
+    -   Downgraded  and  to match Expo SDK requirements.
+    -   Increased iOS build number to 4 in .
+-   **Initiated New Premium Website**: Created  and  based on a detailed user prompt for a luxury website.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Website Not Live on **
-    -   **Debug checklist**: The user has purchased GoDaddy hosting and uploaded the files. The last remaining step is to have GoDaddy support disable the default Parked Page or Launching Soon placeholder that is overriding the user's .
-    -   **Why to solve this issue and what will be achieved with this?**: The user's professional website will become publicly accessible at their domain, which is crucial for the business and required for the App Store's privacy policy URL.
-    -   **Should Test frontend/backend/both after fix**: N/A
+    -   **Debug checklist**: User needs to call GoDaddy support to remove the parked page placeholder.
+    -   **Why to solve this issue and what will be achieved with this?**: The user's business website will become publicly accessible.
+    -   **Should Test frontend/backend/both after fix**: NA
     -   **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
-N/A
+-   **Issue recurrence in previous fork**: iOS App Store rejection and build failures.
+-   **Recurrence count**: 3+ times in this session. The user is highly frustrated.
+-   **Status**: BLOCKED
 
 **Code Architecture**
 
 **Key Technical Concepts**
--   **Frontend**: React Native, Expo, Expo Router, Zustand
+-   **Frontend (Mobile)**: React Native, Expo, Expo Router
+-   **Frontend (Web)**: HTML, CSS, JavaScript (planned: Three.js, Mapbox)
 -   **Backend**: FastAPI (Python)
 -   **Database**: MongoDB (mocked via in-memory Python dictionaries)
--   **Deployment**: Expo Application Services (EAS), Emergent Deployment (pending)
--   **Website Hosting**: GoDaddy (pending final setup)
+-   **Deployment**: Expo Application Services (EAS), Emergent Deployment
+-   **iOS Signing**: Manual creation via OpenSSL on Windows (due to user environment).
 
 **key DB schema**
 -   : 
 -   : 
 -   : 
--   : 
--   : 
 
 **changes in tech stack**
-None.
+-   The new premium website will introduce **Three.js/WebGL** and **Mapbox**.
 
 **All files of reference**
--   **Last Modified**: , , , , ,  (all files).
--   **Key files for next step**:  (will need the new production URL),  (contains all logic).
+-   **Created/Updated**:
+    -   : New file for the premium website layout.
+    -   : New file for the premium website styling.
+    -   : Updated with  and increased .
+    -   : Downgraded  and .
+    -   : Updated to include the  directory.
+-   **Important Files**:
+    -   : Contains all mocked backend logic.
+    -   User-generated credentials (not in workspace): , ,  file.
 
 **Areas that need refactoring**:
--    is now over 500 lines and contains all models, routes, and logic for all three portals. It should be refactored into a more scalable structure (e.g., using FastAPI's  to split logic into , and moving models to ).
+-    is a monolithic file that should be broken down into routes and models.
 
 **key api endpoints**
--   : Marks selected orders as ready and assigns them to a delivery batch.
--   : Retrieves the next delivery for a driver, sorted by an optimized route.
--   : For the driver's app to periodically send its GPS location.
--   : For the customer's app to get the driver's live location.
+-   No new endpoints created in this session. Existing smart delivery endpoints are present in .
 
 **Critical Info for New Agent**
-1.  **PRIORITY #1: DEPLOYMENT**. The user is blocked by the App Store rejection. Your first action must be to call the . Do not work on anything else until the backend is deployed.
-2.  **User is Non-Technical**: The user requires very simple, explicit, step-by-step instructions. They get frustrated with complex technical tasks like DNS and hosting setup. Be patient and guide them clearly.
-3.  **Post-Deployment Steps**: After a successful deployment, the app needs its backend URL updated in , and then the user must be instructed to rebuild and resubmit via EAS. This is a critical sequence of events.
-4.  **Website Issue**: The user's live domain  is not working due to a GoDaddy parked page setting. The only reliable fix is for the user to call GoDaddy support. Remind the user of this after the app deployment is handled.
+1.  **IOS BUILD IS THE #1 BLOCKER**: The user is extremely frustrated with repeated iOS build failures. The current issue is a revoked certificate. You must prioritize helping the user resolve this with Emergent Support. Do not proceed with other tasks without acknowledging and addressing this first. **The user's Job ID is **.
+2.  **USER IS ON WINDOWS**: All instructions for local development or certificate management must be tailored for Windows. The user does not have a Mac.
+3.  **CREDENTIALS ARE READY**: The user has successfully created  (password: ) and a  file. They are blocked on finding where to upload them in the Emergent UI.
+4.  **BUNDLE ID MISMATCH**: Remind the user that the provisioning profile was created for , but Emergent's build system is using . This must be corrected.
+5.  **PIVOT TO PREMIUM WEBSITE**: The user has requested a major new task: building a high-end website. You should confirm with the user if they wish to continue this while waiting for support on the iOS issue.
 
 **documents and test reports created in this job**
--   
--   
--   
--   Various generated images (flyers, logos, food photos) in  and other temporary paths.
+- User generated the following files on their local machine (not in the workspace):
+  - 
+  - 
+  - 
+  - 
+  - 
+  - A  file.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Asks for help creating an AI chatbot for the website. (COMPLETED)
-2.  **user**: Asks for logo files in all formats for making flyers. (COMPLETED)
-3.  **user**: Describes the full smart delivery system they want, connecting all three portals. (IN PROGRESS)
-4.  **user**: Specifies choices for the smart delivery system flow. (COMPLETED)
-5.  **agent**: Starts building the smart delivery system. (IN PROGRESS)
-6.  **user**: Reports deployment errors. (COMPLETED - agent fixed them)
-7.  **user**: Asks for photos of Gujarati tiffin in plastic containers. (COMPLETED)
-8.  **user**: Provides an image showing the app was rejected by Apple. (PENDING - Diagnosis complete, fix is next)
-9.  **user**: Shares the detailed rejection message from Apple. (PENDING - Diagnosis complete, fix is next)
-10. **user**: Asks the agent to deploy the app on their behalf. (PENDING - Blocked, requires )
+10. **user**: i am giving you right to do it, find it and do it, it is your thing - User wants agent to upload iOS credentials. (BLOCKED)
+9.  **user**: Asks how to find Job ID for support. (COMPLETED)
+8.  **user**: now come to the website again - User wants to switch focus back to the website. (IN PROGRESS)
+7.  **user**: Pastes a long, detailed prompt to build a new, high-end premium website. (IN PROGRESS)
+6.  **user**: Confirms they are on a Windows machine. (COMPLETED)
+5.  **user**: Asks how to submit the new app version with all details. (BLOCKED by cert issue)
+4.  **user**: so i have to keep the old versions in the apple? - Asks about old rejected builds. (COMPLETED)
+3.  **user**: Shares a screenshot of the two app entries in App Store Connect. (COMPLETED)
+2.  **user**: i got this mail from the apple, so what should i do - Shares email about revoked certificate. (COMPLETED)
+1.  **user**: it is failing again and again, i am frustrated literally - Expresses extreme frustration with build failures. (PENDING - issue is still blocked)
 
 **Project Health Check:**
--   **Broken**: The connection between the frontend app and the backend is broken for anyone outside the development environment. The entire backend is not publicly deployed, making the mobile app non-functional for external reviewers like Apple.
--   **Mocked**: All backend logic and data are mocked in .
+-   **Broken**: The entire iOS build and submission pipeline is broken due to a revoked certificate and bundle ID mismatch. This is the most critical problem.
+-   **Mocked**: The entire backend is mocked in .
 
 **3rd Party Integrations**
--   **OpenStreetMap (Nominatim)**: Used for address autocomplete.
--   **Expo Application Services (EAS)**: Used for building and submitting the app.
--   **Tawk.to**: Chatbot script has been added to the website files.
+-   **OpenStreetMap (Nominatim)**
+-   **Expo Application Services (EAS)**
+-   **Tawk.to**
+-   **Planned for new website**: Mapbox, Three.js, Apple Pay, Google Pay, Interac.
 
 **Testing status**
--   Testing agent used after significant changes: NO. The Smart Delivery System was a major feature addition and was not tested by the testing agent.
--   Troubleshoot agent used after agent stuck in loop: No.
--   Test files created: No.
--   Known regressions: None.
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: NO
+-   Test files created: []
+-   Known regressions: The iOS build process is consistently failing.
 
 **Credentials to test flow:**
 -   **Customer**:  / 
 -   **Driver**:  / 
 -   **Kitchen Admin**:  / 
+-   **New iOS cert password**: 
 
 **What agent forgot to execute**
--   The agent did not call the  after implementing the large Smart Delivery System feature.
--   The agent did not resolve the final step of the website deployment (guiding the user to call GoDaddy support to remove the parked page).
--   The pending task to configure  with Apple credentials from the previous fork remains outstanding.</analysis>
+-   The agent correctly identified the root causes of build failures but was unable to resolve the final step of uploading credentials due to UI limitations on the platform. The escalation to support was the correct, but last, resort.</analysis>

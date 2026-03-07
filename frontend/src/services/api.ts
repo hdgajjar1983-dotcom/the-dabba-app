@@ -13,7 +13,7 @@ const getApiUrl = () => {
   if (envUrl) return `${envUrl}/api`;
   
   // Default for development
-  return 'https://dabba-delivery-2.preview.emergentagent.com/api';
+  return 'https://dabba-premium.preview.emergentagent.com/api';
 };
 
 const API_BASE_URL = getApiUrl();

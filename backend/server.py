@@ -1,5 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1024,6 +1026,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount the website static files
+WEBSITE_DIR = Path(__file__).parent.parent / "website"
+if WEBSITE_DIR.exists():
+    app.mount("/css", StaticFiles(directory=WEBSITE_DIR / "css"), name="css")
+    app.mount("/js", StaticFiles(directory=WEBSITE_DIR / "js"), name="js")
+    app.mount("/assets", StaticFiles(directory=WEBSITE_DIR / "assets"), name="assets")
+    
+    @app.get("/")
+    async def serve_homepage():
+        return FileResponse(WEBSITE_DIR / "index.html")
+    
+    @app.get("/privacy.html")
+    async def serve_privacy():
+        return FileResponse(WEBSITE_DIR / "privacy.html")
+    
+    @app.get("/terms.html")
+    async def serve_terms():
+        return FileResponse(WEBSITE_DIR / "terms.html")
+    
+    @app.get("/support.html")
+    async def serve_support():
+        return FileResponse(WEBSITE_DIR / "support.html")
 
 # Logging
 logging.basicConfig(
