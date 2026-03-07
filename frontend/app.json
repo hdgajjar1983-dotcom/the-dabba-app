@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Dabba",
     "slug": "the-dabba",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "thedabba",
@@ -11,13 +11,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "UIRequiredDeviceCapabilities": ["armv7"],
+        "UIRequiredDeviceCapabilities": [
+          "armv7"
+        ],
         "GCSupportsGameCenterDashboard": false,
         "NSCameraUsageDescription": "Take delivery proof photos",
         "NSPhotoLibraryUsageDescription": "Select photos for your profile",
