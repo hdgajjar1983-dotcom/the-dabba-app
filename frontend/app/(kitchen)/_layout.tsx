@@ -29,7 +29,7 @@ export default function KitchenLayout() {
           height: Platform.OS === 'ios' ? 85 : 65,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
         },
       }}
@@ -37,16 +37,25 @@ export default function KitchenLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
+        name="preparation"
+        options={{
+          title: 'Prep List',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="clipboard" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="dishes"
         options={{
-          title: 'Dishes',
+          title: 'Dabba',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="restaurant" size={size} color={color} />
           ),

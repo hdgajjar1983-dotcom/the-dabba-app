@@ -82,6 +82,11 @@ export const kitchenAPI = {
   // Dashboard
   getDashboard: () => api.get('/kitchen/dashboard'),
   
+  // Preparation List
+  getPreparationList: () => api.get('/kitchen/preparation-list'),
+  updateCustomerItems: (customerId: string, items: { roti?: number; sabji?: number; dal?: number; rice?: number; salad?: number; bread?: number }) =>
+    api.put(`/kitchen/customer-items/${customerId}`, items),
+  
   // Batch Totals
   getBatchTotals: () => api.get('/kitchen/batch-totals'),
   markSoldOut: (itemName: string) => api.post('/kitchen/mark-sold-out', { item_name: itemName }),

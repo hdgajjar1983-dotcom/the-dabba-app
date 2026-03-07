@@ -1274,6 +1274,118 @@ async def delete_category(
         raise HTTPException(status_code=404, detail="Category not found")
     return {"message": "Category deleted"}
 
+# ==================== KITCHEN PREPARATION LIST ====================
+
+@api_router.get("/kitchen/preparation-list")
+async def get_preparation_list(current_user: dict = Depends(get_kitchen_user)):
+    """Get daily preparation list with customer-wise breakdown and totals"""
+    today = datetime.now().date().isoformat()
+    
+    # Get all active subscriptions (not skipped today)
+    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(500)
+    
+    preparation_list = []
+    
+    # Default items per customer (can be customized per subscription)
+    default_items = {
+        "roti": 4,
+        "sabji": 1,  # portions (227g each)
+        "dal": 1,    # portions (227g each)
+        "rice": 1,   # portions
+        "salad": 1,  # portions
+        "bread": 0   # number of breads
+    }
+    
+    for sub in subscriptions:
+        # Check if skipped today
+        is_skipped = any(
+            s.get("date") == today 
+            for s in sub.get("skipped_meals", [])
+        )
+        
+        if is_skipped:
+            continue
+        
+        # Get user info
+        user = await db.users.find_one({"id": sub.get("user_id")})
+        if not user:
+            continue
+        
+        # Get customer preferences if any
+        preferences = sub.get("meal_preferences", {})
+        
+        # Calculate items for this customer
+        customer_items = {
+            "customer_id": sub.get("user_id"),
+            "customer_name": user.get("name", "Unknown"),
+            "phone": user.get("phone", ""),
+            "address": sub.get("delivery_address", ""),
+            "plan": sub.get("plan", "standard"),
+            "roti": preferences.get("roti", default_items["roti"]),
+            "sabji": preferences.get("sabji", default_items["sabji"]),
+            "dal": preferences.get("dal", default_items["dal"]),
+            "rice": preferences.get("rice", default_items["rice"]),
+            "salad": preferences.get("salad", default_items["salad"]),
+            "bread": preferences.get("bread", default_items["bread"]),
+            "notes": sub.get("special_notes", "")
+        }
+        
+        preparation_list.append(customer_items)
+    
+    # Calculate totals
+    totals = {
+        "total_customers": len(preparation_list),
+        "total_roti": sum(c["roti"] for c in preparation_list),
+        "total_sabji_portions": sum(c["sabji"] for c in preparation_list),
+        "total_sabji_grams": sum(c["sabji"] for c in preparation_list) * 227,
+        "total_sabji_kg": round(sum(c["sabji"] for c in preparation_list) * 227 / 1000, 2),
+        "total_dal_portions": sum(c["dal"] for c in preparation_list),
+        "total_dal_grams": sum(c["dal"] for c in preparation_list) * 227,
+        "total_dal_kg": round(sum(c["dal"] for c in preparation_list) * 227 / 1000, 2),
+        "total_rice_portions": sum(c["rice"] for c in preparation_list),
+        "total_salad_portions": sum(c["salad"] for c in preparation_list),
+        "total_bread": sum(c["bread"] for c in preparation_list),
+    }
+    
+    return {
+        "date": today,
+        "preparation_list": preparation_list,
+        "totals": totals
+    }
+
+@api_router.put("/kitchen/customer-items/{customer_id}")
+async def update_customer_items(
+    customer_id: str,
+    items: dict,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Update meal preferences for a specific customer"""
+    # Find subscription
+    subscription = await db.subscriptions.find_one({
+        "user_id": customer_id,
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Active subscription not found")
+    
+    # Update preferences
+    preferences = {
+        "roti": items.get("roti", 4),
+        "sabji": items.get("sabji", 1),
+        "dal": items.get("dal", 1),
+        "rice": items.get("rice", 1),
+        "salad": items.get("salad", 1),
+        "bread": items.get("bread", 0),
+    }
+    
+    await db.subscriptions.update_one(
+        {"id": subscription["id"]},
+        {"$set": {"meal_preferences": preferences}}
+    )
+    
+    return {"message": "Customer items updated"}
+
 # ==================== TRUST ENGINE - WALLET SYSTEM ====================
 
 class WalletTransaction(BaseModel):
