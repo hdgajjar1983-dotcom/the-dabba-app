@@ -19,6 +19,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     
+    <!-- Mapbox GL JS for delivery tracking -->
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js'></script>
+    
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -508,53 +512,141 @@
         </div>
     </section>
 
-    <!-- Delivery Map Section -->
+    <!-- Delivery Map Section with Live Tracking -->
     <section id="delivery" class="delivery-section" data-testid="delivery-section">
         <div class="section-container">
             <div class="section-header">
-                <span class="section-badge">Halifax Heritage</span>
-                <h2 class="section-title">We Deliver Across HRM</h2>
-                <p class="section-subtitle">Halifax, Bedford, Dartmouth - Fresh and on time</p>
+                <span class="section-badge">Track My Dabba</span>
+                <h2 class="section-title">Live Delivery Tracking</h2>
+                <p class="section-subtitle">Watch your dabba journey from kitchen to doorstep</p>
             </div>
             
-            <div class="delivery-wrapper">
-                <div class="delivery-map" id="deliveryMap" data-testid="delivery-map">
-                    <div class="map-placeholder">
-                        <div class="map-visual">
-                            <div class="map-area halifax">
-                                <span class="area-name">Halifax</span>
-                                <span class="area-time">30 min</span>
-                            </div>
-                            <div class="map-area bedford">
-                                <span class="area-name">Bedford</span>
-                                <span class="area-time">40 min</span>
-                            </div>
-                            <div class="map-area dartmouth">
-                                <span class="area-name">Dartmouth</span>
-                                <span class="area-time">35 min</span>
-                            </div>
-                            <div class="delivery-truck">
+            <div class="tracking-wrapper">
+                <!-- Live Mapbox Map -->
+                <div class="tracking-map-container">
+                    <div id="trackingMap" class="tracking-map" data-testid="tracking-map"></div>
+                    
+                    <!-- Tracking Status Overlay -->
+                    <div class="tracking-overlay" data-testid="tracking-overlay">
+                        <div class="tracking-status">
+                            <div class="status-icon pulse">
                                 <i data-lucide="truck"></i>
                             </div>
+                            <div class="status-info">
+                                <span class="status-label">Your Dabba is</span>
+                                <span class="status-text" id="deliveryStatus">On the way!</span>
+                            </div>
                         </div>
+                        <div class="eta-display">
+                            <span class="eta-label">Estimated Arrival</span>
+                            <span class="eta-time" id="etaTime">12:45 PM</span>
+                            <span class="eta-countdown" id="etaCountdown">~15 min</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Demo Controls -->
+                    <div class="demo-controls">
+                        <button class="demo-btn" id="startTrackingDemo" data-testid="start-tracking-btn">
+                            <i data-lucide="play"></i>
+                            Start Demo
+                        </button>
+                        <button class="demo-btn" id="resetDemo" data-testid="reset-demo-btn">
+                            <i data-lucide="refresh-cw"></i>
+                            Reset
+                        </button>
                     </div>
                 </div>
                 
-                <div class="delivery-info">
-                    <div class="info-card">
-                        <i data-lucide="clock"></i>
-                        <h4>Delivery Windows</h4>
-                        <p>Lunch: 11:30 AM - 1:30 PM<br>Dinner: 6:00 PM - 8:00 PM</p>
+                <!-- Delivery Journey Timeline -->
+                <div class="delivery-timeline">
+                    <h3 class="timeline-title">
+                        <i data-lucide="route"></i>
+                        Delivery Journey
+                    </h3>
+                    
+                    <div class="timeline-steps">
+                        <div class="timeline-step completed" data-step="1">
+                            <div class="step-icon">
+                                <i data-lucide="chef-hat"></i>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-title">Order Prepared</span>
+                                <span class="step-time">12:15 PM</span>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-step completed" data-step="2">
+                            <div class="step-icon">
+                                <i data-lucide="package-check"></i>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-title">Packed & Ready</span>
+                                <span class="step-time">12:20 PM</span>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-step active" data-step="3">
+                            <div class="step-icon">
+                                <i data-lucide="truck"></i>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-title">Out for Delivery</span>
+                                <span class="step-time">12:30 PM</span>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-step" data-step="4">
+                            <div class="step-icon">
+                                <i data-lucide="home"></i>
+                            </div>
+                            <div class="step-content">
+                                <span class="step-title">Delivered</span>
+                                <span class="step-time">Est. 12:45 PM</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="info-card">
+                    
+                    <div class="driver-card">
+                        <div class="driver-avatar">
+                            <span>RK</span>
+                        </div>
+                        <div class="driver-details">
+                            <h4>Rajesh Kumar</h4>
+                            <p>Your delivery partner</p>
+                            <div class="driver-rating">
+                                <i data-lucide="star"></i>
+                                <span>4.9</span>
+                                <span class="rating-count">(234 deliveries)</span>
+                            </div>
+                        </div>
+                        <a href="tel:+19025551234" class="call-driver">
+                            <i data-lucide="phone"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Coverage Areas -->
+            <div class="coverage-areas">
+                <h3 class="coverage-title">We Deliver Across HRM</h3>
+                <div class="coverage-grid">
+                    <div class="coverage-card">
+                        <i data-lucide="building-2"></i>
+                        <h4>Halifax</h4>
+                        <p>Downtown, South End, North End</p>
+                        <span class="delivery-time">25-35 min</span>
+                    </div>
+                    <div class="coverage-card">
+                        <i data-lucide="home"></i>
+                        <h4>Bedford</h4>
+                        <p>Bedford Basin, Sackville</p>
+                        <span class="delivery-time">35-45 min</span>
+                    </div>
+                    <div class="coverage-card">
                         <i data-lucide="map-pin"></i>
-                        <h4>Coverage Area</h4>
-                        <p>All of Halifax Regional Municipality including Downtown, South End, North End, Bedford, and Dartmouth</p>
-                    </div>
-                    <div class="info-card">
-                        <i data-lucide="phone"></i>
-                        <h4>Real-time Tracking</h4>
-                        <p>Track your dabba in real-time with our live GPS tracking system</p>
+                        <h4>Dartmouth</h4>
+                        <p>Downtown, Woodlawn, Cole Harbour</p>
+                        <span class="delivery-time">30-40 min</span>
                     </div>
                 </div>
             </div>

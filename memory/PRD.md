@@ -48,7 +48,14 @@ Build "The Greatest Tiffin Website on Earth" for `thadabba.ca` - A premium, dark
 - [x] Tiffin customizer with tier selection
 - [x] Subscription plans with pricing
 - [x] Calendar widget for delivery management
-- [x] Delivery map placeholder
+- [x] **"Track My Dabba" Live Tracking Feature** (NEW!)
+  - Mapbox GL JS integration with dark theme
+  - Animated delivery route visualization
+  - Real-time driver marker movement
+  - ETA countdown that updates dynamically
+  - Delivery journey timeline
+  - Driver info card with call button
+  - Demo mode for showcasing
 - [x] Social proof testimonials
 - [x] GSAP scroll animations
 - [x] Mobile menu functionality
@@ -60,8 +67,8 @@ Build "The Greatest Tiffin Website on Earth" for `thadabba.ca` - A premium, dark
 
 ### P1 - High Priority
 - [ ] Real Three.js 3D Tiffin Customizer (currently CSS-based placeholder)
-- [ ] Mapbox integration for real delivery tracking
 - [ ] Payment integration (Stripe, Apple Pay, Google Pay, Interac)
+- [ ] Connect tracking to real driver GPS data via WebSocket
 
 ### P2 - Medium Priority  
 - [ ] Instagram/Google Reviews API integration for live social proof

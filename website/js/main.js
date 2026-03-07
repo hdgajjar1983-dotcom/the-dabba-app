@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
     initCalendar();
     initLucideIcons();
+    initTrackingMap();
 });
 
 /* ===================================
@@ -783,3 +784,326 @@ function formatCurrency(amount) {
 console.log('%c🍛 Tha Dabba', 'font-size: 24px; font-weight: bold; color: #FF9933;');
 console.log('%cPremium Indian Tiffin Service', 'font-size: 14px; color: #D4AF37;');
 console.log('%cMade with ❤️ in Halifax', 'font-size: 12px; color: #A0A0A0;');
+
+
+/* ===================================
+   Track My Dabba - Mapbox Integration
+   =================================== */
+function initTrackingMap() {
+    const mapContainer = document.getElementById('trackingMap');
+    if (!mapContainer) return;
+    
+    // Check if Mapbox is available
+    if (typeof mapboxgl === 'undefined') {
+        console.log('Mapbox GL JS not loaded, showing fallback');
+        showMapFallback();
+        return;
+    }
+    
+    // Mapbox public token for demo (replace with your own for production)
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+    
+    // Halifax coordinates
+    const halifaxCenter = [-63.5752, 44.6488];
+    const kitchenLocation = [-63.5849, 44.6540]; // Kitchen location
+    const deliveryLocation = [-63.5650, 44.6420]; // Destination
+    
+    // Create map
+    const map = new mapboxgl.Map({
+        container: 'trackingMap',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: halifaxCenter,
+        zoom: 13,
+        pitch: 30
+    });
+    
+    // Add navigation controls
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // Store route coordinates for animation
+    let routeCoordinates = [];
+    let currentPosition = 0;
+    let animationId = null;
+    let driverMarker = null;
+    
+    // Create driver marker element
+    function createDriverMarker() {
+        const el = document.createElement('div');
+        el.className = 'mapbox-driver-marker';
+        el.innerHTML = `
+            <div class="driver-marker-inner">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/>
+                    <path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/>
+                    <circle cx="7" cy="18" r="2"/>
+                    <path d="M15 18H9"/>
+                    <circle cx="17" cy="18" r="2"/>
+                </svg>
+            </div>
+        `;
+        el.style.cssText = `
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #FF9933, #D4AF37);
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(255, 153, 51, 0.5);
+            transition: transform 0.3s ease;
+        `;
+        return el;
+    }
+    
+    // Generate route between two points
+    function generateRoute(start, end) {
+        const steps = 100;
+        const coords = [];
+        
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            // Add some curve to the route
+            const midLng = (start[0] + end[0]) / 2 + (Math.random() - 0.5) * 0.01;
+            const midLat = (start[1] + end[1]) / 2 + (Math.random() - 0.5) * 0.01;
+            
+            // Quadratic bezier interpolation
+            const lng = (1-t)*(1-t)*start[0] + 2*(1-t)*t*midLng + t*t*end[0];
+            const lat = (1-t)*(1-t)*start[1] + 2*(1-t)*t*midLat + t*t*end[1];
+            
+            coords.push([lng, lat]);
+        }
+        
+        return coords;
+    }
+    
+    map.on('load', () => {
+        // Generate route
+        routeCoordinates = generateRoute(kitchenLocation, deliveryLocation);
+        
+        // Add kitchen marker
+        new mapboxgl.Marker({
+            color: '#3F704D',
+            scale: 0.8
+        })
+            .setLngLat(kitchenLocation)
+            .setPopup(new mapboxgl.Popup().setHTML('<strong>Tha Dabba Kitchen</strong><br>Your food starts here!'))
+            .addTo(map);
+        
+        // Add destination marker
+        new mapboxgl.Marker({
+            color: '#C41E3A',
+            scale: 0.8
+        })
+            .setLngLat(deliveryLocation)
+            .setPopup(new mapboxgl.Popup().setHTML('<strong>Your Location</strong><br>Delivery destination'))
+            .addTo(map);
+        
+        // Add route line source
+        map.addSource('route', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'LineString',
+                    coordinates: routeCoordinates
+                }
+            }
+        });
+        
+        // Add route line layer (dashed)
+        map.addLayer({
+            id: 'route-line',
+            type: 'line',
+            source: 'route',
+            paint: {
+                'line-color': '#FF9933',
+                'line-width': 4,
+                'line-opacity': 0.6,
+                'line-dasharray': [2, 2]
+            }
+        });
+        
+        // Add animated route progress source
+        map.addSource('route-progress', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {},
+                geometry: {
+                    type: 'LineString',
+                    coordinates: []
+                }
+            }
+        });
+        
+        // Add route progress layer (solid)
+        map.addLayer({
+            id: 'route-progress-line',
+            type: 'line',
+            source: 'route-progress',
+            paint: {
+                'line-color': '#FF9933',
+                'line-width': 5,
+                'line-opacity': 1
+            }
+        });
+        
+        // Add driver marker at starting position
+        driverMarker = new mapboxgl.Marker(createDriverMarker())
+            .setLngLat(kitchenLocation)
+            .addTo(map);
+        
+        // Fit map to show entire route
+        const bounds = new mapboxgl.LngLatBounds();
+        bounds.extend(kitchenLocation);
+        bounds.extend(deliveryLocation);
+        map.fitBounds(bounds, { padding: 80 });
+    });
+    
+    // Animate driver along route
+    function animateDriver() {
+        if (currentPosition >= routeCoordinates.length - 1) {
+            // Animation complete
+            document.getElementById('deliveryStatus').textContent = 'Delivered!';
+            document.getElementById('etaCountdown').textContent = 'Arrived';
+            updateTimelineStep(4);
+            return;
+        }
+        
+        currentPosition++;
+        const coord = routeCoordinates[currentPosition];
+        
+        // Move marker
+        if (driverMarker) {
+            driverMarker.setLngLat(coord);
+        }
+        
+        // Update route progress line
+        const progressCoords = routeCoordinates.slice(0, currentPosition + 1);
+        map.getSource('route-progress').setData({
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates: progressCoords
+            }
+        });
+        
+        // Update ETA countdown
+        const remaining = routeCoordinates.length - currentPosition;
+        const minutesRemaining = Math.ceil(remaining / routeCoordinates.length * 15);
+        document.getElementById('etaCountdown').textContent = `~${minutesRemaining} min`;
+        
+        // Continue animation
+        animationId = setTimeout(animateDriver, 100);
+    }
+    
+    // Update timeline step
+    function updateTimelineStep(step) {
+        document.querySelectorAll('.timeline-step').forEach((el, index) => {
+            const stepNum = index + 1;
+            el.classList.remove('active', 'completed');
+            
+            if (stepNum < step) {
+                el.classList.add('completed');
+            } else if (stepNum === step) {
+                el.classList.add('active');
+            }
+        });
+        
+        // Reinitialize icons
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+    
+    // Start demo button handler
+    const startBtn = document.getElementById('startTrackingDemo');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            if (animationId) return; // Already running
+            
+            currentPosition = 0;
+            document.getElementById('deliveryStatus').textContent = 'On the way!';
+            updateTimelineStep(3);
+            animateDriver();
+            
+            startBtn.innerHTML = '<i data-lucide="loader"></i> Tracking...';
+            startBtn.disabled = true;
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+    
+    // Reset demo button handler
+    const resetBtn = document.getElementById('resetDemo');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            // Stop animation
+            if (animationId) {
+                clearTimeout(animationId);
+                animationId = null;
+            }
+            
+            // Reset position
+            currentPosition = 0;
+            if (driverMarker) {
+                driverMarker.setLngLat(kitchenLocation);
+            }
+            
+            // Reset route progress
+            if (map.getSource('route-progress')) {
+                map.getSource('route-progress').setData({
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: []
+                    }
+                });
+            }
+            
+            // Reset UI
+            document.getElementById('deliveryStatus').textContent = 'On the way!';
+            document.getElementById('etaCountdown').textContent = '~15 min';
+            updateTimelineStep(3);
+            
+            // Reset button
+            if (startBtn) {
+                startBtn.innerHTML = '<i data-lucide="play"></i> Start Demo';
+                startBtn.disabled = false;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+}
+
+// Fallback for when Mapbox doesn't load
+function showMapFallback() {
+    const mapContainer = document.getElementById('trackingMap');
+    if (!mapContainer) return;
+    
+    mapContainer.innerHTML = `
+        <div style="
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1E1E1E 0%, #121212 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            color: #A0A0A0;
+        ">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#FF9933" stroke-width="1.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <p style="text-align: center; max-width: 250px;">
+                Live tracking map<br>
+                <span style="font-size: 0.8rem; color: #666;">Demo mode - Shows animated delivery route</span>
+            </p>
+        </div>
+    `;
+}
