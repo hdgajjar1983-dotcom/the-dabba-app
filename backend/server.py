@@ -1056,6 +1056,224 @@ async def seed_default_dishes(current_user: dict = Depends(get_kitchen_user)):
     
     return {"message": f"Seeded {count} dishes", "total": len(default_dishes)}
 
+# ==================== SUBSCRIPTION PLANS MANAGEMENT ====================
+
+class SubscriptionPlanData(BaseModel):
+    name: str
+    price: float
+    description: Optional[str] = None
+    features: Optional[List[str]] = []
+    is_active: bool = True
+
+@api_router.get("/plans")
+async def get_subscription_plans():
+    """Get all subscription plans (public endpoint)"""
+    plans = await db.subscription_plans.find({"is_active": True}).to_list(20)
+    
+    # If no plans exist, seed default plans
+    if not plans:
+        default_plans = [
+            {
+                "id": str(uuid.uuid4()),
+                "name": "Eco",
+                "price": 89.00,
+                "description": "Basic vegetarian meals",
+                "features": ["Vegetarian only", "1 meal/day", "Standard portions"],
+                "icon": "leaf-outline",
+                "color": "#10B981",
+                "is_active": True,
+                "created_at": datetime.utcnow().isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "name": "Standard",
+                "price": 119.00,
+                "description": "Mixed veg & non-veg meals",
+                "features": ["Veg & Non-veg", "1 meal/day", "Regular portions", "Weekend specials"],
+                "icon": "restaurant-outline",
+                "color": "#C41E3A",
+                "popular": True,
+                "is_active": True,
+                "created_at": datetime.utcnow().isoformat()
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "name": "Premium",
+                "price": 149.00,
+                "description": "Gourmet meals with extras",
+                "features": ["Premium ingredients", "1 meal/day", "Large portions", "Dessert included", "Priority delivery"],
+                "icon": "star-outline",
+                "color": "#8B5CF6",
+                "is_active": True,
+                "created_at": datetime.utcnow().isoformat()
+            }
+        ]
+        await db.subscription_plans.insert_many(default_plans)
+        plans = default_plans
+    
+    return {"plans": [{k: v for k, v in p.items() if k != "_id"} for p in plans]}
+
+@api_router.get("/kitchen/plans")
+async def get_kitchen_plans(current_user: dict = Depends(get_kitchen_user)):
+    """Get all subscription plans for kitchen management"""
+    plans = await db.subscription_plans.find({}).to_list(20)
+    return {"plans": [{k: v for k, v in p.items() if k != "_id"} for p in plans]}
+
+@api_router.post("/kitchen/plans")
+async def create_subscription_plan(
+    plan_data: SubscriptionPlanData,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Create a new subscription plan"""
+    plan = {
+        "id": str(uuid.uuid4()),
+        "name": plan_data.name,
+        "price": plan_data.price,
+        "description": plan_data.description,
+        "features": plan_data.features,
+        "is_active": plan_data.is_active,
+        "created_at": datetime.utcnow().isoformat(),
+        "created_by": current_user["id"]
+    }
+    await db.subscription_plans.insert_one(plan)
+    return {"message": "Plan created", "plan": {k: v for k, v in plan.items() if k != "_id"}}
+
+@api_router.put("/kitchen/plans/{plan_id}")
+async def update_subscription_plan(
+    plan_id: str,
+    plan_data: SubscriptionPlanData,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Update a subscription plan"""
+    update_data = {
+        "name": plan_data.name,
+        "price": plan_data.price,
+        "description": plan_data.description,
+        "features": plan_data.features,
+        "is_active": plan_data.is_active,
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    result = await db.subscription_plans.update_one(
+        {"id": plan_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    return {"message": "Plan updated"}
+
+@api_router.delete("/kitchen/plans/{plan_id}")
+async def delete_subscription_plan(
+    plan_id: str,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Delete a subscription plan"""
+    result = await db.subscription_plans.delete_one({"id": plan_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"message": "Plan deleted"}
+
+# ==================== CATEGORIES MANAGEMENT ====================
+
+class CategoryData(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    sort_order: Optional[int] = 0
+
+@api_router.get("/categories")
+async def get_categories():
+    """Get all dish categories (public endpoint)"""
+    categories = await db.categories.find({}).sort("sort_order", 1).to_list(50)
+    
+    # If no categories exist, seed default categories
+    if not categories:
+        default_categories = [
+            {"id": str(uuid.uuid4()), "name": "Breads", "icon": "restaurant", "sort_order": 1},
+            {"id": str(uuid.uuid4()), "name": "Rice & Grains", "icon": "leaf", "sort_order": 2},
+            {"id": str(uuid.uuid4()), "name": "Main Dishes", "icon": "flame", "sort_order": 3},
+            {"id": str(uuid.uuid4()), "name": "Dals & Kathol", "icon": "water", "sort_order": 4},
+            {"id": str(uuid.uuid4()), "name": "Sides & Drinks", "icon": "cafe", "sort_order": 5},
+            {"id": str(uuid.uuid4()), "name": "Desserts", "icon": "ice-cream", "sort_order": 6},
+        ]
+        await db.categories.insert_many(default_categories)
+        categories = default_categories
+    
+    return {"categories": [{k: v for k, v in c.items() if k != "_id"} for c in categories]}
+
+@api_router.get("/kitchen/categories")
+async def get_kitchen_categories(current_user: dict = Depends(get_kitchen_user)):
+    """Get all categories for kitchen management"""
+    categories = await db.categories.find({}).sort("sort_order", 1).to_list(50)
+    return {"categories": [{k: v for k, v in c.items() if k != "_id"} for c in categories]}
+
+@api_router.post("/kitchen/categories")
+async def create_category(
+    category_data: CategoryData,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Create a new category"""
+    # Check for duplicate name
+    existing = await db.categories.find_one({"name": category_data.name})
+    if existing:
+        raise HTTPException(status_code=400, detail="Category already exists")
+    
+    category = {
+        "id": str(uuid.uuid4()),
+        "name": category_data.name,
+        "description": category_data.description,
+        "icon": category_data.icon or "restaurant",
+        "sort_order": category_data.sort_order or 99,
+        "created_at": datetime.utcnow().isoformat(),
+        "created_by": current_user["id"]
+    }
+    await db.categories.insert_one(category)
+    return {"message": "Category created", "category": {k: v for k, v in category.items() if k != "_id"}}
+
+@api_router.put("/kitchen/categories/{category_id}")
+async def update_category(
+    category_id: str,
+    category_data: CategoryData,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Update a category"""
+    update_data = {
+        "name": category_data.name,
+        "description": category_data.description,
+        "icon": category_data.icon,
+        "sort_order": category_data.sort_order,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    
+    result = await db.categories.update_one(
+        {"id": category_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return {"message": "Category updated"}
+
+@api_router.delete("/kitchen/categories/{category_id}")
+async def delete_category(
+    category_id: str,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Delete a category"""
+    # Check if category has dishes
+    dishes_count = await db.dishes.count_documents({"category": category_id})
+    if dishes_count > 0:
+        raise HTTPException(status_code=400, detail=f"Cannot delete category with {dishes_count} dishes. Move dishes first.")
+    
+    result = await db.categories.delete_one({"id": category_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return {"message": "Category deleted"}
+
 # ==================== TRUST ENGINE - WALLET SYSTEM ====================
 
 class WalletTransaction(BaseModel):

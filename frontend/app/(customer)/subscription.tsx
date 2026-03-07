@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { subscriptionAPI } from '../../src/services/api';
+import { subscriptionAPI, publicAPI } from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import AddressForm from '../../src/components/AddressForm';
 
@@ -28,7 +28,8 @@ const COLORS = {
   success: '#10B981',
 };
 
-const PLANS = [
+// Default plans (fallback if API fails)
+const DEFAULT_PLANS = [
   {
     id: 'eco',
     name: 'Eco',
@@ -59,6 +60,17 @@ const PLANS = [
   },
 ];
 
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  features?: string[];
+  icon?: string;
+  color?: string;
+  popular?: boolean;
+}
+
 interface Subscription {
   id: string;
   plan: string;
@@ -72,6 +84,7 @@ interface Subscription {
 export default function SubscriptionScreen() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -81,6 +94,28 @@ export default function SubscriptionScreen() {
 
   const fetchSubscription = useCallback(async () => {
     try {
+      // Fetch plans from API
+      try {
+        const plansResponse = await publicAPI.getPlans();
+        if (plansResponse.data?.plans?.length > 0) {
+          // Map API plans to expected format with defaults
+          const apiPlans = plansResponse.data.plans.map((p: any) => ({
+            id: p.id || p.name?.toLowerCase(),
+            name: p.name,
+            price: p.price,
+            description: p.description || '',
+            features: p.features || [],
+            icon: p.icon || 'restaurant-outline',
+            color: p.color || COLORS.primary,
+            popular: p.popular || false,
+          }));
+          setPlans(apiPlans);
+        }
+      } catch (e) {
+        console.log('Using default plans');
+      }
+      
+      // Fetch subscription
       const response = await subscriptionAPI.getSubscription();
       setSubscription(response.data);
     } catch (error: any) {
@@ -199,7 +234,7 @@ export default function SubscriptionScreen() {
           <Text style={styles.sectionTitle}>
             {subscription ? 'Change Plan' : 'Available Plans'}
           </Text>
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <TouchableOpacity
               key={plan.id}
               style={[
@@ -264,7 +299,7 @@ export default function SubscriptionScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              {PLANS.find(p => p.id === selectedPlan)?.name} Plan - ${PLANS.find(p => p.id === selectedPlan)?.price} CAD/week
+              {plans.find(p => p.id === selectedPlan)?.name} Plan - ${plans.find(p => p.id === selectedPlan)?.price} CAD/week
             </Text>
             <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
               <AddressForm

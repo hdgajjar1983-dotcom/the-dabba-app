@@ -89,12 +89,28 @@ export const kitchenAPI = {
   
   // Dishes
   getDishes: () => api.get('/kitchen/dishes'),
-  createDish: (data: { name: string; description: string; type: string; price: number; image_url?: string }) =>
+  createDish: (data: { name: string; description: string; type: string; category?: string; price: number; image_url?: string }) =>
     api.post('/kitchen/dishes', data),
-  updateDish: (id: string, data: { name?: string; description?: string; type?: string; price?: number; image_url?: string }) =>
+  updateDish: (id: string, data: { name?: string; description?: string; type?: string; category?: string; price?: number; image_url?: string }) =>
     api.put(`/kitchen/dishes/${id}`, data),
   deleteDish: (id: string) => api.delete(`/kitchen/dishes/${id}`),
   seedDishes: () => api.post('/kitchen/seed-dishes'),
+  
+  // Categories
+  getCategories: () => api.get('/kitchen/categories'),
+  createCategory: (data: { name: string; description?: string; icon?: string; sort_order?: number }) =>
+    api.post('/kitchen/categories', data),
+  updateCategory: (id: string, data: { name: string; description?: string; icon?: string; sort_order?: number }) =>
+    api.put(`/kitchen/categories/${id}`, data),
+  deleteCategory: (id: string) => api.delete(`/kitchen/categories/${id}`),
+  
+  // Subscription Plans
+  getPlans: () => api.get('/kitchen/plans'),
+  createPlan: (data: { name: string; price: number; description?: string; features?: string[]; is_active?: boolean }) =>
+    api.post('/kitchen/plans', data),
+  updatePlan: (id: string, data: { name: string; price: number; description?: string; features?: string[]; is_active?: boolean }) =>
+    api.put(`/kitchen/plans/${id}`, data),
+  deletePlan: (id: string) => api.delete(`/kitchen/plans/${id}`),
   
   // Menu
   getMenu: () => api.get('/kitchen/menu'),
@@ -110,6 +126,12 @@ export const kitchenAPI = {
   // Smart Delivery System
   markOrdersReady: (orderIds: string[]) => api.post('/kitchen/mark-ready', { order_ids: orderIds }),
   getPrintLabels: () => api.get('/kitchen/print-labels'),
+};
+
+// Public APIs
+export const publicAPI = {
+  getPlans: () => api.get('/plans'),
+  getCategories: () => api.get('/categories'),
 };
 
 // Driver APIs (Enhanced)
