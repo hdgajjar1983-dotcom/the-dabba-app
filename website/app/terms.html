@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - The Dabba</title>
+    <meta name="description" content="Terms of Service for The Dabba tiffin delivery app.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --maroon: #8B1538;
+            --maroon-dark: #5D0E24;
+            --gold: #D4AF37;
+            --gold-light: #F4E4BA;
+            --cream: #FDF8F3;
+            --text-dark: #3D2914;
+            --text-light: #8B7355;
+            --white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--cream);
+            color: var(--text-dark);
+            line-height: 1.8;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+            padding: 30px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--gold);
+        }
+
+        .logo-icon i {
+            color: var(--gold-light);
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold-light);
+        }
+
+        .back-link {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        .page-hero {
+            background: linear-gradient(135deg, var(--maroon), var(--maroon-dark));
+            padding: 60px 5% 80px;
+            text-align: center;
+        }
+
+        .page-hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(36px, 5vw, 52px);
+            color: var(--gold-light);
+            margin-bottom: 15px;
+        }
+
+        .page-hero p {
+            color: rgba(255,255,255,0.8);
+            font-size: 16px;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: -40px auto 60px;
+            padding: 50px;
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 10px 50px rgba(139, 21, 56, 0.1);
+        }
+
+        .content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            color: var(--maroon);
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gold-light);
+        }
+
+        .content h2:first-child {
+            margin-top: 0;
+        }
+
+        .content p {
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-size: 15px;
+        }
+
+        .content ul, .content ol {
+            margin: 15px 0 20px 25px;
+            color: var(--text-dark);
+        }
+
+        .content li {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .content strong {
+            color: var(--maroon);
+        }
+
+        .highlight-box {
+            background: var(--gold-light);
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border-left: 4px solid var(--gold);
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: var(--maroon-dark);
+        }
+
+        .last-updated {
+            background: var(--cream);
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .last-updated p {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .footer {
+            background: var(--text-dark);
+            padding: 40px 5%;
+            text-align: center;
+        }
+
+        .footer p {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        .footer-links {
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.8);
+            margin: 0 15px;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold);
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                margin: -30px 20px 40px;
+                padding: 30px 25px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-bowl-food"></i>
+                </div>
+                <span class="logo-text">The Dabba</span>
+            </a>
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
+        </div>
+    </header>
+
+    <section class="page-hero">
+        <h1>Terms of Service</h1>
+        <p>Please read these terms carefully before using our service</p>
+    </section>
+
+    <main class="content">
+        <h2>Agreement to Terms</h2>
+        <p>By accessing or using The Dabba mobile application and services ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.</p>
+
+        <div class="highlight-box">
+            <p><strong>Summary:</strong> By using The Dabba, you agree to follow these rules. We provide meal delivery services, and you agree to pay for the meals you order.</p>
+        </div>
+
+        <h2>Description of Service</h2>
+        <p>The Dabba provides a meal subscription and delivery service offering authentic Gujarati home-style meals. Our services include:</p>
+        <ul>
+            <li>Daily meal preparation and delivery</li>
+            <li>Weekly and monthly subscription plans</li>
+            <li>Meal skipping with wallet credit</li>
+            <li>Real-time delivery tracking</li>
+        </ul>
+
+        <h2>User Accounts</h2>
+        <p>To use our Service, you must:</p>
+        <ul>
+            <li>Be at least 18 years of age</li>
+            <li>Provide accurate and complete registration information</li>
+            <li>Maintain the security of your account credentials</li>
+            <li>Notify us immediately of any unauthorized use</li>
+        </ul>
+        <p>You are responsible for all activities that occur under your account.</p>
+
+        <h2>Subscription and Payments</h2>
+        <h3>Subscription Plans</h3>
+        <p>We offer weekly and monthly subscription plans. By subscribing, you authorize us to charge your payment method on a recurring basis until you cancel.</p>
+
+        <h3>Pricing</h3>
+        <p>All prices are in Canadian Dollars (CAD) and include applicable taxes. We reserve the right to change prices with reasonable notice to subscribers.</p>
+
+        <h3>Meal Skipping</h3>
+        <p>You may skip scheduled meals up to 6 hours before the delivery time. Skipped meals will be credited to your wallet at the rate specified in the app. Wallet credits can only be used for future meal purchases and are non-refundable.</p>
+
+        <h2>Delivery</h2>
+        <p>We deliver meals between 7:00 PM and 8:30 PM, Monday through Saturday, to addresses within our service area. You are responsible for:</p>
+        <ul>
+            <li>Providing accurate delivery address and contact information</li>
+            <li>Being available to receive deliveries or providing safe delivery instructions</li>
+            <li>Notifying us of any delivery issues within 2 hours of scheduled delivery</li>
+        </ul>
+
+        <h2>Cancellation and Refunds</h2>
+        <p>You may cancel your subscription at any time through the app. Upon cancellation:</p>
+        <ul>
+            <li>You will continue to receive meals until the end of your current billing period</li>
+            <li>Unused wallet credits will remain available if you resubscribe within 6 months</li>
+            <li>Refunds for unused subscription days are handled on a case-by-case basis</li>
+        </ul>
+
+        <h2>Food Safety and Allergies</h2>
+        <p>While we take great care in preparing our meals, please note:</p>
+        <ul>
+            <li>Our kitchen handles common allergens including nuts, dairy, and wheat</li>
+            <li>We cannot guarantee allergen-free meals</li>
+            <li>You are responsible for informing us of any food allergies or dietary restrictions</li>
+            <li>Meals should be consumed within 2 hours of delivery or refrigerated immediately</li>
+        </ul>
+
+        <h2>Limitation of Liability</h2>
+        <p>To the maximum extent permitted by law, The Dabba shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.</p>
+
+        <h2>Changes to Terms</h2>
+        <p>We reserve the right to modify these Terms at any time. We will notify users of significant changes via email or in-app notification. Continued use of the Service after changes constitutes acceptance of the new Terms.</p>
+
+        <h2>Governing Law</h2>
+        <p>These Terms shall be governed by and construed in accordance with the laws of the Province of Nova Scotia and the federal laws of Canada applicable therein.</p>
+
+        <h2>Contact Information</h2>
+        <p>For questions about these Terms, please contact us at:</p>
+        <ul>
+            <li><strong>Email:</strong> legal@thedabba.ca</li>
+            <li><strong>Address:</strong> Halifax, Nova Scotia, Canada</li>
+        </ul>
+
+        <div class="last-updated">
+            <p><strong>Last Updated:</strong> January 2025</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
+            <a href="support.html">Support</a>
+        </div>
+        <p>&copy; 2025 The Dabba. All rights reserved.</p>
+    </footer>
+    <!--Start of Tawk.to Script-->
+    <script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/69a5fd2014810b1c32a13e6d/1jio69hhl';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+    </script>
+    <!--End of Tawk.to Script-->
+    <!-- Disable Inspect/Dev Tools -->
+    <script>
+    document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
+    document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&(e.key==='I'||e.key==='J'||e.key==='C'))||(e.ctrlKey&&(e.key==='u'||e.key==='s'))){e.preventDefault();return false;}});
+    document.addEventListener('selectstart',function(e){e.preventDefault();return false;});
+    document.addEventListener('dragstart',function(e){e.preventDefault();return false;});
+    </script>
+</body>
+</html>

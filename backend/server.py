@@ -1029,6 +1029,8 @@ app.add_middleware(
 
 # Mount the website static files
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
+APP_DIR = WEBSITE_DIR / "app"
+
 if WEBSITE_DIR.exists():
     app.mount("/css", StaticFiles(directory=WEBSITE_DIR / "css"), name="css")
     app.mount("/js", StaticFiles(directory=WEBSITE_DIR / "js"), name="js")
@@ -1049,6 +1051,75 @@ if WEBSITE_DIR.exists():
     @app.get("/support.html")
     async def serve_support():
         return FileResponse(WEBSITE_DIR / "support.html")
+
+# Mount the mobile app web version
+if APP_DIR.exists():
+    # Mount static directories first
+    app.mount("/app/_expo", StaticFiles(directory=APP_DIR / "_expo"), name="app_expo")
+    app.mount("/app/assets", StaticFiles(directory=APP_DIR / "assets"), name="app_assets")
+    
+# App routes - Serve specific HTML files for the Expo web export
+@app.get("/app/login")
+async def serve_app_login():
+    return FileResponse(APP_DIR / "login.html")
+
+@app.get("/app/register")
+async def serve_app_register():
+    return FileResponse(APP_DIR / "register.html")
+
+@app.get("/app/customer")
+async def serve_app_customer():
+    return FileResponse(APP_DIR / "(customer)" / "index.html")
+
+@app.get("/app/customer/menu")
+async def serve_app_customer_menu():
+    return FileResponse(APP_DIR / "(customer)" / "menu.html")
+
+@app.get("/app/customer/subscription")
+async def serve_app_customer_subscription():
+    return FileResponse(APP_DIR / "(customer)" / "subscription.html")
+
+@app.get("/app/customer/wallet")
+async def serve_app_customer_wallet():
+    return FileResponse(APP_DIR / "(customer)" / "wallet.html")
+
+@app.get("/app/customer/profile")
+async def serve_app_customer_profile():
+    return FileResponse(APP_DIR / "(customer)" / "profile.html")
+
+@app.get("/app/driver")
+async def serve_app_driver():
+    return FileResponse(APP_DIR / "(driver)" / "index.html")
+
+@app.get("/app/driver/profile")
+async def serve_app_driver_profile():
+    return FileResponse(APP_DIR / "(driver)" / "profile.html")
+
+@app.get("/app/kitchen")
+async def serve_app_kitchen():
+    return FileResponse(APP_DIR / "(kitchen)" / "index.html")
+
+@app.get("/app/kitchen/menu")
+async def serve_app_kitchen_menu():
+    return FileResponse(APP_DIR / "(kitchen)" / "menu.html")
+
+@app.get("/app/kitchen/orders")
+async def serve_app_kitchen_orders():
+    return FileResponse(APP_DIR / "(kitchen)" / "orders.html")
+
+@app.get("/app/kitchen/dishes")
+async def serve_app_kitchen_dishes():
+    return FileResponse(APP_DIR / "(kitchen)" / "dishes.html")
+
+@app.get("/app/kitchen/customers")
+async def serve_app_kitchen_customers():
+    return FileResponse(APP_DIR / "(kitchen)" / "customers.html")
+
+# Catch-all for /app - serve index.html
+@app.get("/app")
+@app.get("/app/")
+async def serve_app_home():
+    return FileResponse(APP_DIR / "index.html")
 
 # Logging
 logging.basicConfig(
