@@ -142,8 +142,8 @@ export default function MenuManagement() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Weekly Menu</Text>
-        <Text style={styles.subtitle}>Set lunch & dinner for each day</Text>
+        <Text style={styles.title}>Daily Menu</Text>
+        <Text style={styles.subtitle}>Set the meal for each day</Text>
       </View>
 
       <ScrollView
@@ -172,21 +172,10 @@ export default function MenuManagement() {
                   style={[styles.mealSlot, dayMenu.lunch && styles.mealSlotFilled]}
                   onPress={() => openSetMenu(date, 'lunch')}
                 >
-                  <Ionicons name="sunny" size={16} color={dayMenu.lunch ? COLORS.gold : COLORS.textLight} />
-                  <Text style={[styles.mealLabel, dayMenu.lunch && styles.mealLabelFilled]}>Lunch</Text>
+                  <Ionicons name="restaurant" size={16} color={dayMenu.lunch ? COLORS.gold : COLORS.textLight} />
+                  <Text style={[styles.mealLabel, dayMenu.lunch && styles.mealLabelFilled]}>Meal</Text>
                   <Text style={styles.mealName} numberOfLines={1}>
                     {dayMenu.lunch?.name || 'Tap to set'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.mealSlot, dayMenu.dinner && styles.mealSlotFilled]}
-                  onPress={() => openSetMenu(date, 'dinner')}
-                >
-                  <Ionicons name="moon" size={16} color={dayMenu.dinner ? COLORS.maroon : COLORS.textLight} />
-                  <Text style={[styles.mealLabel, dayMenu.dinner && styles.mealLabelFilled]}>Dinner</Text>
-                  <Text style={styles.mealName} numberOfLines={1}>
-                    {dayMenu.dinner?.name || 'Tap to set'}
                   </Text>
                 </TouchableOpacity>
               </View>

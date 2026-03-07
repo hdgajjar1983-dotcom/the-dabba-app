@@ -177,7 +177,7 @@ export default function DishesManagement() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Manage Dishes</Text>
+        <Text style={styles.title}>Manage Dabba</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.seedButton} onPress={handleSeedDishes}>
             <Ionicons name="flash" size={18} color={COLORS.gold} />

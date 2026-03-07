@@ -229,12 +229,43 @@ export default function DriverDeliveries() {
 
   const handleNavigate = (address: string) => {
     const encodedAddress = encodeURIComponent(address);
-    const url = Platform.select({
-      ios: `maps:?daddr=${encodedAddress}`,
-      android: `google.navigation:q=${encodedAddress}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`,
-    });
-    Linking.openURL(url);
+    
+    // Show map app selection dialog
+    Alert.alert(
+      'Open in Maps',
+      'Choose your preferred map app',
+      [
+        {
+          text: 'Apple Maps',
+          onPress: () => {
+            const url = `maps:?daddr=${encodedAddress}`;
+            Linking.openURL(url).catch(() => {
+              Alert.alert('Error', 'Apple Maps is not available');
+            });
+          },
+        },
+        {
+          text: 'Google Maps',
+          onPress: () => {
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+            Linking.openURL(url);
+          },
+        },
+        {
+          text: 'Waze',
+          onPress: () => {
+            const url = `https://waze.com/ul?q=${encodedAddress}&navigate=yes`;
+            Linking.openURL(url).catch(() => {
+              Alert.alert('Error', 'Waze is not installed');
+            });
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
   const takePhoto = async () => {

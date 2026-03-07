@@ -987,20 +987,61 @@ async def track_driver(current_user: dict = Depends(get_current_user)):
 
 @api_router.post("/kitchen/seed-dishes")
 async def seed_default_dishes(current_user: dict = Depends(get_kitchen_user)):
-    """Seed database with default Gujarati dishes"""
+    """Seed database with default menu items organized by category"""
     default_dishes = [
-        {"name": "Dal Tadka", "description": "Yellow lentils tempered with cumin, garlic and spices. Served with Jeera Rice, Papad, and Gulab Jamun", "type": "vegetarian", "price": 120},
-        {"name": "Paneer Butter Masala", "description": "Cottage cheese in rich tomato gravy. Served with Butter Naan, Raita, and Kheer", "type": "vegetarian", "price": 140},
-        {"name": "Chole Bhature", "description": "Spiced chickpea curry with fried bread. Served with Pickle, Onion, and Jalebi", "type": "vegetarian", "price": 130},
-        {"name": "Rajma Chawal", "description": "Kidney beans curry with steamed rice. Served with Salad, Papad, and Rasmalai", "type": "vegetarian", "price": 120},
-        {"name": "Aloo Gobi", "description": "Potato and cauliflower dry curry. Served with Roti, Dal, and Gajar Halwa", "type": "vegetarian", "price": 110},
-        {"name": "Palak Paneer", "description": "Spinach curry with cottage cheese. Served with Jeera Rice, Raita, and Ladoo", "type": "vegetarian", "price": 140},
-        {"name": "Mixed Veg Curry", "description": "Assorted vegetables in spiced gravy. Served with Pulao, Pickle, and Ice Cream", "type": "vegetarian", "price": 120},
-        {"name": "Undhiyu", "description": "Traditional Gujarati mixed vegetable dish. Served with Puri, Shrikhand, and Papad", "type": "vegetarian", "price": 150},
-        {"name": "Gujarati Kadhi", "description": "Sweet and tangy yogurt curry with pakoras. Served with Rice, Papad, and Mohanthal", "type": "vegetarian", "price": 110},
-        {"name": "Sev Tameta Nu Shaak", "description": "Tomato curry topped with crispy sev. Served with Roti, Dal, and Gulab Jamun", "type": "vegetarian", "price": 100},
-        {"name": "Dhokla Chaat", "description": "Steamed gram flour cake with chutneys. Served with Khichdi, Kadhi, and Basundi", "type": "vegetarian", "price": 120},
-        {"name": "Thepla Combo", "description": "Spiced flatbreads with pickle and curd. Served with Aam Ras, Sev, and Sweet Lassi", "type": "vegetarian", "price": 100},
+        # Breads
+        {"name": "Bhakhari", "description": "Traditional Gujarati crispy millet flatbread", "type": "Breads", "price": 3, "category": "Breads"},
+        {"name": "Fulka Roti", "description": "Soft whole wheat puffed bread", "type": "Breads", "price": 2, "category": "Breads"},
+        {"name": "Paratha", "description": "Layered whole wheat flatbread", "type": "Breads", "price": 3, "category": "Breads"},
+        {"name": "Puri", "description": "Deep-fried puffed bread", "type": "Breads", "price": 3, "category": "Breads"},
+        {"name": "Bread", "description": "Fresh sliced bread", "type": "Breads", "price": 2, "category": "Breads"},
+        
+        # Rice & Grains
+        {"name": "Plain Rice", "description": "Steamed basmati rice", "type": "Rice & Grains", "price": 4, "category": "Rice & Grains"},
+        {"name": "Jeera Rice", "description": "Cumin tempered basmati rice", "type": "Rice & Grains", "price": 5, "category": "Rice & Grains"},
+        {"name": "Pulav", "description": "Vegetable pulao with fragrant spices", "type": "Rice & Grains", "price": 6, "category": "Rice & Grains"},
+        {"name": "Biryani-raita", "description": "Fragrant biryani served with raita", "type": "Rice & Grains", "price": 8, "category": "Rice & Grains"},
+        {"name": "Sadi Khichadi", "description": "Simple rice and lentil comfort dish", "type": "Rice & Grains", "price": 5, "category": "Rice & Grains"},
+        {"name": "Masala Khichadi", "description": "Spiced rice and lentil dish with vegetables", "type": "Rice & Grains", "price": 6, "category": "Rice & Grains"},
+        
+        # Main Dishes (Sabji/Curry)
+        {"name": "Ringan-bataka", "description": "Eggplant and potato curry", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Alu-cauliflower", "description": "Potato and cauliflower dry curry", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Rasawala Bataka Tameta", "description": "Potato and tomato curry with gravy", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Guvar-bataka Sabji", "description": "Cluster beans with potato", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Paneer Butter Masala", "description": "Cottage cheese in rich tomato gravy", "type": "Main Dishes", "price": 8, "category": "Main Dishes"},
+        {"name": "Paneer Handi", "description": "Paneer cooked in traditional handi style", "type": "Main Dishes", "price": 8, "category": "Main Dishes"},
+        {"name": "Palak Paneer", "description": "Spinach curry with cottage cheese", "type": "Main Dishes", "price": 8, "category": "Main Dishes"},
+        {"name": "Sweet Corn Paneer", "description": "Sweet corn and paneer in creamy gravy", "type": "Main Dishes", "price": 8, "category": "Main Dishes"},
+        {"name": "Fanasi Sabji", "description": "French beans curry", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Sev Tameta", "description": "Tomato curry topped with crispy sev", "type": "Main Dishes", "price": 5, "category": "Main Dishes"},
+        {"name": "Lasaniya Bataka", "description": "Garlic flavored baby potato curry", "type": "Main Dishes", "price": 6, "category": "Main Dishes"},
+        {"name": "Pav-bhaji", "description": "Spiced mashed vegetable curry with buttered pav", "type": "Main Dishes", "price": 7, "category": "Main Dishes"},
+        
+        # Dals & Kathol
+        {"name": "Gujarati Dal", "description": "Sweet and tangy yellow lentil soup", "type": "Dals & Kathol", "price": 5, "category": "Dals & Kathol"},
+        {"name": "Dal Makhani", "description": "Creamy black lentils slow-cooked overnight", "type": "Dals & Kathol", "price": 7, "category": "Dals & Kathol"},
+        {"name": "Panchratna Dal", "description": "Five lentil mix dal", "type": "Dals & Kathol", "price": 6, "category": "Dals & Kathol"},
+        {"name": "Dal Tadka", "description": "Yellow lentils tempered with cumin and garlic", "type": "Dals & Kathol", "price": 5, "category": "Dals & Kathol"},
+        {"name": "Chole", "description": "Spiced chickpea curry", "type": "Dals & Kathol", "price": 6, "category": "Dals & Kathol"},
+        {"name": "Rajma", "description": "Kidney beans curry", "type": "Dals & Kathol", "price": 6, "category": "Dals & Kathol"},
+        {"name": "Mix Kathol", "description": "Mixed legumes curry", "type": "Dals & Kathol", "price": 6, "category": "Dals & Kathol"},
+        {"name": "Kala Chana", "description": "Black chickpea curry", "type": "Dals & Kathol", "price": 6, "category": "Dals & Kathol"},
+        {"name": "Whole Masoor", "description": "Whole red lentil curry", "type": "Dals & Kathol", "price": 5, "category": "Dals & Kathol"},
+        {"name": "Mug", "description": "Mung bean curry", "type": "Dals & Kathol", "price": 5, "category": "Dals & Kathol"},
+        {"name": "Tuar Thoda", "description": "Pigeon pea curry", "type": "Dals & Kathol", "price": 5, "category": "Dals & Kathol"},
+        
+        # Sides & Drinks
+        {"name": "Meethi Kadi", "description": "Sweet and tangy yogurt curry", "type": "Sides & Drinks", "price": 4, "category": "Sides & Drinks"},
+        {"name": "Salad", "description": "Fresh vegetable salad", "type": "Sides & Drinks", "price": 3, "category": "Sides & Drinks"},
+        {"name": "Chas", "description": "Traditional buttermilk", "type": "Sides & Drinks", "price": 2, "category": "Sides & Drinks"},
+        {"name": "Chatni", "description": "Fresh chutney", "type": "Sides & Drinks", "price": 2, "category": "Sides & Drinks"},
+        {"name": "Idli-Sambhar", "description": "Steamed rice cakes with lentil soup", "type": "Sides & Drinks", "price": 5, "category": "Sides & Drinks"},
+        {"name": "Pani Puri with Mitha Pani", "description": "Crispy puris with sweet tamarind water", "type": "Sides & Drinks", "price": 4, "category": "Sides & Drinks"},
+        
+        # Desserts
+        {"name": "Gulab Jamun", "description": "Sweet milk dumplings in rose syrup", "type": "Desserts", "price": 4, "category": "Desserts"},
+        {"name": "Barfi", "description": "Traditional milk fudge sweet", "type": "Desserts", "price": 4, "category": "Desserts"},
     ]
     
     count = 0

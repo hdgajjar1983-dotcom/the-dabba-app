@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Dabba",
     "slug": "the-dabba",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "thedabba",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -34,7 +34,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.thedabba.app",
-      "versionCode": 1,
+      "versionCode": 7,
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",

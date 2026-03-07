@@ -95,9 +95,19 @@ export default function CustomerDashboard() {
   const handleSkipMeal = async (mealType: 'lunch' | 'dinner') => {
     if (!todayMenu) return;
 
+    // Check if skipping is allowed (24 hours before 4 PM delivery)
+    const deliveryDate = new Date(todayMenu.date);
+    deliveryDate.setHours(16, 0, 0, 0); // 4 PM delivery
+    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000); // 24 hours before
+    
+    if (new Date() > cutoffTime) {
+      Alert.alert('Cannot Skip', 'Meals can only be skipped at least 24 hours before the 4 PM delivery time.');
+      return;
+    }
+
     Alert.alert(
       'Skip Meal',
-      `Skip ${mealType} and receive ₹120 credit?`,
+      `Skip ${mealType} and receive $12 CAD credit?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -108,7 +118,7 @@ export default function CustomerDashboard() {
                 date: todayMenu.date,
                 meal_type: mealType,
               });
-              Alert.alert('Success', '₹120 has been credited to your wallet!');
+              Alert.alert('Success', '$12 CAD has been credited to your wallet!');
               fetchData();
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.detail || 'Failed to skip meal');

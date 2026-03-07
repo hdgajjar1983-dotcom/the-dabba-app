@@ -32,18 +32,18 @@ const PLANS = [
   {
     id: 'eco',
     name: 'Eco',
-    price: 240,
+    price: 89,
     description: 'Basic vegetarian meals',
-    features: ['Vegetarian only', '2 meals/day', 'Standard portions'],
+    features: ['Vegetarian only', '1 meal/day', 'Standard portions'],
     icon: 'leaf-outline',
     color: '#10B981',
   },
   {
     id: 'standard',
     name: 'Standard',
-    price: 290,
+    price: 119,
     description: 'Mixed veg & non-veg meals',
-    features: ['Veg & Non-veg', '2 meals/day', 'Regular portions', 'Weekend specials'],
+    features: ['Veg & Non-veg', '1 meal/day', 'Regular portions', 'Weekend specials'],
     icon: 'restaurant-outline',
     color: COLORS.primary,
     popular: true,
@@ -51,9 +51,9 @@ const PLANS = [
   {
     id: 'premium',
     name: 'Premium',
-    price: 350,
+    price: 149,
     description: 'Gourmet meals with extras',
-    features: ['Premium ingredients', '2 meals/day', 'Large portions', 'Dessert included', 'Priority delivery'],
+    features: ['Premium ingredients', '1 meal/day', 'Large portions', 'Dessert included', 'Priority delivery'],
     icon: 'star-outline',
     color: '#8B5CF6',
   },
@@ -224,8 +224,8 @@ export default function SubscriptionScreen() {
                   <Text style={styles.planDescription}>{plan.description}</Text>
                 </View>
                 <View style={styles.priceContainer}>
-                  <Text style={styles.priceAmount}>₹{plan.price}</Text>
-                  <Text style={styles.priceUnit}>/week</Text>
+                  <Text style={styles.priceAmount}>${plan.price}</Text>
+                  <Text style={styles.priceUnit}>CAD/week</Text>
                 </View>
               </View>
               <View style={styles.featuresContainer}>
@@ -264,7 +264,7 @@ export default function SubscriptionScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              {PLANS.find(p => p.id === selectedPlan)?.name} Plan - ₹{PLANS.find(p => p.id === selectedPlan)?.price}/week
+              {PLANS.find(p => p.id === selectedPlan)?.name} Plan - ${PLANS.find(p => p.id === selectedPlan)?.price} CAD/week
             </Text>
             <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
               <AddressForm
