@@ -2,7 +2,7 @@
   "expo": {
     "name": "The Dabba",
     "slug": "the-dabba",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "thedabba",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false

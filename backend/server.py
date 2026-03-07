@@ -1015,6 +1015,460 @@ async def seed_default_dishes(current_user: dict = Depends(get_kitchen_user)):
     
     return {"message": f"Seeded {count} dishes", "total": len(default_dishes)}
 
+# ==================== TRUST ENGINE - WALLET SYSTEM ====================
+
+class WalletTransaction(BaseModel):
+    amount: float
+    type: str  # credit, debit
+    reason: str
+    reference_id: Optional[str] = None
+
+class IssueReport(BaseModel):
+    issue_type: str  # cold_food, spilled, missing_item, other
+    description: Optional[str] = None
+    date: Optional[str] = None
+
+class VacationMode(BaseModel):
+    start_date: str
+    end_date: str
+    active: bool = True
+
+@api_router.get("/wallet")
+async def get_wallet(current_user: dict = Depends(get_current_user)):
+    """Get customer wallet balance and transaction history"""
+    wallet = await db.wallets.find_one({"user_id": current_user["id"]})
+    
+    if not wallet:
+        # Create wallet if doesn't exist
+        wallet = {
+            "user_id": current_user["id"],
+            "balance": 0.0,
+            "currency": "CAD",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        await db.wallets.insert_one(wallet)
+    
+    # Get recent transactions
+    transactions = await db.wallet_transactions.find(
+        {"user_id": current_user["id"]}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {
+        "balance": wallet.get("balance", 0.0),
+        "currency": wallet.get("currency", "CAD"),
+        "transactions": [{k: v for k, v in t.items() if k != "_id"} for t in transactions]
+    }
+
+@api_router.post("/wallet/credit")
+async def credit_wallet(
+    transaction: WalletTransaction,
+    current_user: dict = Depends(get_current_user)
+):
+    """Add credit to wallet (internal use for skip meals, refunds, etc.)"""
+    # Update or create wallet
+    result = await db.wallets.update_one(
+        {"user_id": current_user["id"]},
+        {
+            "$inc": {"balance": transaction.amount},
+            "$setOnInsert": {"currency": "CAD", "created_at": datetime.utcnow().isoformat()}
+        },
+        upsert=True
+    )
+    
+    # Record transaction
+    tx_record = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "amount": transaction.amount,
+        "type": "credit",
+        "reason": transaction.reason,
+        "reference_id": transaction.reference_id,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.wallet_transactions.insert_one(tx_record)
+    
+    # Get updated balance
+    wallet = await db.wallets.find_one({"user_id": current_user["id"]})
+    
+    return {
+        "message": f"${transaction.amount:.2f} credited to wallet",
+        "new_balance": wallet.get("balance", 0.0),
+        "transaction_id": tx_record["id"]
+    }
+
+@api_router.post("/customer/report-issue")
+async def report_issue(
+    report: IssueReport,
+    current_user: dict = Depends(get_current_user)
+):
+    """Report food quality issue - auto credits wallet on approval"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    # Create issue report
+    issue = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "user_name": current_user.get("name"),
+        "issue_type": report.issue_type,
+        "description": report.description,
+        "date": report.date or datetime.now().date().isoformat(),
+        "status": "pending",  # pending, approved, rejected
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.issue_reports.insert_one(issue)
+    
+    # Auto-credit for certain issues (can be made configurable)
+    auto_credit_issues = ["cold_food", "spilled", "missing_item"]
+    credit_amounts = {"cold_food": 5.00, "spilled": 10.00, "missing_item": 8.00, "other": 5.00}
+    
+    if report.issue_type in auto_credit_issues:
+        credit_amount = credit_amounts.get(report.issue_type, 5.00)
+        
+        # Credit wallet
+        await db.wallets.update_one(
+            {"user_id": current_user["id"]},
+            {
+                "$inc": {"balance": credit_amount},
+                "$setOnInsert": {"currency": "CAD", "created_at": datetime.utcnow().isoformat()}
+            },
+            upsert=True
+        )
+        
+        # Record transaction
+        await db.wallet_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "amount": credit_amount,
+            "type": "credit",
+            "reason": f"Issue compensation: {report.issue_type}",
+            "reference_id": issue["id"],
+            "created_at": datetime.utcnow().isoformat()
+        })
+        
+        # Update issue status
+        await db.issue_reports.update_one(
+            {"id": issue["id"]},
+            {"$set": {"status": "approved", "credit_amount": credit_amount}}
+        )
+        
+        return {
+            "message": f"Issue reported. ${credit_amount:.2f} has been credited to your wallet.",
+            "issue_id": issue["id"],
+            "credit_amount": credit_amount
+        }
+    
+    return {
+        "message": "Issue reported. Our team will review and respond within 24 hours.",
+        "issue_id": issue["id"]
+    }
+
+# ==================== SMART PLANNER - VACATION MODE ====================
+
+@api_router.post("/subscription/vacation")
+async def set_vacation_mode(
+    vacation: VacationMode,
+    current_user: dict = Depends(get_current_user)
+):
+    """Set vacation mode - pause all deliveries for date range"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription found")
+    
+    # Parse dates
+    start = datetime.strptime(vacation.start_date, "%Y-%m-%d").date()
+    end = datetime.strptime(vacation.end_date, "%Y-%m-%d").date()
+    
+    if end < start:
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+    
+    # Generate all dates in range
+    vacation_dates = []
+    current = start
+    while current <= end:
+        vacation_dates.append(current.isoformat())
+        current += timedelta(days=1)
+    
+    # Add to skipped meals
+    existing_skips = subscription.get("skipped_meals", [])
+    new_skips = []
+    
+    for date in vacation_dates:
+        # Skip weekends
+        day_of_week = datetime.strptime(date, "%Y-%m-%d").weekday()
+        if day_of_week >= 5:  # Saturday=5, Sunday=6
+            continue
+            
+        # Check if already skipped
+        already_skipped = any(s.get("date") == date for s in existing_skips)
+        if not already_skipped:
+            new_skips.append({"date": date, "meal_type": "all", "reason": "vacation"})
+    
+    # Update subscription
+    await db.subscriptions.update_one(
+        {"id": subscription["id"]},
+        {"$push": {"skipped_meals": {"$each": new_skips}}}
+    )
+    
+    # Calculate credits (e.g., $12 per day)
+    credit_per_day = 12.00
+    total_credit = len(new_skips) * credit_per_day
+    
+    if total_credit > 0:
+        # Credit wallet
+        await db.wallets.update_one(
+            {"user_id": current_user["id"]},
+            {
+                "$inc": {"balance": total_credit},
+                "$setOnInsert": {"currency": "CAD", "created_at": datetime.utcnow().isoformat()}
+            },
+            upsert=True
+        )
+        
+        # Record transaction
+        await db.wallet_transactions.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": current_user["id"],
+            "amount": total_credit,
+            "type": "credit",
+            "reason": f"Vacation mode: {vacation.start_date} to {vacation.end_date}",
+            "created_at": datetime.utcnow().isoformat()
+        })
+    
+    return {
+        "message": f"Vacation mode set for {len(new_skips)} days",
+        "dates_skipped": len(new_skips),
+        "credit_amount": total_credit,
+        "start_date": vacation.start_date,
+        "end_date": vacation.end_date
+    }
+
+@api_router.get("/subscription/calendar")
+async def get_subscription_calendar(current_user: dict = Depends(get_current_user)):
+    """Get 7-day calendar with menu and delivery status"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    # Get next 7 days
+    today = datetime.now().date()
+    calendar = []
+    
+    for i in range(7):
+        day = today + timedelta(days=i)
+        day_str = day.isoformat()
+        day_name = day.strftime("%A")
+        
+        # Check if weekend
+        is_weekend = day.weekday() >= 5
+        
+        # Check if skipped
+        is_skipped = False
+        if subscription:
+            is_skipped = any(
+                s.get("date") == day_str 
+                for s in subscription.get("skipped_meals", [])
+            )
+        
+        # Get menu for the day
+        menu_entry = await db.menu_schedule.find_one({"date": day_str})
+        menu_info = None
+        
+        if menu_entry:
+            lunch_dish = await db.dishes.find_one({"id": menu_entry.get("lunch_dish_id")})
+            dinner_dish = await db.dishes.find_one({"id": menu_entry.get("dinner_dish_id")})
+            menu_info = {
+                "lunch": {
+                    "name": lunch_dish.get("name") if lunch_dish else "TBD",
+                    "description": lunch_dish.get("description") if lunch_dish else ""
+                } if lunch_dish else None,
+                "dinner": {
+                    "name": dinner_dish.get("name") if dinner_dish else "TBD",
+                    "description": dinner_dish.get("description") if dinner_dish else ""
+                } if dinner_dish else None
+            }
+        
+        # Determine status
+        status = "scheduled"
+        if is_weekend:
+            status = "weekend"
+        elif is_skipped:
+            status = "skipped"
+        elif not subscription:
+            status = "no_subscription"
+        
+        calendar.append({
+            "date": day_str,
+            "day": day_name,
+            "is_weekend": is_weekend,
+            "is_skipped": is_skipped,
+            "status": status,
+            "menu": menu_info,
+            "can_skip": i >= 1 and not is_weekend and not is_skipped  # Can skip future days only
+        })
+    
+    return {"calendar": calendar}
+
+# ==================== KITCHEN BATCH TOTALS ====================
+
+@api_router.get("/kitchen/batch-totals")
+async def get_batch_totals(current_user: dict = Depends(get_kitchen_user)):
+    """Get total counts for today's cooking batch"""
+    today = datetime.now().date().isoformat()
+    
+    # Get all active subscriptions
+    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(500)
+    
+    # Count skips for today
+    total_active = 0
+    skipped_today = 0
+    
+    for sub in subscriptions:
+        is_skipped = any(
+            s.get("date") == today 
+            for s in sub.get("skipped_meals", [])
+        )
+        if is_skipped:
+            skipped_today += 1
+        else:
+            total_active += 1
+    
+    # Get menu for today
+    menu = await db.menu_schedule.find_one({"date": today})
+    
+    # Calculate item counts based on plan types
+    plan_counts = {"daily": 0, "weekly": 0, "monthly": 0}
+    for sub in subscriptions:
+        is_skipped = any(s.get("date") == today for s in sub.get("skipped_meals", []))
+        if not is_skipped:
+            plan = sub.get("plan", "daily").lower()
+            if plan in plan_counts:
+                plan_counts[plan] += 1
+    
+    # Standard items per tiffin
+    items_per_tiffin = {
+        "rotis": 4,
+        "rice_portions": 1,
+        "dal_portions": 1,
+        "sabzi_portions": 1,
+        "salad_portions": 1,
+        "dessert_portions": 1
+    }
+    
+    batch_totals = {
+        "total_tiffins": total_active,
+        "total_rotis": total_active * items_per_tiffin["rotis"],
+        "total_rice": total_active * items_per_tiffin["rice_portions"],
+        "total_dal": total_active * items_per_tiffin["dal_portions"],
+        "total_sabzi": total_active * items_per_tiffin["sabzi_portions"],
+        "total_salad": total_active * items_per_tiffin["salad_portions"],
+        "total_dessert": total_active * items_per_tiffin["dessert_portions"]
+    }
+    
+    return {
+        "date": today,
+        "total_orders": total_active,
+        "skipped_orders": skipped_today,
+        "plan_breakdown": plan_counts,
+        "batch_totals": batch_totals,
+        "menu": menu
+    }
+
+@api_router.post("/kitchen/mark-sold-out")
+async def mark_item_sold_out(
+    item_data: dict,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Mark an item as sold out for today"""
+    today = datetime.now().date().isoformat()
+    
+    sold_out_record = {
+        "date": today,
+        "item_name": item_data.get("item_name"),
+        "marked_by": current_user["id"],
+        "marked_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.sold_out_items.update_one(
+        {"date": today, "item_name": item_data.get("item_name")},
+        {"$set": sold_out_record},
+        upsert=True
+    )
+    
+    return {"message": f"{item_data.get('item_name')} marked as sold out for today"}
+
+@api_router.get("/kitchen/sold-out")
+async def get_sold_out_items(current_user: dict = Depends(get_kitchen_user)):
+    """Get list of sold out items for today"""
+    today = datetime.now().date().isoformat()
+    items = await db.sold_out_items.find({"date": today}).to_list(50)
+    return {"sold_out": [item.get("item_name") for item in items]}
+
+# ==================== MEAL SWAP FUNCTIONALITY ====================
+
+class MealSwap(BaseModel):
+    date: str
+    original_meal: str
+    replacement_meal: str  # "standard_dal", "standard_salad", "skip"
+
+@api_router.post("/subscription/swap-meal")
+async def swap_meal(
+    swap: MealSwap,
+    current_user: dict = Depends(get_current_user)
+):
+    """Swap a meal for a standard alternative before cutoff"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    # Check cutoff (10 PM previous day)
+    swap_date = datetime.strptime(swap.date, "%Y-%m-%d").date()
+    now = datetime.now()
+    cutoff = datetime.combine(swap_date - timedelta(days=1), datetime.strptime("22:00", "%H:%M").time())
+    
+    if now > cutoff:
+        raise HTTPException(status_code=400, detail="Cutoff time passed. Cannot swap meal.")
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription")
+    
+    # Record swap
+    swap_record = {
+        "id": str(uuid.uuid4()),
+        "subscription_id": subscription["id"],
+        "user_id": current_user["id"],
+        "date": swap.date,
+        "original_meal": swap.original_meal,
+        "replacement_meal": swap.replacement_meal,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.meal_swaps.update_one(
+        {"subscription_id": subscription["id"], "date": swap.date},
+        {"$set": swap_record},
+        upsert=True
+    )
+    
+    return {
+        "message": f"Meal swapped to {swap.replacement_meal} for {swap.date}",
+        "swap_id": swap_record["id"]
+    }
+
 # Include the router
 app.include_router(api_router)
 

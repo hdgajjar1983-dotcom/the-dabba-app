@@ -56,24 +56,36 @@ export const menuAPI = {
   },
 };
 
-// Subscription APIs
+// Subscription APIs with Smart Planner
 export const subscriptionAPI = {
   getSubscription: () => api.get('/subscription'),
   createSubscription: (data: { plan: string; delivery_address: string }) =>
     api.post('/subscription', data),
   skipMeal: (data: { date: string; meal_type: string }) =>
     api.post('/subscription/skip', data),
+  setVacationMode: (data: { start_date: string; end_date: string; active?: boolean }) =>
+    api.post('/subscription/vacation', data),
+  getCalendar: () => api.get('/subscription/calendar'),
+  swapMeal: (data: { date: string; original_meal: string; replacement_meal: string }) =>
+    api.post('/subscription/swap-meal', data),
 };
 
-// Wallet APIs
+// Wallet APIs - Trust Engine
 export const walletAPI = {
   getWallet: () => api.get('/wallet'),
+  creditWallet: (data: { amount: number; reason: string; reference_id?: string }) =>
+    api.post('/wallet/credit', data),
 };
 
 // Kitchen Portal APIs
 export const kitchenAPI = {
   // Dashboard
   getDashboard: () => api.get('/kitchen/dashboard'),
+  
+  // Batch Totals
+  getBatchTotals: () => api.get('/kitchen/batch-totals'),
+  markSoldOut: (itemName: string) => api.post('/kitchen/mark-sold-out', { item_name: itemName }),
+  getSoldOutItems: () => api.get('/kitchen/sold-out'),
   
   // Dishes
   getDishes: () => api.get('/kitchen/dishes'),
@@ -125,10 +137,12 @@ export const driverAPI = {
     }),
 };
 
-// Customer APIs (Enhanced with tracking)
+// Customer APIs (Enhanced with tracking and issue reporting)
 export const customerAPI = {
   getDeliveryStatus: () => api.get('/customer/delivery-status'),
   trackDriver: () => api.get('/customer/track-driver'),
+  reportIssue: (data: { issue_type: string; description?: string; date?: string }) =>
+    api.post('/customer/report-issue', data),
 };
 
 export default api;
