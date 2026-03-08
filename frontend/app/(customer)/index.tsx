@@ -54,9 +54,11 @@ export default function CustomerDashboard() {
   const { user } = useAuth();
   const [menu, setMenu] = useState<DayMenu[]>([]);
   const [todayMenu, setTodayMenu] = useState<DayMenu | null>(null);
+  const [tomorrowMenu, setTomorrowMenu] = useState<DayMenu | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'today' | 'tomorrow'>('today');
 
   const fetchData = useCallback(async () => {
     try {
@@ -69,8 +71,13 @@ export default function CustomerDashboard() {
       setMenu(weeklyMenu);
 
       const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
       const todayItem = weeklyMenu.find((item: DayMenu) => item.date === today);
+      const tomorrowItem = weeklyMenu.find((item: DayMenu) => item.date === tomorrow);
+      
       setTodayMenu(todayItem || weeklyMenu[0] || null);
+      setTomorrowMenu(tomorrowItem || weeklyMenu[1] || null);
 
       if (subRes?.data) {
         setSubscription(subRes.data);
@@ -92,22 +99,22 @@ export default function CustomerDashboard() {
     fetchData();
   }, [fetchData]);
 
-  const handleSkipMeal = async (mealType: 'lunch' | 'dinner') => {
-    if (!todayMenu) return;
+  const handleSkipMeal = async (mealType: 'lunch' | 'dinner', menuItem: DayMenu | null, isTomorrow: boolean = false) => {
+    if (!menuItem) return;
 
     // Check if skipping is allowed (24 hours before 4 PM delivery)
-    const deliveryDate = new Date(todayMenu.date);
+    const deliveryDate = new Date(menuItem.date);
     deliveryDate.setHours(16, 0, 0, 0); // 4 PM delivery
     const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000); // 24 hours before
     
     if (new Date() > cutoffTime) {
-      Alert.alert('Cannot Skip', 'Meals can only be skipped at least 24 hours before the 4 PM delivery time.');
+      Alert.alert('Skip Locked', 'Meals can only be skipped at least 24 hours before the 4 PM delivery time.');
       return;
     }
 
     Alert.alert(
       'Skip Meal',
-      `Skip ${mealType} and receive $12 CAD credit?`,
+      `Skip ${isTomorrow ? "tomorrow's" : "today's"} meal and receive $12 CAD credit?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -115,7 +122,7 @@ export default function CustomerDashboard() {
           onPress: async () => {
             try {
               await subscriptionAPI.skipMeal({
-                date: todayMenu.date,
+                date: menuItem.date,
                 meal_type: mealType,
               });
               Alert.alert('Success', '$12 CAD has been credited to your wallet!');
@@ -129,11 +136,19 @@ export default function CustomerDashboard() {
     );
   };
 
-  const isSkipped = (mealType: string) => {
-    if (!subscription || !todayMenu) return false;
+  const isSkipped = (mealType: string, menuItem: DayMenu | null) => {
+    if (!subscription || !menuItem) return false;
     return subscription.skipped_meals?.some(
-      (s) => s.date === todayMenu.date && s.meal_type === mealType
+      (s) => s.date === menuItem.date && s.meal_type === mealType
     );
+  };
+
+  const canSkip = (menuItem: DayMenu | null) => {
+    if (!menuItem) return false;
+    const deliveryDate = new Date(menuItem.date);
+    deliveryDate.setHours(16, 0, 0, 0); // 4 PM delivery
+    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000); // 24 hours before
+    return new Date() < cutoffTime;
   };
 
   if (isLoading) {
@@ -207,62 +222,112 @@ export default function CustomerDashboard() {
           </TouchableOpacity>
         )}
 
-        {/* Today's Menu Section */}
+        {/* Meal Menu Section with Today/Tomorrow Tabs */}
         <View style={styles.section}>
+          {/* Tab Selector */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'today' && styles.tabActive]}
+              onPress={() => setActiveTab('today')}
+            >
+              <Text style={[styles.tabText, activeTab === 'today' && styles.tabTextActive]}>Today</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'tomorrow' && styles.tabActive]}
+              onPress={() => setActiveTab('tomorrow')}
+            >
+              <Text style={[styles.tabText, activeTab === 'tomorrow' && styles.tabTextActive]}>Tomorrow</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.sectionHeader}>
             <View>
-              <Text style={styles.sectionTitle}>Today's Thali</Text>
+              <Text style={styles.sectionTitle}>
+                {activeTab === 'today' ? "Today's Meal" : "Tomorrow's Meal"}
+              </Text>
               <Text style={styles.sectionSubtitle}>
-                {todayMenu ? `${todayMenu.day}` : ''}
+                {activeTab === 'today' 
+                  ? (todayMenu ? todayMenu.day : '') 
+                  : (tomorrowMenu ? tomorrowMenu.day : '')}
               </Text>
             </View>
             <View style={styles.dateBadge}>
               <Text style={styles.dateText}>
-                {todayMenu ? new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                {activeTab === 'today'
+                  ? (todayMenu ? new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')
+                  : (tomorrowMenu ? new Date(tomorrowMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')}
               </Text>
             </View>
           </View>
 
-          {todayMenu ? (
-            <View style={[styles.mealCard, isSkipped('dinner') && styles.mealCardSkipped]}>
+          {/* Meal Card */}
+          {(activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
+            <View style={[
+              styles.mealCard, 
+              isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && styles.mealCardSkipped
+            ]}>
               {/* Meal Header */}
               <View style={styles.mealHeader}>
                 <View style={styles.mealIconContainer}>
-                  <Ionicons name="moon" size={24} color={COLORS.card} />
+                  <Ionicons name={activeTab === 'today' ? "sunny" : "moon"} size={24} color={COLORS.card} />
                 </View>
                 <View style={styles.mealHeaderText}>
-                  <Text style={styles.mealType}>Tonight's Dinner</Text>
-                  <Text style={styles.mealTypeSub}>Fresh & Hot Delivery</Text>
+                  <Text style={styles.mealType}>
+                    {activeTab === 'today' ? "Today's Meal" : "Tomorrow's Meal"}
+                  </Text>
+                  <Text style={styles.mealTypeSub}>Delivery at 4:00 PM</Text>
                 </View>
-                {isSkipped('dinner') ? (
+                {isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
                   <View style={styles.skippedBadge}>
                     <Text style={styles.skippedText}>Skipped</Text>
                   </View>
                 ) : (
-                  subscription && (
-                    <TouchableOpacity style={styles.skipButton} onPress={() => handleSkipMeal('dinner')}>
-                      <Text style={styles.skipButtonText}>Skip +₹120</Text>
+                  subscription && canSkip(activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
+                    <TouchableOpacity 
+                      style={styles.skipButton} 
+                      onPress={() => handleSkipMeal('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu, activeTab === 'tomorrow')}
+                    >
+                      <Text style={styles.skipButtonText}>Skip</Text>
                     </TouchableOpacity>
+                  ) : (
+                    <View style={styles.lockedBadge}>
+                      <Ionicons name="lock-closed" size={14} color={COLORS.textLight} />
+                      <Text style={styles.lockedText}>Locked</Text>
+                    </View>
                   )
                 )}
               </View>
 
               {/* Meal Content */}
               <View style={styles.mealContent}>
-                <Text style={styles.mealName}>{todayMenu.dinner.name}</Text>
-                <Text style={styles.mealDescription}>{todayMenu.dinner.description}</Text>
+                <Text style={styles.mealName}>
+                  {(activeTab === 'today' ? todayMenu?.dinner?.name : tomorrowMenu?.dinner?.name) || 'Meal TBD'}
+                </Text>
+                <Text style={styles.mealDescription}>
+                  {(activeTab === 'today' ? todayMenu?.dinner?.description : tomorrowMenu?.dinner?.description) || 'Menu will be announced soon'}
+                </Text>
                 
                 <View style={styles.mealFooter}>
                   <View style={styles.mealTypeBadge}>
                     <Ionicons name="leaf" size={14} color={COLORS.success} />
-                    <Text style={styles.mealTypeBadgeText}>{todayMenu.dinner.type}</Text>
+                    <Text style={styles.mealTypeBadgeText}>
+                      {(activeTab === 'today' ? todayMenu?.dinner?.type : tomorrowMenu?.dinner?.type) || 'Vegetarian'}
+                    </Text>
                   </View>
                   <View style={styles.deliveryInfo}>
                     <Ionicons name="time-outline" size={16} color={COLORS.textLight} />
-                    <Text style={styles.deliveryText}>7:00 - 8:30 PM</Text>
+                    <Text style={styles.deliveryText}>4:00 PM Delivery</Text>
                   </View>
                 </View>
               </View>
+
+              {/* Skip Info */}
+              {!isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && !canSkip(activeTab === 'today' ? todayMenu : tomorrowMenu) && (
+                <View style={styles.skipInfoBar}>
+                  <Ionicons name="information-circle" size={16} color={COLORS.textLight} />
+                  <Text style={styles.skipInfoText}>Skip cutoff: 24 hrs before 4 PM delivery</Text>
+                </View>
+              )}
 
               {/* Decorative Bottom */}
               <View style={styles.mealDecor}>
@@ -274,7 +339,9 @@ export default function CustomerDashboard() {
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="restaurant-outline" size={48} color={COLORS.textLight} />
-              <Text style={styles.emptyStateText}>No menu available for today</Text>
+              <Text style={styles.emptyStateText}>
+                No menu available for {activeTab === 'today' ? 'today' : 'tomorrow'}
+              </Text>
             </View>
           )}
         </View>
@@ -475,6 +542,30 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 8,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.cream,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: COLORS.maroon,
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textLight,
+  },
+  tabTextActive: {
+    color: COLORS.goldLight,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -567,6 +658,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#DC2626',
+  },
+  lockedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  lockedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  skipInfoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.cream,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  skipInfoText: {
+    fontSize: 12,
+    color: COLORS.textLight,
   },
   mealContent: {
     padding: 18,

@@ -476,23 +476,37 @@ export default function DriverDeliveries() {
                 <Text style={styles.navigateButtonText}>Start Navigation</Text>
               </TouchableOpacity>
 
-              {/* Swipe to Complete */}
-              <View style={styles.swipeContainer}>
-                <Animated.View
-                  style={[styles.swipeBackground, { backgroundColor: swipeBackgroundColor }]}
-                >
-                  <Text style={styles.swipeHint}>Delivered!</Text>
-                </Animated.View>
-                <Animated.View
-                  style={[styles.swipeButton, { transform: [{ translateX: swipeAnim }] }]}
-                  {...panResponder.panHandlers}
-                >
-                  <View style={styles.swipeButtonInner}>
-                    <Ionicons name="camera" size={28} color={COLORS.textDark} />
-                  </View>
-                </Animated.View>
-                <Text style={styles.swipeText}>Swipe to complete delivery</Text>
-              </View>
+              {/* Deliver Button - Primary Action */}
+              <TouchableOpacity
+                style={styles.deliverButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Mark as Delivered',
+                    'Confirm this delivery is complete?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Take Photo', onPress: takePhoto },
+                      { 
+                        text: 'Delivered (No Photo)', 
+                        onPress: async () => {
+                          if (!currentDelivery) return;
+                          try {
+                            await driverAPI.updateDeliveryStatus(currentDelivery.id, 'delivered');
+                            setCompletedToday(prev => prev + 1);
+                            setPendingDeliveries(prev => prev.slice(1));
+                            Alert.alert('Success', 'Delivery marked as complete!');
+                          } catch (error) {
+                            Alert.alert('Error', 'Could not update delivery status');
+                          }
+                        }
+                      },
+                    ]
+                  );
+                }}
+              >
+                <Ionicons name="checkmark-circle" size={24} color={COLORS.card} />
+                <Text style={styles.deliverButtonText}>Mark as Delivered</Text>
+              </TouchableOpacity>
 
               {/* Unable to Deliver */}
               <TouchableOpacity style={styles.failButton} onPress={markFailed}>
@@ -940,6 +954,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.error,
     fontWeight: '600',
+  },
+  deliverButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    paddingVertical: 18,
+    marginBottom: 16,
+    gap: 10,
+  },
+  deliverButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.card,
   },
   upcomingSection: {
     marginTop: 8,
