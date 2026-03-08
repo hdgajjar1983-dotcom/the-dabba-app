@@ -13,6 +13,17 @@ import {
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 
@@ -36,10 +47,19 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Button animation
+  const buttonScale = useSharedValue(1);
+  const buttonAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+  }));
+
   useEffect(() => {
     if (user) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       if (user.role === 'driver') {
         router.replace('/(driver)');
+      } else if (user.role === 'kitchen') {
+        router.replace('/(kitchen)');
       } else {
         router.replace('/(customer)');
       }
@@ -48,19 +68,37 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError('Please fill in all fields');
       return;
     }
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
     setError('');
 
     const result = await login(email, password);
 
     if (!result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(result.error || 'Login failed');
       setIsLoading(false);
+      // Shake animation for error
+      buttonScale.value = withSequence(
+        withTiming(0.95, { duration: 50 }),
+        withTiming(1.05, { duration: 50 }),
+        withTiming(0.95, { duration: 50 }),
+        withTiming(1, { duration: 50 })
+      );
     }
+  };
+
+  const handleButtonPressIn = () => {
+    buttonScale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+  };
+
+  const handleButtonPressOut = () => {
+    buttonScale.value = withSpring(1, { damping: 15, stiffness: 400 });
   };
 
   return (
@@ -75,28 +113,28 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Decorative top pattern */}
-          <View style={styles.decorativeTop}>
+          <Animated.View entering={FadeIn.delay(100)} style={styles.decorativeTop}>
             <View style={styles.decorativeLine} />
             <View style={styles.decorativeDot} />
             <View style={styles.decorativeLine} />
-          </View>
+          </Animated.View>
 
-          <View style={styles.header}>
+          <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.header}>
             <DabbaLogo size={140} showText={false} />
             <Text style={styles.title}>The Dabba</Text>
             <Text style={styles.subtitle}>Gujarati Ghar Ka Swad</Text>
             <Text style={styles.tagline}>Traditional homestyle meals delivered</Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.form}>
+          <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.form}>
             {error ? (
-              <View style={styles.errorContainer}>
+              <Animated.View entering={FadeInDown.springify()} style={styles.errorContainer}>
                 <Ionicons name="alert-circle" size={20} color={COLORS.error} />
                 <Text style={styles.errorText}>{error}</Text>
-              </View>
+              </Animated.View>
             ) : null}
 
-            <View style={styles.inputContainer}>
+            <Animated.View entering={FadeInUp.delay(450).springify()} style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="mail-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
@@ -111,9 +149,9 @@ export default function LoginScreen() {
                   autoComplete="email"
                 />
               </View>
-            </View>
+            </Animated.View>
 
-            <View style={styles.inputContainer}>
+            <Animated.View entering={FadeInUp.delay(500).springify()} style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputWrapper}>
                 <Ionicons name="lock-closed-outline" size={20} color={COLORS.textLight} style={styles.inputIcon} />
@@ -126,7 +164,13 @@ export default function LoginScreen() {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowPassword(!showPassword);
+                  }} 
+                  style={styles.eyeIcon}
+                >
                   <Ionicons
                     name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={20}
@@ -134,34 +178,79 @@ export default function LoginScreen() {
                   />
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
 
             <TouchableOpacity
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+              activeOpacity={1}
+              onPressIn={handleButtonPressIn}
+              onPressOut={handleButtonPressOut}
               onPress={handleLogin}
               disabled={isLoading}
             >
-              {isLoading ? (
-                <ActivityIndicator color={COLORS.goldLight} />
-              ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
-              )}
+              <Animated.View
+                entering={FadeInUp.delay(550).springify()}
+                style={[styles.loginButton, isLoading && styles.loginButtonDisabled, buttonAnimStyle]}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={COLORS.goldLight} />
+                ) : (
+                  <Text style={styles.loginButtonText}>Sign In</Text>
+                )}
+              </Animated.View>
             </TouchableOpacity>
 
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+            <Animated.View entering={FadeInUp.delay(600).springify()} style={styles.registerContainer}>
+              <Text style={styles.registerText}>Don&apos;t have an account? </Text>
               <Link href="/(auth)/register" asChild>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
                   <Text style={styles.registerLink}>Sign Up</Text>
                 </TouchableOpacity>
               </Link>
-            </View>
-          </View>
+            </Animated.View>
+          </Animated.View>
+
+          {/* Demo Credentials */}
+          <Animated.View entering={FadeIn.delay(700)} style={styles.demoContainer}>
+            <Text style={styles.demoTitle}>Demo Accounts</Text>
+            <TouchableOpacity 
+              style={styles.demoCredential}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEmail('test2@dabba.com');
+                setPassword('test123');
+              }}
+            >
+              <Ionicons name="person" size={16} color={COLORS.gold} />
+              <Text style={styles.demoText}>Customer: test2@dabba.com</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.demoCredential}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEmail('kitchen@dabba.com');
+                setPassword('kitchen123');
+              }}
+            >
+              <Ionicons name="restaurant" size={16} color={COLORS.gold} />
+              <Text style={styles.demoText}>Kitchen: kitchen@dabba.com</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.demoCredential}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEmail('driver@dabba.com');
+                setPassword('driver123');
+              }}
+            >
+              <Ionicons name="bicycle" size={16} color={COLORS.gold} />
+              <Text style={styles.demoText}>Driver: driver@dabba.com</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Decorative bottom */}
-          <View style={styles.decorativeBottom}>
+          <Animated.View entering={FadeIn.delay(800)} style={styles.decorativeBottom}>
             <Text style={styles.decorativeText}>~ Since 2024 ~</Text>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -209,55 +298,53 @@ const styles = StyleSheet.create({
     color: COLORS.maroon,
     marginTop: 16,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
     color: COLORS.gold,
     marginTop: 4,
     fontStyle: 'italic',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textLight,
     marginTop: 8,
+    textAlign: 'center',
   },
   form: {
-    flex: 1,
+    marginBottom: 24,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FEE2E2',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.error,
+    gap: 8,
   },
   errorText: {
     color: COLORS.error,
-    marginLeft: 8,
-    flex: 1,
     fontSize: 14,
+    flex: 1,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 8,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.inputBg,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 14,
     paddingHorizontal: 14,
   },
   inputIcon: {
@@ -265,21 +352,20 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 52,
+    paddingVertical: 14,
     fontSize: 16,
     color: COLORS.text,
   },
   eyeIcon: {
-    padding: 8,
+    padding: 6,
   },
   loginButton: {
     backgroundColor: COLORS.maroon,
-    height: 56,
     borderRadius: 14,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    shadowColor: COLORS.maroonDark,
+    marginTop: 8,
+    shadowColor: COLORS.maroon,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -292,29 +378,59 @@ const styles = StyleSheet.create({
     color: COLORS.goldLight,
     fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
   registerText: {
-    fontSize: 14,
     color: COLORS.textLight,
+    fontSize: 14,
   },
   registerLink: {
+    color: COLORS.maroon,
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.maroon,
+  },
+  demoContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  demoTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textLight,
+    marginBottom: 12,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  demoCredential: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.cream,
+    marginBottom: 8,
+  },
+  demoText: {
+    fontSize: 13,
+    color: COLORS.text,
   },
   decorativeBottom: {
     alignItems: 'center',
-    marginTop: 40,
-    paddingBottom: 20,
+    paddingVertical: 16,
   },
   decorativeText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.gold,
     fontStyle: 'italic',
     letterSpacing: 2,

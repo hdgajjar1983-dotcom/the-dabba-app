@@ -10,6 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
 import { router } from 'expo-router';
 
@@ -27,16 +35,106 @@ const COLORS = {
   error: '#C41E3A',
 };
 
+// Animated menu item
+const AnimatedMenuItem = ({ icon, label, onPress, index, isLast }: any) => {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+    >
+      <Animated.View
+        entering={FadeInDown.delay(300 + index * 50).springify()}
+        style={[
+          styles.menuItem,
+          isLast && styles.menuItemLast,
+          animatedStyle,
+        ]}
+      >
+        <View style={styles.menuItemLeft}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name={icon} size={20} color={COLORS.maroon} />
+          </View>
+          <Text style={styles.menuItemLabel}>{label}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
+// Quick link card
+const QuickLinkCard = ({ icon, label, subtitle, onPress, color, bgColor, index }: any) => {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+    >
+      <Animated.View
+        entering={FadeInDown.delay(200 + index * 80).springify()}
+        style={[styles.quickLinkCard, animatedStyle]}
+      >
+        <View style={[styles.quickLinkIcon, { backgroundColor: bgColor }]}>
+          <Ionicons name={icon} size={22} color={color} />
+        </View>
+        <Text style={styles.quickLinkLabel}>{label}</Text>
+        <Text style={styles.quickLinkSubtitle}>{subtitle}</Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Logout',
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
+        { 
+          text: 'Logout', 
+          style: 'destructive', 
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            logout();
+          }
+        },
       ]
     );
   };
@@ -63,13 +161,13 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-        </View>
+        </Animated.View>
 
         {/* User Info Card */}
-        <View style={styles.userCard}>
+        <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.userCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -85,80 +183,63 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          >
             <Ionicons name="pencil" size={18} color={COLORS.gold} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Quick Links - Menu, Wallet & Support */}
         <View style={styles.quickLinksContainer}>
           {quickLinks.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.quickLinkCard}
-              onPress={item.onPress}
-            >
-              <View style={[styles.quickLinkIcon, { backgroundColor: item.bgColor }]}>
-                <Ionicons name={item.icon as any} size={22} color={item.color} />
-              </View>
-              <Text style={styles.quickLinkLabel}>{item.label}</Text>
-              <Text style={styles.quickLinkSubtitle}>{item.subtitle}</Text>
-            </TouchableOpacity>
+            <QuickLinkCard key={item.label} {...item} index={index} />
           ))}
         </View>
 
         {/* Account Settings */}
-        <View style={styles.sectionContainer}>
+        <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Account Settings</Text>
           <View style={styles.menuContainer}>
             {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
-                onPress={item.onPress}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={styles.menuIconContainer}>
-                    <Ionicons name={item.icon as any} size={20} color={COLORS.maroon} />
-                  </View>
-                  <Text style={styles.menuItemLabel}>{item.label}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
-              </TouchableOpacity>
+              <AnimatedMenuItem
+                key={item.label}
+                {...item}
+                index={index}
+                isLast={index === menuItems.length - 1}
+              />
             ))}
           </View>
-        </View>
+        </Animated.View>
 
         {/* Support */}
-        <View style={styles.sectionContainer}>
+        <Animated.View entering={FadeInDown.delay(500).springify()} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Support</Text>
           <View style={styles.menuContainer}>
             {supportItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.menuItem, index === supportItems.length - 1 && styles.menuItemLast]}
-                onPress={item.onPress}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={styles.menuIconContainer}>
-                    <Ionicons name={item.icon as any} size={20} color={COLORS.maroon} />
-                  </View>
-                  <Text style={styles.menuItemLabel}>{item.label}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
-              </TouchableOpacity>
+              <AnimatedMenuItem
+                key={item.label}
+                {...item}
+                index={index + menuItems.length}
+                isLast={index === supportItems.length - 1}
+              />
             ))}
           </View>
-        </View>
+        </Animated.View>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeInDown.delay(600).springify()}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={22} color={COLORS.error} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Version */}
-        <Text style={styles.version}>Version 1.1.0</Text>
+        <Animated.Text entering={FadeIn.delay(700)} style={styles.version}>
+          Version 1.1.0
+        </Animated.Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -192,6 +273,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   avatar: {
     width: 64,
@@ -256,20 +342,21 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: COLORS.goldLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   quickLinkLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 2,
+    textAlign: 'center',
   },
   quickLinkSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textLight,
+    textAlign: 'center',
   },
   sectionContainer: {
     marginBottom: 20,

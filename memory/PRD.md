@@ -1,30 +1,16 @@
 # The Dabba - Premium Tiffin Delivery Ecosystem PRD
 
 ## Original Problem Statement
-Build "The Dabba" - a full-featured tiffin delivery ecosystem for both a premium website (`thadabba.ca`) and an iOS mobile app. The system includes three synchronized portals (Customer, Kitchen, Driver) with a consistent high-end UI/UX.
+Build "The Dabba" - the greatest tiffin delivery app for iOS. A full-featured ecosystem with Customer, Kitchen, and Driver portals featuring premium animations, haptic feedback, and exceptional UI/UX.
 
 ## User Personas
 1. **Busy Professionals** - Need convenient, healthy meal subscriptions
 2. **Indian Families** - Want authentic home-style Indian cooking  
-3. **Food Explorers** - Interested in trying different regional Indian cuisines
-4. **Kitchen Staff** - Need efficient batch preparation and order management
-5. **Delivery Drivers** - Need optimized routes and delivery tracking
-
-## Core Requirements
-
-### Mobile App (React Native Expo)
-- **Customer Portal**: Home dashboard, subscription management, meal skipping, wallet
-- **Kitchen Portal**: Daily batch view, preparation lists, menu/plan management
-- **Driver Portal**: Delivery list, proof of delivery, navigation integration
-
-### Website (Premium Dark Theme)
-- Landing page with subscription plans
-- Interactive menu display
-- Live delivery tracking with Mapbox
-- Tiffin customizer
+3. **Kitchen Staff** - Need efficient batch preparation and order management
+4. **Delivery Drivers** - Need optimized routes and delivery tracking
 
 ## Technical Stack
-- **Frontend (Mobile)**: React Native, Expo, Expo Router
+- **Frontend (Mobile)**: React Native, Expo, Expo Router, React Native Reanimated, Expo Haptics
 - **Frontend (Web)**: HTML, CSS, JavaScript, Mapbox GL JS
 - **Backend**: FastAPI (Python)
 - **Database**: In-memory Python dictionaries (Mocked - not persistent)
@@ -32,54 +18,77 @@ Build "The Dabba" - a full-featured tiffin delivery ecosystem for both a premium
 
 ## What's Been Implemented
 
-### Dec 2025 - Website
-- [x] Complete dark luxury theme with maroon/gold accents
-- [x] Responsive mobile-first design
-- [x] Interactive menu tabs (5 regional cuisines)
-- [x] Tiffin customizer with tier selection
-- [x] Subscription plans with CAD pricing
-- [x] Calendar widget for delivery management
-- [x] "Track My Dabba" Live Tracking Feature with Mapbox
-- [x] Social proof testimonials
-- [x] GSAP scroll animations
+### Mar 8, 2025 - "Greatest App" Polish
+- [x] **Animated Components Library** (`/app/frontend/src/components/AnimatedComponents.tsx`)
+  - AnimatedCard with stagger effects
+  - PulsingDot for status indicators
+  - AnimatedProgress bars
+  - AnimatedCounter for stats
+  - Skeleton loading states
+  - AnimatedButton with haptic feedback
+  - SuccessCheckmark animation
+  - FloatingActionButton
 
-### Mar 2025 - Mobile App
-- [x] Three-portal architecture (Customer, Kitchen, Driver)
-- [x] User authentication with JWT tokens
-- [x] Customer meal skipping with 24-hour cutoff
-- [x] Today/Tomorrow tab system for meal management
+- [x] **Enhanced Customer Portal**
+  - Smooth entrance animations on all cards
+  - Staggered reveal for content
+  - Haptic feedback on all interactions
+  - Animated delivery tracking progress
+  - PulsingDot on active subscription status
+  - Skeleton loading state
+  - Tab animations for Today/Tomorrow
+
+- [x] **Enhanced Kitchen Portal**
+  - Animated stat cards with counters
+  - Progress bar for delivery completion
+  - Staggered quick action cards
+  - PulsingDot on pending deliveries
+  - Haptic feedback throughout
+
+- [x] **Enhanced Login Screen**
+  - Smooth entrance animations
+  - Button press animations with scale
+  - Error shake animation
+  - Demo credentials quick-fill buttons
+  - Haptic feedback on all interactions
+
+- [x] **Enhanced Profile Screen**
+  - Animated menu items
+  - Staggered reveal
+  - Quick link cards with scale animation
+
+### Previous Implementations
+- [x] Delivery tracking card on Customer home
+- [x] Quick Actions moved to Profile (Menu/Wallet/Support)
+- [x] Premium dark-themed website with Mapbox tracking
 - [x] Wallet/Trust Engine with auto-credits
-- [x] Kitchen editable plans, categories, and menu items
+- [x] Kitchen editable plans, categories, menu
 - [x] Full 42-item menu database
-- [x] Kitchen preparation list with quantity calculations
-- [x] Driver delivery list with map selection (Apple/Google/Waze)
-- [x] Proof of delivery photo capture
-- [x] **Customer Home Page Refactor (Mar 8, 2025)**:
-  - Added delivery tracking status card with progress steps
-  - Removed Quick Actions from home page
-  - Moved Menu/Wallet/Support links to Profile page
-  - Simplified bottom tab bar to Home/Plans/Profile
+- [x] Driver delivery with map selection
 
 ## Key API Endpoints
 - `POST /api/auth/login` - User authentication
 - `GET /api/customer/delivery-status` - Real-time delivery status
-- `GET /api/kitchen/preparation-list` - Daily preparation breakdown
-- `POST /api/customer/report-issue` - Issue reporting with auto-credits
-- `POST /api/subscription/vacation` - Vacation mode toggle
-- `POST /api/kitchen/plans` - CRUD for subscription plans
+- `GET /api/kitchen/dashboard` - Kitchen stats
+- `GET /api/kitchen/preparation-list` - Daily prep breakdown
 
 ## Test Credentials
 - **Customer**: `test2@dabba.com` / `test123`
 - **Driver**: `driver@dabba.com` / `driver123`  
 - **Kitchen Admin**: `kitchen@dabba.com` / `kitchen123`
 
+## Current Build
+- **Version**: 1.1.0
+- **Build Number**: 12
+- **Bundle ID**: com.thedabba.app
+
 ## Prioritized Backlog
 
 ### P0 - Critical
-- [ ] iOS TestFlight verification (Build 1.1.0 - user needs to test)
+- [ ] User to test iOS build 1.1.0 (12) on TestFlight
 
 ### P1 - High Priority
-- [ ] "Greatest App" polish - fluid animations, micro-interactions
+- [ ] Driver portal animations polish
 - [ ] Driver smart routing (GPS-based sorting)
 - [ ] Driver live location sharing
 
@@ -87,20 +96,16 @@ Build "The Dabba" - a full-featured tiffin delivery ecosystem for both a premium
 - [ ] Backend refactoring (break down monolithic server.py)
 - [ ] MongoDB integration (replace in-memory mock DB)
 - [ ] Payment integration (Stripe/Apple Pay)
-- [ ] 3D Tiffin Customizer with Three.js
 
 ### P3 - Nice to Have
-- [ ] Domain setup (`thadabba.ca` - GoDaddy parked page issue)
-- [ ] Instagram/Google Reviews API integration
-- [ ] PWA support
+- [ ] Domain setup (`thadabba.ca`)
+- [ ] 3D Tiffin Customizer with Three.js
 - [ ] Push notifications
 
 ## Known Issues
-1. **iOS Build Process**: User finds TestFlight workflow confusing
-2. **Website Domain**: `thedabba.ca` shows GoDaddy parked page (user needs to contact GoDaddy)
-3. **Backend**: Monolithic server.py file (~1000+ lines) needs refactoring
-4. **Database**: In-memory mock DB - data not persistent across restarts
+1. Backend uses in-memory mock DB - data not persistent
+2. Website domain shows GoDaddy parked page
 
 ## URLs
 - Preview: https://delivery-test-2.preview.emergentagent.com/
-- Target domain: thadabba.ca (not yet configured)
+- Target domain: thadabba.ca

@@ -5,16 +5,30 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
   TouchableOpacity,
   Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeIn,
+  SlideInRight,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
 import { menuAPI, subscriptionAPI, customerAPI } from '../../src/services/api';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
+import { AnimatedCard, PulsingDot, Skeleton, SkeletonCard } from '../../src/components/AnimatedComponents';
 
 const COLORS = {
   ...BRAND_COLORS,
@@ -50,6 +64,40 @@ interface Subscription {
   skipped_meals: { date: string; meal_type: string }[];
 }
 
+// Animated touchable component
+const AnimatedTouchable = ({ children, onPress, style, index = 0 }: any) => {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+    >
+      <Animated.View
+        entering={FadeInDown.delay(index * 100).springify()}
+        style={[style, animatedStyle]}
+      >
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 export default function CustomerDashboard() {
   const { user } = useAuth();
   const [todayMenu, setTodayMenu] = useState<DayMenu | null>(null);
@@ -59,6 +107,13 @@ export default function CustomerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'today' | 'tomorrow'>('today');
+
+  // Animation for tab indicator
+  const tabIndicatorX = useSharedValue(0);
+  
+  const tabIndicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tabIndicatorX.value }],
+  }));
 
   const fetchData = useCallback(async () => {
     try {
@@ -100,22 +155,30 @@ export default function CustomerDashboard() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchData();
   }, [fetchData]);
+
+  const handleTabChange = (tab: 'today' | 'tomorrow') => {
+    setActiveTab(tab);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    tabIndicatorX.value = withSpring(tab === 'today' ? 0 : 1, { damping: 20, stiffness: 300 });
+  };
 
   const handleSkipMeal = async (mealType: 'lunch' | 'dinner', menuItem: DayMenu | null, isTomorrow: boolean = false) => {
     if (!menuItem) return;
 
-    // Check if skipping is allowed (24 hours before 4 PM delivery)
     const deliveryDate = new Date(menuItem.date);
-    deliveryDate.setHours(16, 0, 0, 0); // 4 PM delivery
-    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000); // 24 hours before
+    deliveryDate.setHours(16, 0, 0, 0);
+    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000);
     
     if (new Date() > cutoffTime) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Skip Locked', 'Meals can only be skipped at least 24 hours before the 4 PM delivery time.');
       return;
     }
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Skip Meal',
       `Skip ${isTomorrow ? "tomorrow's" : "today's"} meal and receive $12 CAD credit?`,
@@ -129,9 +192,11 @@ export default function CustomerDashboard() {
                 date: menuItem.date,
                 meal_type: mealType,
               });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert('Success', '$12 CAD has been credited to your wallet!');
               fetchData();
             } catch (error: any) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
               Alert.alert('Error', error.response?.data?.detail || 'Failed to skip meal');
             }
           },
@@ -150,17 +215,41 @@ export default function CustomerDashboard() {
   const canSkip = (menuItem: DayMenu | null) => {
     if (!menuItem) return false;
     const deliveryDate = new Date(menuItem.date);
-    deliveryDate.setHours(16, 0, 0, 0); // 4 PM delivery
-    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000); // 24 hours before
+    deliveryDate.setHours(16, 0, 0, 0);
+    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000);
     return new Date() < cutoffTime;
+  };
+
+  const getDeliveryIcon = () => {
+    switch (deliveryStatus?.status) {
+      case 'out_for_delivery': return 'bicycle';
+      case 'delivered': return 'checkmark-circle';
+      case 'preparing': return 'restaurant';
+      default: return 'time';
+    }
+  };
+
+  const getDeliveryTitle = () => {
+    switch (deliveryStatus?.status) {
+      case 'out_for_delivery': return 'Your Dabba is on the way!';
+      case 'delivered': return 'Delivered!';
+      case 'preparing': return 'Being Prepared';
+      case 'skipped': return 'Meal Skipped';
+      default: return 'Scheduled for Today';
+    }
   };
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <DabbaLogo size={100} />
-          <ActivityIndicator size="large" color={COLORS.maroon} style={{ marginTop: 20 }} />
+          <Animated.View entering={FadeIn.duration(500)}>
+            <DabbaLogo size={100} />
+          </Animated.View>
+          <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.loadingContent}>
+            <SkeletonCard style={styles.skeletonCard} />
+            <SkeletonCard style={styles.skeletonCard} />
+          </Animated.View>
         </View>
       </SafeAreaView>
     );
@@ -176,7 +265,7 @@ export default function CustomerDashboard() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.header}>
           <View style={styles.headerLeft}>
             <DabbaLogo size={50} />
             <View style={styles.headerText}>
@@ -184,27 +273,29 @@ export default function CustomerDashboard() {
               <Text style={styles.subGreeting}>Aaj ka swadisht bhojan</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notificationBtn}>
+          <AnimatedTouchable style={styles.notificationBtn}>
             <Ionicons name="notifications-outline" size={22} color={COLORS.maroon} />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.notificationBadge} />
+          </AnimatedTouchable>
+        </Animated.View>
 
         {/* Decorative Divider */}
-        <View style={styles.divider}>
+        <Animated.View entering={FadeIn.delay(200)} style={styles.divider}>
           <View style={styles.dividerLine} />
           <View style={styles.dividerDot} />
           <View style={styles.dividerLine} />
-        </View>
+        </Animated.View>
 
         {/* Subscription Status */}
         {subscription ? (
-          <View style={styles.subscriptionCard}>
+          <AnimatedCard index={1} style={styles.subscriptionCard}>
             <View style={styles.subscriptionHeader}>
               <View style={styles.planBadge}>
                 <Ionicons name="star" size={16} color={COLORS.gold} />
                 <Text style={styles.planText}>{subscription.plan} Plan</Text>
               </View>
               <View style={[styles.statusBadge, subscription.status === 'active' && styles.statusActive]}>
+                <PulsingDot color={COLORS.success} size={8} isActive={subscription.status === 'active'} />
                 <Text style={styles.statusText}>{subscription.status}</Text>
               </View>
             </View>
@@ -212,9 +303,9 @@ export default function CustomerDashboard() {
               <Ionicons name="location" size={18} color={COLORS.maroon} />
               <Text style={styles.addressText} numberOfLines={1}>{subscription.delivery_address}</Text>
             </View>
-          </View>
+          </AnimatedCard>
         ) : (
-          <TouchableOpacity style={styles.noSubscriptionCard}>
+          <AnimatedTouchable index={1} style={styles.noSubscriptionCard}>
             <View style={styles.noSubIcon}>
               <Ionicons name="add" size={28} color={COLORS.maroon} />
             </View>
@@ -223,29 +314,18 @@ export default function CustomerDashboard() {
               <Text style={styles.noSubText}>Subscribe to receive traditional meals</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={COLORS.gold} />
-          </TouchableOpacity>
+          </AnimatedTouchable>
         )}
 
         {/* Delivery Tracking Card */}
         {subscription && (
-          <View style={styles.deliveryCard}>
+          <AnimatedCard index={2} style={styles.deliveryCard}>
             <View style={styles.deliveryHeader}>
               <View style={styles.deliveryIconPulse}>
-                <Ionicons 
-                  name={deliveryStatus?.status === 'out_for_delivery' ? 'bicycle' : 
-                        deliveryStatus?.status === 'delivered' ? 'checkmark-circle' :
-                        deliveryStatus?.status === 'preparing' ? 'restaurant' : 'time'} 
-                  size={24} 
-                  color={COLORS.card} 
-                />
+                <Ionicons name={getDeliveryIcon()} size={24} color={COLORS.card} />
               </View>
               <View style={styles.deliveryHeaderText}>
-                <Text style={styles.deliveryTitle}>
-                  {deliveryStatus?.status === 'out_for_delivery' ? 'Your Dabba is on the way!' : 
-                   deliveryStatus?.status === 'delivered' ? 'Delivered!' :
-                   deliveryStatus?.status === 'preparing' ? 'Being Prepared' : 
-                   deliveryStatus?.status === 'skipped' ? 'Meal Skipped' : 'Scheduled for Today'}
-                </Text>
+                <Text style={styles.deliveryTitle}>{getDeliveryTitle()}</Text>
                 <Text style={styles.deliverySubtitle}>
                   {deliveryStatus?.status === 'skipped' ? 'Credit added to wallet' :
                    deliveryStatus?.estimated_time || 'Delivery at 4:00 PM'}
@@ -256,31 +336,46 @@ export default function CustomerDashboard() {
             {/* Progress Steps */}
             {deliveryStatus?.status !== 'skipped' && (
               <View style={styles.progressContainer}>
-                <View style={styles.progressStep}>
-                  <View style={[styles.progressDot, styles.progressDotComplete]} />
-                  <Text style={styles.progressLabel}>Ordered</Text>
-                </View>
-                <View style={[styles.progressLine, styles.progressLineComplete]} />
-                <View style={styles.progressStep}>
-                  <View style={[styles.progressDot, (deliveryStatus?.status && deliveryStatus.status !== 'pending') && styles.progressDotComplete]} />
-                  <Text style={styles.progressLabel}>Preparing</Text>
-                </View>
-                <View style={[styles.progressLine, (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered') && styles.progressLineComplete]} />
-                <View style={styles.progressStep}>
-                  <View style={[styles.progressDot, (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered') && styles.progressDotActive]} />
-                  <Text style={styles.progressLabel}>On Way</Text>
-                </View>
-                <View style={[styles.progressLine, deliveryStatus?.status === 'delivered' && styles.progressLineComplete]} />
-                <View style={styles.progressStep}>
-                  <View style={[styles.progressDot, deliveryStatus?.status === 'delivered' && styles.progressDotComplete]} />
-                  <Text style={styles.progressLabel}>Delivered</Text>
-                </View>
+                {['Ordered', 'Preparing', 'On Way', 'Delivered'].map((step, index) => {
+                  const isComplete = 
+                    index === 0 || 
+                    (index === 1 && deliveryStatus?.status && deliveryStatus.status !== 'pending') ||
+                    (index === 2 && (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered')) ||
+                    (index === 3 && deliveryStatus?.status === 'delivered');
+                  
+                  const isActive = 
+                    (index === 2 && deliveryStatus?.status === 'out_for_delivery');
+
+                  return (
+                    <React.Fragment key={step}>
+                      <Animated.View 
+                        entering={FadeInDown.delay(400 + index * 100).springify()}
+                        style={styles.progressStep}
+                      >
+                        <View style={[
+                          styles.progressDot,
+                          isComplete && styles.progressDotComplete,
+                          isActive && styles.progressDotActive,
+                        ]}>
+                          {isComplete && <Ionicons name="checkmark" size={10} color="#FFF" />}
+                          {isActive && <PulsingDot color="#FFF" size={8} />}
+                        </View>
+                        <Text style={[styles.progressLabel, isComplete && styles.progressLabelActive]}>
+                          {step}
+                        </Text>
+                      </Animated.View>
+                      {index < 3 && (
+                        <View style={[styles.progressLine, isComplete && styles.progressLineComplete]} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </View>
             )}
             
             {/* Driver Info */}
             {deliveryStatus?.driver && (
-              <View style={styles.driverInfo}>
+              <Animated.View entering={SlideInRight.delay(600)} style={styles.driverInfo}>
                 <View style={styles.driverAvatar}>
                   <Text style={styles.driverAvatarText}>{deliveryStatus.driver.name?.charAt(0) || 'D'}</Text>
                 </View>
@@ -288,27 +383,30 @@ export default function CustomerDashboard() {
                   <Text style={styles.driverName}>{deliveryStatus.driver.name || 'Driver'}</Text>
                   <Text style={styles.driverPhone}>{deliveryStatus.driver.phone || ''}</Text>
                 </View>
-                <TouchableOpacity style={styles.callDriverBtn}>
+                <TouchableOpacity 
+                  style={styles.callDriverBtn}
+                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                >
                   <Ionicons name="call" size={20} color={COLORS.card} />
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             )}
-          </View>
+          </AnimatedCard>
         )}
 
         {/* Meal Menu Section with Today/Tomorrow Tabs */}
-        <View style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.section}>
           {/* Tab Selector */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'today' && styles.tabActive]}
-              onPress={() => setActiveTab('today')}
+              onPress={() => handleTabChange('today')}
             >
               <Text style={[styles.tabText, activeTab === 'today' && styles.tabTextActive]}>Today</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'tomorrow' && styles.tabActive]}
-              onPress={() => setActiveTab('tomorrow')}
+              onPress={() => handleTabChange('tomorrow')}
             >
               <Text style={[styles.tabText, activeTab === 'tomorrow' && styles.tabTextActive]}>Tomorrow</Text>
             </TouchableOpacity>
@@ -325,21 +423,24 @@ export default function CustomerDashboard() {
                   : (tomorrowMenu ? tomorrowMenu.day : '')}
               </Text>
             </View>
-            <View style={styles.dateBadge}>
+            <Animated.View entering={FadeIn} style={styles.dateBadge}>
               <Text style={styles.dateText}>
                 {activeTab === 'today'
                   ? (todayMenu ? new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')
                   : (tomorrowMenu ? new Date(tomorrowMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')}
               </Text>
-            </View>
+            </Animated.View>
           </View>
 
           {/* Meal Card */}
           {(activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
-            <View style={[
-              styles.mealCard, 
-              isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && styles.mealCardSkipped
-            ]}>
+            <AnimatedCard 
+              index={4} 
+              style={[
+                styles.mealCard, 
+                isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && styles.mealCardSkipped
+              ]}
+            >
               {/* Meal Header */}
               <View style={styles.mealHeader}>
                 <View style={styles.mealIconContainer}>
@@ -409,7 +510,7 @@ export default function CustomerDashboard() {
                 <Ionicons name="restaurant" size={16} color={COLORS.gold} />
                 <View style={styles.decorLine} />
               </View>
-            </View>
+            </AnimatedCard>
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="restaurant-outline" size={48} color={COLORS.textLight} />
@@ -418,12 +519,12 @@ export default function CustomerDashboard() {
               </Text>
             </View>
           )}
-        </View>
+        </Animated.View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <Animated.View entering={FadeIn.delay(500)} style={styles.footer}>
           <Text style={styles.footerText}>~ Ghar Ka Swad, Roz ~</Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -438,6 +539,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 20,
+  },
+  loadingContent: {
+    width: '100%',
+    marginTop: 20,
+  },
+  skeletonCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -477,6 +588,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.border,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.maroon,
   },
   divider: {
     flexDirection: 'row',
@@ -532,10 +652,13 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: COLORS.successLight,
   },
   statusActive: {
     backgroundColor: COLORS.successLight,
@@ -645,11 +768,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.border,
     marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progressDotComplete: {
     backgroundColor: COLORS.success,
@@ -659,7 +784,7 @@ const styles = StyleSheet.create({
   },
   progressLine: {
     height: 3,
-    width: 40,
+    width: 36,
     backgroundColor: COLORS.border,
     marginHorizontal: 4,
     marginBottom: 18,
@@ -672,6 +797,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textLight,
     fontWeight: '500',
+  },
+  progressLabelActive: {
+    color: COLORS.success,
+    fontWeight: '600',
   },
   driverInfo: {
     flexDirection: 'row',
