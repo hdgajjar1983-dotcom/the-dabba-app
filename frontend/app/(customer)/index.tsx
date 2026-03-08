@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
-import { menuAPI, subscriptionAPI } from '../../src/services/api';
+import { menuAPI, subscriptionAPI, customerAPI } from '../../src/services/api';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 
 const COLORS = {
@@ -52,23 +52,23 @@ interface Subscription {
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
-  const [menu, setMenu] = useState<DayMenu[]>([]);
   const [todayMenu, setTodayMenu] = useState<DayMenu | null>(null);
   const [tomorrowMenu, setTomorrowMenu] = useState<DayMenu | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [deliveryStatus, setDeliveryStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'today' | 'tomorrow'>('today');
 
   const fetchData = useCallback(async () => {
     try {
-      const [menuRes, subRes] = await Promise.all([
+      const [menuRes, subRes, deliveryRes] = await Promise.all([
         menuAPI.getWeeklyMenu(),
         subscriptionAPI.getSubscription().catch(() => null),
+        customerAPI.getDeliveryStatus().catch(() => null),
       ]);
 
       const weeklyMenu = menuRes.data.menu || [];
-      setMenu(weeklyMenu);
 
       const today = new Date().toISOString().split('T')[0];
       const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -81,6 +81,10 @@ export default function CustomerDashboard() {
 
       if (subRes?.data) {
         setSubscription(subRes.data);
+      }
+      
+      if (deliveryRes?.data) {
+        setDeliveryStatus(deliveryRes.data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -222,6 +226,76 @@ export default function CustomerDashboard() {
           </TouchableOpacity>
         )}
 
+        {/* Delivery Tracking Card */}
+        {subscription && (
+          <View style={styles.deliveryCard}>
+            <View style={styles.deliveryHeader}>
+              <View style={styles.deliveryIconPulse}>
+                <Ionicons 
+                  name={deliveryStatus?.status === 'out_for_delivery' ? 'bicycle' : 
+                        deliveryStatus?.status === 'delivered' ? 'checkmark-circle' :
+                        deliveryStatus?.status === 'preparing' ? 'restaurant' : 'time'} 
+                  size={24} 
+                  color={COLORS.card} 
+                />
+              </View>
+              <View style={styles.deliveryHeaderText}>
+                <Text style={styles.deliveryTitle}>
+                  {deliveryStatus?.status === 'out_for_delivery' ? 'Your Dabba is on the way!' : 
+                   deliveryStatus?.status === 'delivered' ? 'Delivered!' :
+                   deliveryStatus?.status === 'preparing' ? 'Being Prepared' : 
+                   deliveryStatus?.status === 'skipped' ? 'Meal Skipped' : 'Scheduled for Today'}
+                </Text>
+                <Text style={styles.deliverySubtitle}>
+                  {deliveryStatus?.status === 'skipped' ? 'Credit added to wallet' :
+                   deliveryStatus?.estimated_time || 'Delivery at 4:00 PM'}
+                </Text>
+              </View>
+            </View>
+            
+            {/* Progress Steps */}
+            {deliveryStatus?.status !== 'skipped' && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressStep}>
+                  <View style={[styles.progressDot, styles.progressDotComplete]} />
+                  <Text style={styles.progressLabel}>Ordered</Text>
+                </View>
+                <View style={[styles.progressLine, styles.progressLineComplete]} />
+                <View style={styles.progressStep}>
+                  <View style={[styles.progressDot, (deliveryStatus?.status && deliveryStatus.status !== 'pending') && styles.progressDotComplete]} />
+                  <Text style={styles.progressLabel}>Preparing</Text>
+                </View>
+                <View style={[styles.progressLine, (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered') && styles.progressLineComplete]} />
+                <View style={styles.progressStep}>
+                  <View style={[styles.progressDot, (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered') && styles.progressDotActive]} />
+                  <Text style={styles.progressLabel}>On Way</Text>
+                </View>
+                <View style={[styles.progressLine, deliveryStatus?.status === 'delivered' && styles.progressLineComplete]} />
+                <View style={styles.progressStep}>
+                  <View style={[styles.progressDot, deliveryStatus?.status === 'delivered' && styles.progressDotComplete]} />
+                  <Text style={styles.progressLabel}>Delivered</Text>
+                </View>
+              </View>
+            )}
+            
+            {/* Driver Info */}
+            {deliveryStatus?.driver && (
+              <View style={styles.driverInfo}>
+                <View style={styles.driverAvatar}>
+                  <Text style={styles.driverAvatarText}>{deliveryStatus.driver.name?.charAt(0) || 'D'}</Text>
+                </View>
+                <View style={styles.driverDetails}>
+                  <Text style={styles.driverName}>{deliveryStatus.driver.name || 'Driver'}</Text>
+                  <Text style={styles.driverPhone}>{deliveryStatus.driver.phone || ''}</Text>
+                </View>
+                <TouchableOpacity style={styles.callDriverBtn}>
+                  <Ionicons name="call" size={20} color={COLORS.card} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Meal Menu Section with Today/Tomorrow Tabs */}
         <View style={styles.section}>
           {/* Tab Selector */}
@@ -344,28 +418,6 @@ export default function CustomerDashboard() {
               </Text>
             </View>
           )}
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-              <Ionicons name="calendar-outline" size={24} color="#E65100" />
-            </View>
-            <Text style={styles.actionText}>Weekly Menu</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-              <Ionicons name="wallet-outline" size={24} color="#2E7D32" />
-            </View>
-            <Text style={styles.actionText}>Wallet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-              <Ionicons name="help-circle-outline" size={24} color="#1565C0" />
-            </View>
-            <Text style={styles.actionText}>Support</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -538,6 +590,130 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textLight,
     marginTop: 2,
+  },
+  // Delivery Tracking Card Styles
+  deliveryCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  deliveryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.maroon,
+    padding: 16,
+  },
+  deliveryIconPulse: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deliveryHeaderText: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  deliveryTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.goldLight,
+  },
+  deliverySubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.cream,
+  },
+  progressStep: {
+    alignItems: 'center',
+  },
+  progressDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.border,
+    marginBottom: 6,
+  },
+  progressDotComplete: {
+    backgroundColor: COLORS.success,
+  },
+  progressDotActive: {
+    backgroundColor: COLORS.maroon,
+  },
+  progressLine: {
+    height: 3,
+    width: 40,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 4,
+    marginBottom: 18,
+    borderRadius: 2,
+  },
+  progressLineComplete: {
+    backgroundColor: COLORS.success,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    fontWeight: '500',
+  },
+  driverInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  driverAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.maroon,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  driverAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.goldLight,
+  },
+  driverDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  driverName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  driverPhone: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  callDriverBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
     marginTop: 8,
@@ -756,34 +932,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textLight,
     marginTop: 12,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
   },
   footer: {
     alignItems: 'center',

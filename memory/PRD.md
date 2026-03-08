@@ -90,5 +90,5 @@ Build "The Greatest Tiffin Website on Earth" for `thadabba.ca` - A premium, dark
 - Kitchen test: `kitchen@dabba.com` / `kitchen123`
 
 ## URLs
-- Preview: https://dabba-premium.preview.emergentagent.com/
+- Preview: https://delivery-test-2.preview.emergentagent.com/
 - Target domain: thadabba.ca (not yet configured)

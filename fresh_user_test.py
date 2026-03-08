@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 from datetime import datetime
 
-BASE_URL = "https://dabba-premium.preview.emergentagent.com/api"
+BASE_URL = "https://delivery-test-2.preview.emergentagent.com/api"
 
 async def test_fresh_user_subscription_flow():
     async with aiohttp.ClientSession() as session:

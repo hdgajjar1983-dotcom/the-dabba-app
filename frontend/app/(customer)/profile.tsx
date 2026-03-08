@@ -6,20 +6,25 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
+import { router } from 'expo-router';
 
 const COLORS = {
-  primary: '#EA580C',
-  primaryLight: '#FFF7ED',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB',
-  white: '#FFFFFF',
-  error: '#DC2626',
+  background: '#FDF8F3',
+  card: '#FFFFFF',
+  maroon: '#8B1538',
+  gold: '#C9A050',
+  goldLight: '#F5E6C8',
+  cream: '#FAF3E8',
+  text: '#2C1810',
+  textLight: '#6B5B4F',
+  border: '#E8DED3',
+  success: '#3D7C47',
+  error: '#C41E3A',
 };
 
 export default function ProfileScreen() {
@@ -36,12 +41,22 @@ export default function ProfileScreen() {
     );
   };
 
+  const quickLinks = [
+    { icon: 'calendar-outline', label: 'Weekly Menu', subtitle: 'View full menu', onPress: () => router.push('/(customer)/menu'), color: '#E65100', bgColor: '#FFF3E0' },
+    { icon: 'wallet-outline', label: 'Wallet', subtitle: 'Credits & balance', onPress: () => router.push('/(customer)/wallet'), color: '#2E7D32', bgColor: '#E8F5E9' },
+    { icon: 'headset-outline', label: 'Support', subtitle: 'Get help', onPress: () => router.push('/support'), color: '#1565C0', bgColor: '#E3F2FD' },
+  ];
+
   const menuItems = [
     { icon: 'person-outline', label: 'Edit Profile', onPress: () => {} },
     { icon: 'location-outline', label: 'Delivery Addresses', onPress: () => {} },
     { icon: 'card-outline', label: 'Payment Methods', onPress: () => {} },
     { icon: 'notifications-outline', label: 'Notifications', onPress: () => {} },
-    { icon: 'help-circle-outline', label: 'Help & Support', onPress: () => {} },
+  ];
+
+  const supportItems = [
+    { icon: 'chatbubble-ellipses-outline', label: 'Help & Support', onPress: () => {} },
+    { icon: 'call-outline', label: 'Contact Us', onPress: () => {} },
     { icon: 'document-text-outline', label: 'Terms & Conditions', onPress: () => {} },
     { icon: 'shield-checkmark-outline', label: 'Privacy Policy', onPress: () => {} },
   ];
@@ -53,7 +68,7 @@ export default function ProfileScreen() {
           <Text style={styles.title}>Profile</Text>
         </View>
 
-        {/* User Info */}
+        {/* User Info Card */}
         <View style={styles.userCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -70,25 +85,70 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+          <TouchableOpacity style={styles.editButton}>
+            <Ionicons name="pencil" size={18} color={COLORS.gold} />
+          </TouchableOpacity>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuContainer}>
-          {menuItems.map((item, index) => (
+        {/* Quick Links - Menu, Wallet & Support */}
+        <View style={styles.quickLinksContainer}>
+          {quickLinks.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={styles.menuItem}
+              style={styles.quickLinkCard}
               onPress={item.onPress}
             >
-              <View style={styles.menuItemLeft}>
-                <View style={styles.menuIconContainer}>
-                  <Ionicons name={item.icon as any} size={22} color={COLORS.primary} />
-                </View>
-                <Text style={styles.menuItemLabel}>{item.label}</Text>
+              <View style={[styles.quickLinkIcon, { backgroundColor: item.bgColor }]}>
+                <Ionicons name={item.icon as any} size={22} color={item.color} />
               </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+              <Text style={styles.quickLinkLabel}>{item.label}</Text>
+              <Text style={styles.quickLinkSubtitle}>{item.subtitle}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Account Settings */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <View style={styles.menuContainer}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.menuItem, index === menuItems.length - 1 && styles.menuItemLast]}
+                onPress={item.onPress}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name={item.icon as any} size={20} color={COLORS.maroon} />
+                  </View>
+                  <Text style={styles.menuItemLabel}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Support */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Support</Text>
+          <View style={styles.menuContainer}>
+            {supportItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.menuItem, index === supportItems.length - 1 && styles.menuItemLast]}
+                onPress={item.onPress}
+              >
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name={item.icon as any} size={20} color={COLORS.maroon} />
+                  </View>
+                  <Text style={styles.menuItemLabel}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.textLight} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Logout Button */}
@@ -98,7 +158,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Version 1.1.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -121,14 +181,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   userCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -136,7 +197,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.maroon,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -144,7 +205,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 28,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.goldLight,
   },
   userInfo: {
     flex: 1,
@@ -169,10 +230,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textLight,
   },
-  menuContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLinksContainer: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 24,
+  },
+  quickLinkCard: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quickLinkIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.goldLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  quickLinkLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 2,
+  },
+  quickLinkSubtitle: {
+    fontSize: 12,
+    color: COLORS.textLight,
+  },
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textLight,
+    marginBottom: 10,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  menuContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: 'hidden',
@@ -181,25 +294,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.cream,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   menuItemLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text,
   },
   logoutButton: {
@@ -211,6 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     marginBottom: 24,
+    marginTop: 8,
   },
   logoutText: {
     fontSize: 16,
