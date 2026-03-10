@@ -30,6 +30,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { subscriptionAPI, customerAPI, weatherAPI, extrasAPI } from '../../src/services/api';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 import { AnimatedCard, PulsingDot, Skeleton, SkeletonCard } from '../../src/components/AnimatedComponents';
+import TiffinConcierge, { ChatButton } from '../components/TiffinConcierge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -234,6 +235,7 @@ export default function CustomerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [showSpiceSelector, setShowSpiceSelector] = useState(false);
+  const [showChatbot, setShowChatbot] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -592,6 +594,22 @@ export default function CustomerDashboard() {
           <Text style={styles.footerSubtext}>Halifax, Nova Scotia</Text>
         </Animated.View>
       </ScrollView>
+
+      {/* Tiffin Concierge Chatbot */}
+      <TiffinConcierge 
+        isVisible={showChatbot} 
+        onClose={() => setShowChatbot(false)} 
+      />
+
+      {/* Floating Chat Button */}
+      {!showChatbot && (
+        <View style={styles.chatButtonContainer}>
+          <ChatButton onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setShowChatbot(true);
+          }} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1077,5 +1095,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textLight,
     marginTop: 4,
+  },
+  // Chat Button
+  chatButtonContainer: {
+    position: 'absolute',
+    bottom: 100,
+    right: 20,
   },
 });

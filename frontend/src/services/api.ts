@@ -198,6 +198,13 @@ export const extrasAPI = {
   getExtras: () => api.get('/extras'),
 };
 
+// Tiffin Concierge AI Chatbot APIs
+export const chatAPI = {
+  sendMessage: (message: string, session_id?: string) =>
+    api.post('/chat/concierge', { message, session_id }),
+  getHistory: () => api.get('/chat/history'),
+};
+
 // Kitchen Intelligence APIs
 export const kitchenIntelAPI = {
   getIngredientForecast: () => api.get('/kitchen/ingredient-forecast'),

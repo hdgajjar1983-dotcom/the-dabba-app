@@ -2540,10 +2540,7 @@ async def swap_meal(
         "swap_id": swap_record["id"]
     }
 
-# Include the router
-app.include_router(api_router)
-
-# CORS Middleware
+# CORS Middleware (must be before routes)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -2652,6 +2649,288 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ==================== TIFFIN CONCIERGE AI CHATBOT ====================
+
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+CONCIERGE_SYSTEM_PROMPT = """You are the Tiffin Concierge, a friendly AI assistant for "The Dabba" - Halifax's premium tiffin delivery service. 
+
+**Your Personality:**
+- Warm, professional, and Halifax-local (you know the streets!)
+- Concise but helpful - don't ramble
+- Always discuss money in CAD ($)
+
+**Your Capabilities (you can DO these things, not just talk about them):**
+1. SKIP MEALS: If customer wants to skip a meal, confirm the date and execute it
+2. UPDATE SPICE: If food was too spicy/mild, update their preference
+3. TRACK DELIVERY: Check real-time driver location and ETA
+4. CHECK WALLET: Tell them their credit balance
+5. VIEW MENU: Tell them what's for dinner today/this week
+6. ADD EXTRAS: Help them add Lassi, Gulab Jamun, etc to their order
+7. WEATHER ALERTS: Explain any delivery delays due to Halifax weather
+
+**Action Format:**
+When you need to perform an action, respond with JSON in this exact format:
+{"action": "ACTION_NAME", "params": {...}}
+
+Available actions:
+- {"action": "SKIP_MEAL", "params": {"date": "YYYY-MM-DD"}}
+- {"action": "UPDATE_SPICE", "params": {"level": "mild|medium|spicy"}}
+- {"action": "CHECK_BALANCE", "params": {}}
+- {"action": "GET_MENU", "params": {"date": "YYYY-MM-DD"}}
+- {"action": "TRACK_DELIVERY", "params": {}}
+- {"action": "HUMAN_HANDOVER", "params": {"reason": "..."}}
+
+**Important Rules:**
+1. Always confirm before executing actions that affect their account
+2. If unsure or customer seems upset, offer HUMAN_HANDOVER
+3. Mention weather if there are delivery delays
+4. Be empathetic if they complain about food quality
+
+**Context about The Dabba:**
+- We serve authentic Gujarati home-cooked meals in Halifax
+- Delivery is at 4:00 PM daily
+- Skip deadline: 24 hours before delivery
+- Skip credit: $12 CAD per meal
+- Plans: Daily ($18), Weekly ($110), Monthly ($400)
+"""
+
+# Chat message model
+class ChatMessage(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    action_taken: Optional[dict] = None
+
+@api_router.post("/chat/concierge")
+async def chat_with_concierge(
+    chat_msg: ChatMessage,
+    current_user: dict = Depends(get_current_user)
+):
+    """Chat with the Tiffin Concierge AI"""
+    import os
+    import json
+    import re
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    
+    user_id = current_user["id"]
+    session_id = chat_msg.session_id or f"concierge-{user_id}"
+    
+    # Get user context for the AI
+    subscription = await db.subscriptions.find_one({"user_id": user_id, "status": "active"})
+    wallet = await db.wallets.find_one({"user_id": user_id})
+    preferences = await db.customer_preferences.find_one({"user_id": user_id})
+    weather = await db.system_settings.find_one({"key": "weather_status"})
+    
+    # Build context
+    context = f"""
+**Current Customer Context:**
+- Name: {current_user.get('name', 'Customer')}
+- Subscription: {subscription.get('plan', 'None') if subscription else 'No active subscription'}
+- Wallet Balance: ${wallet.get('balance', 0):.2f} CAD
+- Spice Preference: {preferences.get('spice_level', 'medium') if preferences else 'medium'}
+- Address: {subscription.get('delivery_address', 'Not set') if subscription else 'Not set'}
+- Weather Status: {weather.get('value', 'normal') if weather else 'normal'}
+- Today's Date: {datetime.now().strftime('%A, %B %d, %Y')}
+
+**Customer Message:** {chat_msg.message}
+"""
+    
+    # Get chat history
+    history = await db.chat_history.find(
+        {"session_id": session_id}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    history.reverse()
+    
+    try:
+        # Initialize chat
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id,
+            system_message=CONCIERGE_SYSTEM_PROMPT
+        ).with_model("openai", "gpt-5.2")
+        
+        # Send message
+        user_message = UserMessage(text=context)
+        ai_response = await chat.send_message(user_message)
+        
+        # Save to history
+        await db.chat_history.insert_one({
+            "session_id": session_id,
+            "user_id": user_id,
+            "role": "user",
+            "content": chat_msg.message,
+            "created_at": datetime.utcnow()
+        })
+        await db.chat_history.insert_one({
+            "session_id": session_id,
+            "user_id": user_id,
+            "role": "assistant",
+            "content": ai_response,
+            "created_at": datetime.utcnow()
+        })
+        
+        # Check if AI wants to perform an action
+        action_taken = None
+        action_match = re.search(r'\{"action":\s*"([^"]+)".*?\}', ai_response)
+        
+        if action_match:
+            try:
+                action_json = json.loads(action_match.group(0))
+                action_name = action_json.get("action")
+                params = action_json.get("params", {})
+                
+                # Execute the action
+                if action_name == "SKIP_MEAL" and subscription:
+                    date = params.get("date")
+                    if date:
+                        # Add to skipped meals
+                        await db.subscriptions.update_one(
+                            {"_id": subscription["_id"]},
+                            {"$push": {"skipped_meals": {"date": date, "meal_type": "dinner"}}}
+                        )
+                        # Credit wallet
+                        new_balance = (wallet.get("balance", 0) if wallet else 0) + 12.0
+                        await db.wallets.update_one(
+                            {"user_id": user_id},
+                            {"$set": {"balance": new_balance, "updated_at": datetime.utcnow().isoformat()}},
+                            upsert=True
+                        )
+                        action_taken = {"action": "SKIP_MEAL", "date": date, "credited": 12.0}
+                
+                elif action_name == "UPDATE_SPICE":
+                    level = params.get("level", "medium")
+                    await db.customer_preferences.update_one(
+                        {"user_id": user_id},
+                        {"$set": {"spice_level": level, "updated_at": datetime.utcnow().isoformat()}},
+                        upsert=True
+                    )
+                    action_taken = {"action": "UPDATE_SPICE", "level": level}
+                
+                elif action_name == "CHECK_BALANCE":
+                    balance = wallet.get("balance", 0) if wallet else 0
+                    action_taken = {"action": "CHECK_BALANCE", "balance": balance}
+                
+                elif action_name == "HUMAN_HANDOVER":
+                    # Log for owner notification
+                    await db.human_handover_requests.insert_one({
+                        "user_id": user_id,
+                        "user_name": current_user.get("name"),
+                        "reason": params.get("reason"),
+                        "created_at": datetime.utcnow()
+                    })
+                    action_taken = {"action": "HUMAN_HANDOVER", "reason": params.get("reason")}
+                    
+            except json.JSONDecodeError:
+                pass
+        
+        # Clean up response (remove action JSON from displayed text)
+        clean_response = re.sub(r'\{"action":[^}]+\}', '', ai_response).strip()
+        
+        return {
+            "response": clean_response,
+            "action_taken": action_taken
+        }
+        
+    except Exception as e:
+        logger.error(f"Concierge chat error: {e}")
+        return {
+            "response": "I apologize, but I'm having a moment. Please try again or tap 'Speak to Human' for immediate help.",
+            "action_taken": None
+        }
+
+@api_router.get("/chat/history")
+async def get_chat_history(current_user: dict = Depends(get_current_user)):
+    """Get chat history for current user"""
+    session_id = f"concierge-{current_user['id']}"
+    history = await db.chat_history.find(
+        {"session_id": session_id}
+    ).sort("created_at", -1).limit(50).to_list(50)
+    history.reverse()
+    
+    return {
+        "messages": [
+            {
+                "role": h.get("role"),
+                "content": h.get("content"),
+                "timestamp": h.get("created_at").isoformat() if h.get("created_at") else None
+            }
+            for h in history
+        ]
+    }
+
+@api_router.get("/kitchen/quality-alerts")
+async def get_quality_alerts(current_user: dict = Depends(get_kitchen_user)):
+    """Get AI-summarized quality alerts from customer feedback"""
+    # Get recent bad ratings
+    bad_ratings = await db.meal_ratings.find({
+        "rating": "bad",
+        "created_at": {"$gte": datetime.utcnow() - timedelta(days=7)}
+    }).to_list(50)
+    
+    # Get human handover requests
+    handovers = await db.human_handover_requests.find({
+        "created_at": {"$gte": datetime.utcnow() - timedelta(days=1)}
+    }).to_list(20)
+    
+    alerts = []
+    
+    # Summarize feedback
+    feedback_counts = {}
+    for rating in bad_ratings:
+        feedback = rating.get("feedback", "No details")
+        if feedback in feedback_counts:
+            feedback_counts[feedback] += 1
+        else:
+            feedback_counts[feedback] = 1
+    
+    for feedback, count in feedback_counts.items():
+        if count >= 2:  # Alert if 2+ customers report same issue
+            alerts.append({
+                "type": "quality",
+                "severity": "high" if count >= 3 else "medium",
+                "message": f"{count} customers reported: {feedback}",
+                "count": count
+            })
+    
+    # Add handover alerts
+    for handover in handovers:
+        alerts.append({
+            "type": "handover",
+            "severity": "urgent",
+            "message": f"{handover.get('user_name', 'Customer')} needs help: {handover.get('reason', 'No reason provided')}",
+            "user_id": handover.get("user_id"),
+            "timestamp": handover.get("created_at").isoformat() if handover.get("created_at") else None
+        })
+    
+    return {"alerts": alerts, "total": len(alerts)}
+
+@api_router.get("/menu/knowledge-base")
+async def get_menu_knowledge_base():
+    """Get full menu for AI knowledge base (no prices)"""
+    dishes = await db.dishes.find({}).to_list(100)
+    
+    knowledge = []
+    for dish in dishes:
+        knowledge.append({
+            "name": dish.get("name"),
+            "description": dish.get("description"),
+            "category": dish.get("category"),
+            "type": dish.get("type"),  # veg/non-veg
+            "ingredients": dish.get("ingredients", []),
+            "allergens": dish.get("allergens", [])
+        })
+    
+    return {"dishes": knowledge}
+
+# Include the router (MUST be after all route definitions)
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

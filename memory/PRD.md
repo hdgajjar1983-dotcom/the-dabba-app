@@ -1,67 +1,49 @@
 # The Dabba - Premium Tiffin Delivery Ecosystem PRD
 
 ## Original Problem Statement
-Build "The Dabba" - Nova Scotia's most competitive premium tiffin delivery app with intelligent features for Halifax market. Three-portal iOS app (Customer, Kitchen, Driver) with 7-day meal planning, weather alerts, and predictive kitchen intelligence.
+Build "The Dabba" - Nova Scotia's most competitive premium tiffin delivery app with AI-powered customer support, intelligent planning, and Halifax localization.
+
+## Current Build
+- **Version**: 1.1.0
+- **Build Number**: 16
+- **Status**: COMPLETE ECOSYSTEM
 
 ## What's Been Implemented
 
-### Platinum Tiffin Upgrade (Mar 10, 2025)
-
-**1. 7-Day "Dinner Discovery" (Customer Portal)**
-- [x] Horizontal date slider showing next 7 days
-- [x] Modular visibility: Shows selected items (3x Butter Roti, Mixed Veg, etc.)
-- [x] One-Tap Skip: Issues CAD credit instantly
-- [x] Add-on Marketplace: Customers can add extras (Lassi, Gulab Jamun, etc.) for CAD fee
-- [x] Skip cutoff logic: 24 hours before 4 PM delivery
-
-**2. Proactive Customer Features**
-- [x] Spice Level Preference Profile (Mild/Medium/Spicy)
-- [x] "Rate My Dinner" emoji feedback (😋/👍/👎)
-- [x] Automatic follow-up question on bad ratings
-- [x] Halifax Weather Integration banner
-  - Normal: "Deliveries running on schedule"
-  - Caution: "Light snow: Deliveries may be delayed 15-30 mins"
-  - Warning: "Heavy snow: Deliveries delayed 30-60 mins"
-  - Severe: "Blizzard warning: All deliveries cancelled"
-
-**3. Kitchen Intelligence**
-- [x] Ingredient Forecast API: 7-day procurement list based on menu + subscriptions
-- [x] Customer Preferences API: Spice levels for all customers on prep list
-- [x] Meal Ratings Dashboard: View customer satisfaction metrics
-- [x] Weather Status Control: Kitchen can set weather alerts
-
-**4. Add-On Marketplace Items (CAD)**
-- Cold Mango Lassi: $4.99
-- Sweet Lassi: $3.99
-- Masala Chai: $2.99
-- Extra Gulab Jamun (2pc): $3.99
-- Rasmalai (2pc): $4.99
-- Samosa (2pc): $3.49
-- Extra Roti (3pc): $2.99
-- Papad Pack: $1.99
+### 🤖 Tiffin Concierge AI Chatbot (Mar 10, 2025)
+- **Powered by**: GPT-5.2 via Emergent LLM Key
+- **Personality**: Friendly Halifax-based assistant
+- **Capabilities**:
+  - [x] Check wallet balance
+  - [x] Skip meals with confirmation
+  - [x] Update spice preferences (mild/medium/spicy)
+  - [x] Track deliveries in real-time
+  - [x] Weather-aware responses
+  - [x] Human handover escalation
+  - [x] Menu knowledge base
+- **UI**: Floating chat button (🍱) on Customer Portal
+- **Quick Actions**: Track food, Skip tomorrow, Check wallet, Spice complaints
 
 ### Previous Implementations
-- Modular Meal Builder (Kitchen)
+- 7-Day Dinner Discovery slider
+- Halifax Weather Alerts (normal/caution/warning/severe)
+- Spice Level preferences
+- Add-on Marketplace (8 items: Lassi, Gulab Jamun, Samosa, etc.)
+- "Rate My Dinner" emoji feedback
+- Ingredient Forecast for Kitchen
+- Modular Meal Builder
 - Halifax Test Data (10 addresses)
 - Credit System with auto-deductions
 - Premium animations and haptics
-- 42-item categorized menu database
 
 ## API Endpoints
 
-### Platinum Tiffin APIs
+### AI Chatbot APIs
 ```
-GET  /api/customer/weekly-plan       - 7-day dinner plan with skip status
-GET  /api/customer/preferences       - Get spice level preference
-PUT  /api/customer/preferences       - Update spice preference
-POST /api/customer/rate-meal         - Submit meal rating
-POST /api/customer/add-extra         - Add extra item to a day
-GET  /api/weather-status             - Halifax weather/delivery status
-PUT  /api/kitchen/weather-status     - Set weather alert (Kitchen)
-GET  /api/extras                     - Available add-on items
-GET  /api/kitchen/ingredient-forecast - 7-day procurement list
-GET  /api/kitchen/customer-preferences - All customer spice levels
-GET  /api/kitchen/meal-ratings       - Meal satisfaction metrics
+POST /api/chat/concierge      - Chat with Tiffin Concierge AI
+GET  /api/chat/history        - Get user's chat history
+GET  /api/kitchen/quality-alerts - AI-summarized customer feedback
+GET  /api/menu/knowledge-base - Full menu for AI knowledge base
 ```
 
 ## Test Credentials
@@ -69,27 +51,40 @@ GET  /api/kitchen/meal-ratings       - Meal satisfaction metrics
 - **Kitchen**: `kitchen@dabba.com` / `kitchen123`
 - **Driver**: `driver@dabba.com` / `driver123`
 
-## Current Build
-- **Version**: 1.1.0
-- **Build Number**: 14
+## Architecture
+```
+/app
+├── backend/
+│   ├── .env (includes EMERGENT_LLM_KEY)
+│   └── server.py (~3000 lines - needs refactoring)
+├── frontend/
+│   ├── app/
+│   │   ├── (customer)/ - Customer Portal
+│   │   ├── (kitchen)/ - Kitchen Portal  
+│   │   ├── (driver)/ - Driver Portal
+│   │   └── components/
+│   │       └── TiffinConcierge.tsx - AI Chatbot Widget
+│   └── src/services/api.ts
+```
 
-## Remaining Tasks
+## Why This Is "The Greatest App"
+
+1. **Immediate Resolution**: Customers can skip meals at 2 AM via AI
+2. **Personalized Service**: AI remembers spice levels and past ratings
+3. **Proactive Problem Solving**: Weather awareness manages expectations
+4. **Quality Loop**: Bad ratings auto-trigger Kitchen alerts
+
+## Remaining Work
 
 ### P1 - High Priority
-- [ ] Driver Portal: Slide-to-Deliver with success animation + haptic
-- [ ] Kitchen Home: Dark Mode option
-- [ ] Kitchen: High-quality category icons
+- [ ] iOS Certificate renewal (Apple Developer Portal)
+- [ ] Driver slide-to-deliver animation
+- [ ] Website integration of chat widget
 
 ### P2 - Medium Priority
-- [ ] Geo-fencing: Smart route within HRM boundaries
-- [ ] Production deployment (Railway/Render)
-- [ ] MongoDB integration
-
-## Why These Features Make It "Great"
-1. **Weather Alerts**: Halifax winters are harsh - proactive alerts build trust
-2. **Spice Preferences**: Personalized service without extra work
-3. **Ingredient Forecast**: Prevents over-buying groceries (major cost savings)
-4. **7-Day Planning**: Customers can plan ahead, reduce last-minute skips
+- [ ] Production deployment for 24/7 access
+- [ ] Backend refactoring (break down server.py)
+- [ ] MongoDB persistent storage
 
 ## URLs
 - Preview: https://delivery-test-2.preview.emergentagent.com/
