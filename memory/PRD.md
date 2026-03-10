@@ -1,89 +1,96 @@
 # The Dabba - Premium Tiffin Delivery Ecosystem PRD
 
 ## Original Problem Statement
-Build "The Dabba" - a premium tiffin delivery iOS app for the Halifax market. Three portals (Customer, Kitchen, Driver) with modular menu building, Halifax logistics, and CAD currency.
+Build "The Dabba" - Nova Scotia's most competitive premium tiffin delivery app with intelligent features for Halifax market. Three-portal iOS app (Customer, Kitchen, Driver) with 7-day meal planning, weather alerts, and predictive kitchen intelligence.
 
-## What's Been Implemented (Latest Update)
+## What's Been Implemented
 
-### System Refinement - Halifax Localization (Mar 8, 2025)
+### Platinum Tiffin Upgrade (Mar 10, 2025)
 
-**1. Modular "Meal Builder" (Kitchen Portal)**
-- [x] Category-Based Menu: Roti, Sabji, Dal, Rice, Salad, Extra
-- [x] Multi-Select Logic: Kitchen admin taps to select multiple items for "Today's Dinner"
-- [x] New `/kitchen/menu` page with category tabs and tap-to-select chips
-- [x] Changed all "Lunch" references to "Dinner"
+**1. 7-Day "Dinner Discovery" (Customer Portal)**
+- [x] Horizontal date slider showing next 7 days
+- [x] Modular visibility: Shows selected items (3x Butter Roti, Mixed Veg, etc.)
+- [x] One-Tap Skip: Issues CAD credit instantly
+- [x] Add-on Marketplace: Customers can add extras (Lassi, Gulab Jamun, etc.) for CAD fee
+- [x] Skip cutoff logic: 24 hours before 4 PM delivery
 
-**2. Manage Dabba & Pricing**
-- [x] Removed pricing from dish/recipe management (prices at subscription level)
-- [x] Added `quantity_per_tiffin` and `unit` fields for prep calculations
-- [x] Currency set to CAD ($)
+**2. Proactive Customer Features**
+- [x] Spice Level Preference Profile (Mild/Medium/Spicy)
+- [x] "Rate My Dinner" emoji feedback (😋/👍/👎)
+- [x] Automatic follow-up question on bad ratings
+- [x] Halifax Weather Integration banner
+  - Normal: "Deliveries running on schedule"
+  - Caution: "Light snow: Deliveries may be delayed 15-30 mins"
+  - Warning: "Heavy snow: Deliveries delayed 30-60 mins"
+  - Severe: "Blizzard warning: All deliveries cancelled"
 
-**3. Halifax Test Data**
-- [x] 10 test customers with real Halifax addresses:
-  - 1505 Barrington St, Halifax
-  - 6299 Quinpool Rd, Halifax
-  - 210 Chain Lake Dr, Halifax
-  - 5670 Spring Garden Rd, Halifax
-  - 1595 Bedford Hwy, Bedford
-  - 90 Alderney Dr, Dartmouth
-  - 7001 Mumford Rd, Halifax
-  - 1969 Upper Water St, Halifax
-  - 3280 Kempt Rd, Halifax
-  - 1000 Micmac Blvd, Dartmouth
-- [x] Seeding endpoint: `POST /api/kitchen/seed-halifax-data`
+**3. Kitchen Intelligence**
+- [x] Ingredient Forecast API: 7-day procurement list based on menu + subscriptions
+- [x] Customer Preferences API: Spice levels for all customers on prep list
+- [x] Meal Ratings Dashboard: View customer satisfaction metrics
+- [x] Weather Status Control: Kitchen can set weather alerts
 
-**4. Modular Prep List**
-- [x] New `/api/kitchen/modular-prep-list` endpoint
-- [x] Calculates totals by category (e.g., "Total Rotis: 150", "Total Sabji: 10kg")
-- [x] Based on modular menu items selected for the day
+**4. Add-On Marketplace Items (CAD)**
+- Cold Mango Lassi: $4.99
+- Sweet Lassi: $3.99
+- Masala Chai: $2.99
+- Extra Gulab Jamun (2pc): $3.99
+- Rasmalai (2pc): $4.99
+- Samosa (2pc): $3.49
+- Extra Roti (3pc): $2.99
+- Papad Pack: $1.99
 
-**5. Credit System Logic**
-- [x] Automatic credit deductions on failed deliveries
-- [x] `PUT /driver/fail-delivery/{id}` credits customer wallet $12 CAD
-- [x] Kitchen payout deductions tracked separately
-
-**6. Default Dishes Seeded**
-- Roti: Butter Roti (3 pcs), Plain Chapati (3 pcs), Garlic Naan (2 pcs), Paratha (2 pcs)
-- Sabji: Paneer Tikka Masala (150g), Aloo Gobi (150g), Bhindi Masala (120g), Mixed Veg (150g), Palak Paneer (150g)
-- Dal: Tadka Dal (150ml), Dal Makhani (150ml), Chana Dal (150ml)
-- Rice: Jeera Rice (150g), Plain Rice (150g), Veg Pulao (180g)
-- Salad: Kachumber (50g), Green Salad (50g), Raita (80ml)
-- Extra: Papad (1 pc), Pickle (15g), Gulab Jamun (2 pcs)
+### Previous Implementations
+- Modular Meal Builder (Kitchen)
+- Halifax Test Data (10 addresses)
+- Credit System with auto-deductions
+- Premium animations and haptics
+- 42-item categorized menu database
 
 ## API Endpoints
 
-### New Endpoints
-- `POST /api/kitchen/seed-halifax-data` - Seed Halifax test data
-- `GET /api/kitchen/modular-prep-list` - Get detailed prep breakdown
-- `PUT /api/driver/fail-delivery/{id}` - Mark delivery failed, auto-credit customer
-
-### Updated Endpoints
-- `POST /api/kitchen/menu` - Now accepts `dinner_item_ids: string[]` for multi-select
-- `GET /api/kitchen/menu` - Returns `dishes_by_category` and `categories`
+### Platinum Tiffin APIs
+```
+GET  /api/customer/weekly-plan       - 7-day dinner plan with skip status
+GET  /api/customer/preferences       - Get spice level preference
+PUT  /api/customer/preferences       - Update spice preference
+POST /api/customer/rate-meal         - Submit meal rating
+POST /api/customer/add-extra         - Add extra item to a day
+GET  /api/weather-status             - Halifax weather/delivery status
+PUT  /api/kitchen/weather-status     - Set weather alert (Kitchen)
+GET  /api/extras                     - Available add-on items
+GET  /api/kitchen/ingredient-forecast - 7-day procurement list
+GET  /api/kitchen/customer-preferences - All customer spice levels
+GET  /api/kitchen/meal-ratings       - Meal satisfaction metrics
+```
 
 ## Test Credentials
 - **Customer**: `test2@dabba.com` / `test123`
 - **Kitchen**: `kitchen@dabba.com` / `kitchen123`
 - **Driver**: `driver@dabba.com` / `driver123`
-- **Halifax Test Customers**: `priya@test.com`, `raj@test.com`, etc. / `test123`
 
 ## Current Build
 - **Version**: 1.1.0
-- **Build Number**: 13
+- **Build Number**: 14
 
 ## Remaining Tasks
 
 ### P1 - High Priority
-- [ ] Driver Portal: Slide-to-Deliver fix with smooth haptic
-- [ ] Driver Portal: Smart routing with Halifax addresses
-- [ ] Kitchen Home: Visual overhaul with "Live Pulse" animation
-- [ ] Dishes page: Update to use categories, remove price fields
+- [ ] Driver Portal: Slide-to-Deliver with success animation + haptic
+- [ ] Kitchen Home: Dark Mode option
+- [ ] Kitchen: High-quality category icons
 
 ### P2 - Medium Priority
-- [ ] Backend refactoring to MongoDB
-- [ ] Payment integration (Stripe)
-- [ ] Production deployment for 24/7 access
+- [ ] Geo-fencing: Smart route within HRM boundaries
+- [ ] Production deployment (Railway/Render)
+- [ ] MongoDB integration
 
-## Known Issues
-1. App only works when Emergent session is active (needs production deployment)
-2. Backend uses in-memory mock DB (data resets on restart)
+## Why These Features Make It "Great"
+1. **Weather Alerts**: Halifax winters are harsh - proactive alerts build trust
+2. **Spice Preferences**: Personalized service without extra work
+3. **Ingredient Forecast**: Prevents over-buying groceries (major cost savings)
+4. **7-Day Planning**: Customers can plan ahead, reduce last-minute skips
+
+## URLs
+- Preview: https://delivery-test-2.preview.emergentagent.com/
+- Target domain: thadabba.ca

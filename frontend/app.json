@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.thedabba.app",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "newArchEnabled": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -34,7 +34,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.thedabba.app",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",

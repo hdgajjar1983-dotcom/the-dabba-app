@@ -178,6 +178,32 @@ export const customerAPI = {
   trackDriver: () => api.get('/customer/track-driver'),
   reportIssue: (data: { issue_type: string; description?: string; date?: string }) =>
     api.post('/customer/report-issue', data),
+  
+  // Platinum Tiffin Features
+  getPreferences: () => api.get('/customer/preferences'),
+  updatePreferences: (data: { level: string }) => api.put('/customer/preferences', data),
+  rateMeal: (data: { date: string; rating: string; feedback?: string }) =>
+    api.post('/customer/rate-meal', data),
+  getWeeklyPlan: () => api.get('/customer/weekly-plan'),
+  addExtra: (data: { date: string; item_id: string; quantity?: number }) =>
+    api.post('/customer/add-extra', data),
+};
+
+// Weather & Extras APIs
+export const weatherAPI = {
+  getStatus: () => api.get('/weather-status'),
+};
+
+export const extrasAPI = {
+  getExtras: () => api.get('/extras'),
+};
+
+// Kitchen Intelligence APIs
+export const kitchenIntelAPI = {
+  getIngredientForecast: () => api.get('/kitchen/ingredient-forecast'),
+  getCustomerPreferences: () => api.get('/kitchen/customer-preferences'),
+  getMealRatings: () => api.get('/kitchen/meal-ratings'),
+  setWeatherStatus: (status: string) => api.put('/kitchen/weather-status', null, { params: { status } }),
 };
 
 export default api;

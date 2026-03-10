@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,9 +27,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
-import { menuAPI, subscriptionAPI, customerAPI } from '../../src/services/api';
+import { subscriptionAPI, customerAPI, weatherAPI, extrasAPI } from '../../src/services/api';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
 import { AnimatedCard, PulsingDot, Skeleton, SkeletonCard } from '../../src/components/AnimatedComponents';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
   ...BRAND_COLORS,
@@ -39,108 +42,221 @@ const COLORS = {
   border: '#E8DED1',
   success: '#2E7D32',
   successLight: '#E8F5E9',
+  warning: '#E65100',
+  warningLight: '#FFF3E0',
+  danger: '#C41E3A',
+  dangerLight: '#FFEBEE',
+  info: '#1565C0',
+  infoLight: '#E3F2FD',
 };
 
-interface MenuItem {
-  name: string;
-  description: string;
-  type: string;
+const WEATHER_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  normal: { bg: COLORS.successLight, text: COLORS.success, icon: 'checkmark-circle' },
+  caution: { bg: COLORS.warningLight, text: COLORS.warning, icon: 'alert-circle' },
+  warning: { bg: '#FFE0B2', text: '#E65100', icon: 'snow' },
+  severe: { bg: COLORS.dangerLight, text: COLORS.danger, icon: 'warning' },
+};
+
+const SPICE_OPTIONS = [
+  { value: 'mild', label: 'Mild 🌶️', color: '#4CAF50' },
+  { value: 'medium', label: 'Medium 🌶️🌶️', color: '#FF9800' },
+  { value: 'spicy', label: 'Spicy 🌶️🌶️🌶️', color: '#F44336' },
+];
+
+interface DayPlan {
+  date: string;
+  day_name: string;
+  is_today: boolean;
+  is_skipped: boolean;
+  can_skip: boolean;
+  dinner_items: { id: string; name: string; category: string; quantity: number; unit: string }[];
+  item_summary: string;
+  add_ons: { name: string; price: number }[];
 }
 
-interface DayMenu {
-  date: string;
-  day: string;
-  lunch: MenuItem;
-  dinner: MenuItem;
+interface WeatherStatus {
+  condition: string;
+  status: string;
+  message: string;
+  delay_minutes: number;
 }
 
 interface Subscription {
   id: string;
   plan: string;
   status: string;
-  start_date: string;
-  end_date: string;
   delivery_address: string;
   skipped_meals: { date: string; meal_type: string }[];
 }
 
-// Animated touchable component
-const AnimatedTouchable = ({ children, onPress, style, index = 0 }: any) => {
+// Day Card Component
+const DayCard = ({ day, onSkip, onAddExtra, index }: { 
+  day: DayPlan; 
+  onSkip: () => void; 
+  onAddExtra: () => void;
+  index: number;
+}) => {
   const scale = useSharedValue(1);
   
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePressIn = () => {
-    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+  const handlePress = () => {
+    scale.value = withSpring(0.95, { damping: 15 });
+    setTimeout(() => scale.value = withSpring(1), 100);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
+  const formattedDate = new Date(day.date);
+  const dateNum = formattedDate.getDate();
+  const monthShort = formattedDate.toLocaleDateString('en-US', { month: 'short' });
 
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={onPress}
+    <Animated.View
+      entering={SlideInRight.delay(index * 80).springify()}
+      style={[styles.dayCard, day.is_today && styles.dayCardToday, day.is_skipped && styles.dayCardSkipped, animatedStyle]}
     >
-      <Animated.View
-        entering={FadeInDown.delay(index * 100).springify()}
-        style={[style, animatedStyle]}
-      >
-        {children}
-      </Animated.View>
-    </TouchableOpacity>
+      {/* Date Header */}
+      <View style={[styles.dayHeader, day.is_today && styles.dayHeaderToday]}>
+        <View>
+          <Text style={[styles.dayName, day.is_today && styles.dayNameToday]}>
+            {day.is_today ? 'TODAY' : day.day_name.substring(0, 3).toUpperCase()}
+          </Text>
+          <Text style={[styles.dayDate, day.is_today && styles.dayDateToday]}>
+            {monthShort} {dateNum}
+          </Text>
+        </View>
+        {day.is_skipped ? (
+          <View style={styles.skippedBadge}>
+            <Ionicons name="close-circle" size={14} color={COLORS.danger} />
+            <Text style={styles.skippedText}>Skipped</Text>
+          </View>
+        ) : day.can_skip ? (
+          <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
+            <Text style={styles.skipBtnText}>Skip</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.lockedBadge}>
+            <Ionicons name="lock-closed" size={12} color={COLORS.textLight} />
+          </View>
+        )}
+      </View>
+
+      {/* Menu Items */}
+      <View style={styles.dayContent}>
+        {day.dinner_items.length > 0 ? (
+          <View style={styles.menuItemsWrap}>
+            {day.dinner_items.slice(0, 4).map((item, i) => (
+              <View key={i} style={styles.menuItemPill}>
+                <Text style={styles.menuItemQty}>{item.quantity}×</Text>
+                <Text style={styles.menuItemName} numberOfLines={1}>{item.name}</Text>
+              </View>
+            ))}
+            {day.dinner_items.length > 4 && (
+              <Text style={styles.moreItems}>+{day.dinner_items.length - 4} more</Text>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.noMenuText}>Menu not set yet</Text>
+        )}
+      </View>
+
+      {/* Add Extra Button */}
+      {!day.is_skipped && (
+        <TouchableOpacity style={styles.addExtraBtn} onPress={onAddExtra}>
+          <Ionicons name="add-circle-outline" size={16} color={COLORS.maroon} />
+          <Text style={styles.addExtraText}>Add Extra</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Add-ons */}
+      {day.add_ons.length > 0 && (
+        <View style={styles.addOnsContainer}>
+          {day.add_ons.map((addon, i) => (
+            <View key={i} style={styles.addOnPill}>
+              <Text style={styles.addOnText}>+{addon.name}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </Animated.View>
+  );
+};
+
+// Rating Modal Component
+const RatingModal = ({ visible, onClose, onRate, date }: any) => {
+  if (!visible) return null;
+  
+  const ratings = [
+    { value: 'yummy', emoji: '😋', label: 'Yummy!' },
+    { value: 'good', emoji: '👍', label: 'Good' },
+    { value: 'bad', emoji: '👎', label: 'Not Great' },
+  ];
+
+  return (
+    <Animated.View entering={FadeIn} style={styles.ratingOverlay}>
+      <View style={styles.ratingModal}>
+        <Text style={styles.ratingTitle}>How was yesterday&apos;s dinner?</Text>
+        <View style={styles.ratingOptions}>
+          {ratings.map((r) => (
+            <TouchableOpacity
+              key={r.value}
+              style={styles.ratingBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onRate(r.value);
+              }}
+            >
+              <Text style={styles.ratingEmoji}>{r.emoji}</Text>
+              <Text style={styles.ratingLabel}>{r.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={styles.ratingSkip} onPress={onClose}>
+          <Text style={styles.ratingSkipText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
   );
 };
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
-  const [todayMenu, setTodayMenu] = useState<DayMenu | null>(null);
-  const [tomorrowMenu, setTomorrowMenu] = useState<DayMenu | null>(null);
+  const [weeklyPlan, setWeeklyPlan] = useState<DayPlan[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [deliveryStatus, setDeliveryStatus] = useState<any>(null);
+  const [weatherStatus, setWeatherStatus] = useState<WeatherStatus | null>(null);
+  const [spiceLevel, setSpiceLevel] = useState('medium');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [extras, setExtras] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'today' | 'tomorrow'>('today');
-
-  // Animation for tab indicator
-  const tabIndicatorX = useSharedValue(0);
-  
-  const tabIndicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tabIndicatorX.value }],
-  }));
+  const [showRating, setShowRating] = useState(false);
+  const [showSpiceSelector, setShowSpiceSelector] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [menuRes, subRes, deliveryRes] = await Promise.all([
-        menuAPI.getWeeklyMenu(),
+      const [weeklyRes, subRes, deliveryRes, weatherRes, prefsRes, extrasRes] = await Promise.all([
+        customerAPI.getWeeklyPlan().catch(() => ({ data: { days: [] } })),
         subscriptionAPI.getSubscription().catch(() => null),
         customerAPI.getDeliveryStatus().catch(() => null),
+        weatherAPI.getStatus().catch(() => null),
+        customerAPI.getPreferences().catch(() => ({ data: { spice_level: 'medium' } })),
+        extrasAPI.getExtras().catch(() => ({ data: { extras: [] } })),
       ]);
 
-      const weeklyMenu = menuRes.data.menu || [];
-
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setWeeklyPlan(weeklyRes.data.days || []);
+      setWalletBalance(weeklyRes.data.wallet_balance || 0);
       
-      const todayItem = weeklyMenu.find((item: DayMenu) => item.date === today);
-      const tomorrowItem = weeklyMenu.find((item: DayMenu) => item.date === tomorrow);
+      if (subRes?.data) setSubscription(subRes.data);
+      if (deliveryRes?.data) setDeliveryStatus(deliveryRes.data);
+      if (weatherRes?.data) setWeatherStatus(weatherRes.data);
+      if (prefsRes?.data) setSpiceLevel(prefsRes.data.spice_level || 'medium');
+      if (extrasRes?.data) setExtras(extrasRes.data.extras || []);
       
-      setTodayMenu(todayItem || weeklyMenu[0] || null);
-      setTomorrowMenu(tomorrowItem || weeklyMenu[1] || null);
-
-      if (subRes?.data) {
-        setSubscription(subRes.data);
-      }
-      
-      if (deliveryRes?.data) {
-        setDeliveryStatus(deliveryRes.data);
-      }
+      // Check if we should show rating (yesterday's dinner)
+      // Show only once per session
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -159,41 +275,23 @@ export default function CustomerDashboard() {
     fetchData();
   }, [fetchData]);
 
-  const handleTabChange = (tab: 'today' | 'tomorrow') => {
-    setActiveTab(tab);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    tabIndicatorX.value = withSpring(tab === 'today' ? 0 : 1, { damping: 20, stiffness: 300 });
-  };
-
-  const handleSkipMeal = async (mealType: 'lunch' | 'dinner', menuItem: DayMenu | null, isTomorrow: boolean = false) => {
-    if (!menuItem) return;
-
-    const deliveryDate = new Date(menuItem.date);
-    deliveryDate.setHours(16, 0, 0, 0);
-    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000);
-    
-    if (new Date() > cutoffTime) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Skip Locked', 'Meals can only be skipped at least 24 hours before the 4 PM delivery time.');
-      return;
-    }
-
+  const handleSkipMeal = async (day: DayPlan) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Skip Meal',
-      `Skip ${isTomorrow ? "tomorrow's" : "today's"} meal and receive $12 CAD credit?`,
+      'Skip Dinner',
+      `Skip ${day.day_name}'s dinner and receive $12 CAD credit?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Skip',
+          text: 'Skip & Credit',
           onPress: async () => {
             try {
               await subscriptionAPI.skipMeal({
-                date: menuItem.date,
-                meal_type: mealType,
+                date: day.date,
+                meal_type: 'dinner',
               });
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Success', '$12 CAD has been credited to your wallet!');
+              Alert.alert('Success', '$12 CAD credited to your wallet!');
               fetchData();
             } catch (error: any) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -205,19 +303,79 @@ export default function CustomerDashboard() {
     );
   };
 
-  const isSkipped = (mealType: string, menuItem: DayMenu | null) => {
-    if (!subscription || !menuItem) return false;
-    return subscription.skipped_meals?.some(
-      (s) => s.date === menuItem.date && s.meal_type === mealType
+  const handleAddExtra = (day: DayPlan) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Show extras picker
+    Alert.alert(
+      'Add Extra',
+      'Select an add-on for ' + day.day_name,
+      [
+        ...extras.slice(0, 4).map(e => ({
+          text: `${e.name} - $${e.price.toFixed(2)}`,
+          onPress: async () => {
+            try {
+              await customerAPI.addExtra({
+                date: day.date,
+                item_id: e.id,
+                quantity: 1
+              });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Added!', `${e.name} added for ${day.day_name}`);
+              fetchData();
+            } catch (err) {
+              Alert.alert('Error', 'Failed to add extra');
+            }
+          }
+        })),
+        { text: 'Cancel', style: 'cancel' }
+      ]
     );
   };
 
-  const canSkip = (menuItem: DayMenu | null) => {
-    if (!menuItem) return false;
-    const deliveryDate = new Date(menuItem.date);
-    deliveryDate.setHours(16, 0, 0, 0);
-    const cutoffTime = new Date(deliveryDate.getTime() - 24 * 60 * 60 * 1000);
-    return new Date() < cutoffTime;
+  const handleRateMeal = async (rating: string) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    try {
+      const res = await customerAPI.rateMeal({
+        date: yesterday.toISOString().split('T')[0],
+        rating,
+      });
+      
+      setShowRating(false);
+      
+      if (res.data.needs_feedback && rating === 'bad') {
+        Alert.prompt(
+          'Help us improve',
+          'What could we do better?',
+          async (feedback) => {
+            if (feedback) {
+              await customerAPI.rateMeal({
+                date: yesterday.toISOString().split('T')[0],
+                rating,
+                feedback,
+              });
+            }
+          }
+        );
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (err) {
+      setShowRating(false);
+    }
+  };
+
+  const handleSpiceChange = async (level: string) => {
+    setSpiceLevel(level);
+    setShowSpiceSelector(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    try {
+      await customerAPI.updatePreferences({ level });
+    } catch (err) {
+      console.error('Failed to update preferences');
+    }
   };
 
   const getDeliveryIcon = () => {
@@ -226,16 +384,6 @@ export default function CustomerDashboard() {
       case 'delivered': return 'checkmark-circle';
       case 'preparing': return 'restaurant';
       default: return 'time';
-    }
-  };
-
-  const getDeliveryTitle = () => {
-    switch (deliveryStatus?.status) {
-      case 'out_for_delivery': return 'Your Dabba is on the way!';
-      case 'delivered': return 'Delivered!';
-      case 'preparing': return 'Being Prepared';
-      case 'skipped': return 'Meal Skipped';
-      default: return 'Scheduled for Today';
     }
   };
 
@@ -257,6 +405,12 @@ export default function CustomerDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <RatingModal 
+        visible={showRating} 
+        onClose={() => setShowRating(false)}
+        onRate={handleRateMeal}
+      />
+      
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -270,71 +424,93 @@ export default function CustomerDashboard() {
             <DabbaLogo size={50} />
             <View style={styles.headerText}>
               <Text style={styles.greeting}>Namaste, {user?.name?.split(' ')[0] || 'there'}!</Text>
-              <Text style={styles.subGreeting}>Aaj ka swadisht bhojan</Text>
+              <Text style={styles.subGreeting}>Halifax&apos;s finest home-cooked meals</Text>
             </View>
           </View>
-          <AnimatedTouchable style={styles.notificationBtn}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.maroon} />
-            <View style={styles.notificationBadge} />
-          </AnimatedTouchable>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={styles.walletBadge}
+              onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+            >
+              <Ionicons name="wallet" size={16} color={COLORS.success} />
+              <Text style={styles.walletText}>${walletBalance.toFixed(2)}</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
-        {/* Decorative Divider */}
-        <Animated.View entering={FadeIn.delay(200)} style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <View style={styles.dividerDot} />
-          <View style={styles.dividerLine} />
-        </Animated.View>
-
-        {/* Subscription Status */}
-        {subscription ? (
-          <AnimatedCard index={1} style={styles.subscriptionCard}>
-            <View style={styles.subscriptionHeader}>
-              <View style={styles.planBadge}>
-                <Ionicons name="star" size={16} color={COLORS.gold} />
-                <Text style={styles.planText}>{subscription.plan} Plan</Text>
-              </View>
-              <View style={[styles.statusBadge, subscription.status === 'active' && styles.statusActive]}>
-                <PulsingDot color={COLORS.success} size={8} isActive={subscription.status === 'active'} />
-                <Text style={styles.statusText}>{subscription.status}</Text>
-              </View>
-            </View>
-            <View style={styles.subscriptionDetails}>
-              <Ionicons name="location" size={18} color={COLORS.maroon} />
-              <Text style={styles.addressText} numberOfLines={1}>{subscription.delivery_address}</Text>
-            </View>
-          </AnimatedCard>
-        ) : (
-          <AnimatedTouchable index={1} style={styles.noSubscriptionCard}>
-            <View style={styles.noSubIcon}>
-              <Ionicons name="add" size={28} color={COLORS.maroon} />
-            </View>
-            <View style={styles.noSubContent}>
-              <Text style={styles.noSubTitle}>Start Your Journey</Text>
-              <Text style={styles.noSubText}>Subscribe to receive traditional meals</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={COLORS.gold} />
-          </AnimatedTouchable>
+        {/* Weather Alert Banner */}
+        {weatherStatus && weatherStatus.status !== 'normal' && (
+          <Animated.View 
+            entering={FadeInDown.delay(150).springify()}
+            style={[
+              styles.weatherBanner,
+              { backgroundColor: WEATHER_COLORS[weatherStatus.status]?.bg || COLORS.warningLight }
+            ]}
+          >
+            <Ionicons 
+              name={WEATHER_COLORS[weatherStatus.status]?.icon as any || 'alert'} 
+              size={20} 
+              color={WEATHER_COLORS[weatherStatus.status]?.text || COLORS.warning} 
+            />
+            <Text style={[styles.weatherText, { color: WEATHER_COLORS[weatherStatus.status]?.text }]}>
+              {weatherStatus.message}
+            </Text>
+          </Animated.View>
         )}
 
-        {/* Delivery Tracking Card */}
-        {subscription && (
+        {/* Spice Preference */}
+        <AnimatedCard index={1} style={styles.spiceCard}>
+          <View style={styles.spiceHeader}>
+            <Text style={styles.spiceTitle}>Your Spice Level</Text>
+            <TouchableOpacity 
+              style={styles.spiceSelector}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowSpiceSelector(!showSpiceSelector);
+              }}
+            >
+              <Text style={styles.spiceValue}>
+                {SPICE_OPTIONS.find(o => o.value === spiceLevel)?.label || 'Medium 🌶️🌶️'}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={COLORS.maroon} />
+            </TouchableOpacity>
+          </View>
+          {showSpiceSelector && (
+            <Animated.View entering={FadeIn} style={styles.spiceOptions}>
+              {SPICE_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.spiceOption, spiceLevel === opt.value && styles.spiceOptionActive]}
+                  onPress={() => handleSpiceChange(opt.value)}
+                >
+                  <Text style={styles.spiceOptionText}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+          )}
+        </AnimatedCard>
+
+        {/* Delivery Status Card */}
+        {subscription && deliveryStatus && (
           <AnimatedCard index={2} style={styles.deliveryCard}>
             <View style={styles.deliveryHeader}>
               <View style={styles.deliveryIconPulse}>
                 <Ionicons name={getDeliveryIcon()} size={24} color={COLORS.card} />
               </View>
               <View style={styles.deliveryHeaderText}>
-                <Text style={styles.deliveryTitle}>{getDeliveryTitle()}</Text>
+                <Text style={styles.deliveryTitle}>
+                  {deliveryStatus.status === 'out_for_delivery' ? 'Your Dabba is on the way!' : 
+                   deliveryStatus.status === 'delivered' ? 'Delivered!' :
+                   deliveryStatus.status === 'preparing' ? 'Being Prepared' : 
+                   deliveryStatus.status === 'skipped' ? 'Meal Skipped' : 'Scheduled for Today'}
+                </Text>
                 <Text style={styles.deliverySubtitle}>
-                  {deliveryStatus?.status === 'skipped' ? 'Credit added to wallet' :
-                   deliveryStatus?.estimated_time || 'Delivery at 4:00 PM'}
+                  {deliveryStatus.estimated_time || 'Delivery at 4:00 PM'}
                 </Text>
               </View>
             </View>
             
-            {/* Progress Steps */}
-            {deliveryStatus?.status !== 'skipped' && (
+            {deliveryStatus.status !== 'skipped' && (
               <View style={styles.progressContainer}>
                 {['Ordered', 'Preparing', 'On Way', 'Delivered'].map((step, index) => {
                   const isComplete = 
@@ -343,187 +519,77 @@ export default function CustomerDashboard() {
                     (index === 2 && (deliveryStatus?.status === 'out_for_delivery' || deliveryStatus?.status === 'delivered')) ||
                     (index === 3 && deliveryStatus?.status === 'delivered');
                   
-                  const isActive = 
-                    (index === 2 && deliveryStatus?.status === 'out_for_delivery');
-
                   return (
                     <React.Fragment key={step}>
-                      <Animated.View 
-                        entering={FadeInDown.delay(400 + index * 100).springify()}
-                        style={styles.progressStep}
-                      >
-                        <View style={[
-                          styles.progressDot,
-                          isComplete && styles.progressDotComplete,
-                          isActive && styles.progressDotActive,
-                        ]}>
+                      <View style={styles.progressStep}>
+                        <View style={[styles.progressDot, isComplete && styles.progressDotComplete]}>
                           {isComplete && <Ionicons name="checkmark" size={10} color="#FFF" />}
-                          {isActive && <PulsingDot color="#FFF" size={8} />}
                         </View>
-                        <Text style={[styles.progressLabel, isComplete && styles.progressLabelActive]}>
-                          {step}
-                        </Text>
-                      </Animated.View>
-                      {index < 3 && (
-                        <View style={[styles.progressLine, isComplete && styles.progressLineComplete]} />
-                      )}
+                        <Text style={[styles.progressLabel, isComplete && styles.progressLabelActive]}>{step}</Text>
+                      </View>
+                      {index < 3 && <View style={[styles.progressLine, isComplete && styles.progressLineComplete]} />}
                     </React.Fragment>
                   );
                 })}
               </View>
             )}
-            
-            {/* Driver Info */}
-            {deliveryStatus?.driver && (
-              <Animated.View entering={SlideInRight.delay(600)} style={styles.driverInfo}>
-                <View style={styles.driverAvatar}>
-                  <Text style={styles.driverAvatarText}>{deliveryStatus.driver.name?.charAt(0) || 'D'}</Text>
-                </View>
-                <View style={styles.driverDetails}>
-                  <Text style={styles.driverName}>{deliveryStatus.driver.name || 'Driver'}</Text>
-                  <Text style={styles.driverPhone}>{deliveryStatus.driver.phone || ''}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.callDriverBtn}
-                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-                >
-                  <Ionicons name="call" size={20} color={COLORS.card} />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
           </AnimatedCard>
         )}
 
-        {/* Meal Menu Section with Today/Tomorrow Tabs */}
+        {/* 7-Day Dinner Discovery */}
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.section}>
-          {/* Tab Selector */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'today' && styles.tabActive]}
-              onPress={() => handleTabChange('today')}
-            >
-              <Text style={[styles.tabText, activeTab === 'today' && styles.tabTextActive]}>Today</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'tomorrow' && styles.tabActive]}
-              onPress={() => handleTabChange('tomorrow')}
-            >
-              <Text style={[styles.tabText, activeTab === 'tomorrow' && styles.tabTextActive]}>Tomorrow</Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>
-                {activeTab === 'today' ? "Today's Meal" : "Tomorrow's Meal"}
-              </Text>
-              <Text style={styles.sectionSubtitle}>
-                {activeTab === 'today' 
-                  ? (todayMenu ? todayMenu.day : '') 
-                  : (tomorrowMenu ? tomorrowMenu.day : '')}
-              </Text>
-            </View>
-            <Animated.View entering={FadeIn} style={styles.dateBadge}>
-              <Text style={styles.dateText}>
-                {activeTab === 'today'
-                  ? (todayMenu ? new Date(todayMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')
-                  : (tomorrowMenu ? new Date(tomorrowMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '')}
-              </Text>
-            </Animated.View>
+            <Text style={styles.sectionTitle}>7-Day Dinner Plan</Text>
+            <TouchableOpacity onPress={() => setShowRating(true)}>
+              <Text style={styles.rateLink}>Rate Yesterday&apos;s Meal</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Meal Card */}
-          {(activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
-            <AnimatedCard 
-              index={4} 
-              style={[
-                styles.mealCard, 
-                isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && styles.mealCardSkipped
-              ]}
-            >
-              {/* Meal Header */}
-              <View style={styles.mealHeader}>
-                <View style={styles.mealIconContainer}>
-                  <Ionicons name={activeTab === 'today' ? "sunny" : "moon"} size={24} color={COLORS.card} />
-                </View>
-                <View style={styles.mealHeaderText}>
-                  <Text style={styles.mealType}>
-                    {activeTab === 'today' ? "Today's Meal" : "Tomorrow's Meal"}
-                  </Text>
-                  <Text style={styles.mealTypeSub}>Delivery at 4:00 PM</Text>
-                </View>
-                {isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
-                  <View style={styles.skippedBadge}>
-                    <Text style={styles.skippedText}>Skipped</Text>
-                  </View>
-                ) : (
-                  subscription && canSkip(activeTab === 'today' ? todayMenu : tomorrowMenu) ? (
-                    <TouchableOpacity 
-                      style={styles.skipButton} 
-                      onPress={() => handleSkipMeal('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu, activeTab === 'tomorrow')}
-                    >
-                      <Text style={styles.skipButtonText}>Skip</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={styles.lockedBadge}>
-                      <Ionicons name="lock-closed" size={14} color={COLORS.textLight} />
-                      <Text style={styles.lockedText}>Locked</Text>
-                    </View>
-                  )
-                )}
-              </View>
-
-              {/* Meal Content */}
-              <View style={styles.mealContent}>
-                <Text style={styles.mealName}>
-                  {(activeTab === 'today' ? todayMenu?.dinner?.name : tomorrowMenu?.dinner?.name) || 'Meal TBD'}
-                </Text>
-                <Text style={styles.mealDescription}>
-                  {(activeTab === 'today' ? todayMenu?.dinner?.description : tomorrowMenu?.dinner?.description) || 'Menu will be announced soon'}
-                </Text>
-                
-                <View style={styles.mealFooter}>
-                  <View style={styles.mealTypeBadge}>
-                    <Ionicons name="leaf" size={14} color={COLORS.success} />
-                    <Text style={styles.mealTypeBadgeText}>
-                      {(activeTab === 'today' ? todayMenu?.dinner?.type : tomorrowMenu?.dinner?.type) || 'Vegetarian'}
-                    </Text>
-                  </View>
-                  <View style={styles.deliveryInfo}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.textLight} />
-                    <Text style={styles.deliveryText}>4:00 PM Delivery</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Skip Info */}
-              {!isSkipped('dinner', activeTab === 'today' ? todayMenu : tomorrowMenu) && !canSkip(activeTab === 'today' ? todayMenu : tomorrowMenu) && (
-                <View style={styles.skipInfoBar}>
-                  <Ionicons name="information-circle" size={16} color={COLORS.textLight} />
-                  <Text style={styles.skipInfoText}>Skip cutoff: 24 hrs before 4 PM delivery</Text>
-                </View>
-              )}
-
-              {/* Decorative Bottom */}
-              <View style={styles.mealDecor}>
-                <View style={styles.decorLine} />
-                <Ionicons name="restaurant" size={16} color={COLORS.gold} />
-                <View style={styles.decorLine} />
-              </View>
-            </AnimatedCard>
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="restaurant-outline" size={48} color={COLORS.textLight} />
-              <Text style={styles.emptyStateText}>
-                No menu available for {activeTab === 'today' ? 'today' : 'tomorrow'}
-              </Text>
-            </View>
-          )}
+          
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.weeklySlider}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH * 0.72 + 12}
+          >
+            {weeklyPlan.map((day, index) => (
+              <DayCard
+                key={day.date}
+                day={day}
+                index={index}
+                onSkip={() => handleSkipMeal(day)}
+                onAddExtra={() => handleAddExtra(day)}
+              />
+            ))}
+          </ScrollView>
         </Animated.View>
+
+        {/* Quick Stats */}
+        {subscription && (
+          <AnimatedCard index={6} style={styles.statsCard}>
+            <View style={styles.statRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{subscription.plan}</Text>
+                <Text style={styles.statLabel}>Plan</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>${walletBalance.toFixed(0)}</Text>
+                <Text style={styles.statLabel}>Credits</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{weeklyPlan.filter(d => d.is_skipped).length}</Text>
+                <Text style={styles.statLabel}>Skipped</Text>
+              </View>
+            </View>
+          </AnimatedCard>
+        )}
 
         {/* Footer */}
         <Animated.View entering={FadeIn.delay(500)} style={styles.footer}>
           <Text style={styles.footerText}>~ Ghar Ka Swad, Roz ~</Text>
+          <Text style={styles.footerSubtext}>Halifax, Nova Scotia</Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -563,9 +629,11 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   headerText: {
     marginLeft: 12,
+    flex: 1,
   },
   greeting: {
     fontSize: 20,
@@ -574,158 +642,98 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subGreeting: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.gold,
     marginTop: 2,
-    fontStyle: 'italic',
   },
-  notificationBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+  headerRight: {
+    alignItems: 'flex-end',
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.maroon,
-  },
-  divider: {
+  walletBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 8,
+    backgroundColor: COLORS.successLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
   },
-  dividerLine: {
-    height: 1,
-    width: 60,
-    backgroundColor: COLORS.gold,
-    opacity: 0.5,
+  walletText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.success,
   },
-  dividerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.gold,
-    marginHorizontal: 10,
+  // Weather Banner
+  weatherBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 10,
   },
-  subscriptionCard: {
+  weatherText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Spice Preference
+  spiceCard: {
     backgroundColor: COLORS.card,
     borderRadius: 16,
-    padding: 18,
-    marginVertical: 16,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: COLORS.maroon,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  subscriptionHeader: {
+  spiceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
   },
-  planBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.maroon,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  planText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-    textTransform: 'capitalize',
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: COLORS.successLight,
-  },
-  statusActive: {
-    backgroundColor: COLORS.successLight,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.success,
-    textTransform: 'capitalize',
-  },
-  subscriptionDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  addressText: {
+  spiceTitle: {
     fontSize: 14,
     color: COLORS.textLight,
-    flex: 1,
   },
-  noSubscriptionCard: {
+  spiceSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 18,
-    marginVertical: 16,
-    borderWidth: 2,
-    borderColor: COLORS.gold,
-    borderStyle: 'dashed',
+    gap: 4,
   },
-  noSubIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.cream,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.maroon,
-  },
-  noSubContent: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  noSubTitle: {
+  spiceValue: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.maroon,
+    fontWeight: '600',
+    color: COLORS.text,
   },
-  noSubText: {
-    fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 2,
+  spiceOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-  // Delivery Tracking Card Styles
+  spiceOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: COLORS.cream,
+  },
+  spiceOptionActive: {
+    backgroundColor: COLORS.maroon,
+  },
+  spiceOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  // Delivery Card
   deliveryCard: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: COLORS.maroon,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 5,
     overflow: 'hidden',
   },
   deliveryHeader: {
@@ -779,9 +787,6 @@ const styles = StyleSheet.create({
   progressDotComplete: {
     backgroundColor: COLORS.success,
   },
-  progressDotActive: {
-    backgroundColor: COLORS.maroon,
-  },
   progressLine: {
     height: 3,
     width: 36,
@@ -802,74 +807,9 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontWeight: '600',
   },
-  driverInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  driverAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.maroon,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverAvatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-  },
-  driverDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  driverName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  driverPhone: {
-    fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 2,
-  },
-  callDriverBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: COLORS.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  // Section
   section: {
     marginTop: 8,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.cream,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: COLORS.maroon,
-  },
-  tabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textLight,
-  },
-  tabTextActive: {
-    color: COLORS.goldLight,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -878,190 +818,250 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.text,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: COLORS.textLight,
-    marginTop: 2,
-  },
-  dateBadge: {
-    backgroundColor: COLORS.maroon,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  dateText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-  },
-  mealCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.maroon,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  mealCardSkipped: {
-    opacity: 0.6,
-  },
-  mealHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.maroon,
-    padding: 16,
-  },
-  mealIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mealHeaderText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  mealType: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-  },
-  mealTypeSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  skipButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  skipButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-  },
-  skippedBadge: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  skippedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-  lockedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  lockedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  skipInfoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: COLORS.cream,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  skipInfoText: {
-    fontSize: 12,
-    color: COLORS.textLight,
-  },
-  mealContent: {
-    padding: 18,
-  },
-  mealName: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 8,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  mealDescription: {
-    fontSize: 14,
-    color: COLORS.textLight,
-    lineHeight: 22,
-    marginBottom: 16,
+  rateLink: {
+    fontSize: 13,
+    color: COLORS.maroon,
+    fontWeight: '600',
   },
-  mealFooter: {
+  // Weekly Slider
+  weeklySlider: {
+    paddingRight: 20,
+  },
+  dayCard: {
+    width: SCREEN_WIDTH * 0.72,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  dayCardToday: {
+    borderColor: COLORS.maroon,
+    borderWidth: 2,
+  },
+  dayCardSkipped: {
+    opacity: 0.6,
+  },
+  dayHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 14,
+    backgroundColor: COLORS.cream,
   },
-  mealTypeBadge: {
+  dayHeaderToday: {
+    backgroundColor: COLORS.maroon,
+  },
+  dayName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textLight,
+    letterSpacing: 1,
+  },
+  dayNameToday: {
+    color: COLORS.goldLight,
+  },
+  dayDate: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  dayDateToday: {
+    color: '#FFF',
+  },
+  skipBtn: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  skipBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.maroon,
+  },
+  skippedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.successLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    gap: 4,
+    backgroundColor: COLORS.dangerLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  mealTypeBadgeText: {
+  skippedText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.success,
-    textTransform: 'capitalize',
+    color: COLORS.danger,
   },
-  deliveryInfo: {
+  lockedBadge: {
+    padding: 6,
+  },
+  dayContent: {
+    padding: 14,
+    minHeight: 80,
+  },
+  menuItemsWrap: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
   },
-  deliveryText: {
-    fontSize: 13,
-    color: COLORS.textLight,
+  menuItemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.cream,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
   },
-  mealDecor: {
+  menuItemQty: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.maroon,
+  },
+  menuItemName: {
+    fontSize: 12,
+    color: COLORS.text,
+    maxWidth: 100,
+  },
+  moreItems: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    alignSelf: 'center',
+    marginLeft: 4,
+  },
+  noMenuText: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    fontStyle: 'italic',
+  },
+  addExtraBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    backgroundColor: COLORS.cream,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingVertical: 10,
+    gap: 6,
   },
-  decorLine: {
-    height: 1,
-    width: 40,
-    backgroundColor: COLORS.gold,
-    marginHorizontal: 10,
+  addExtraText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.maroon,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
+  addOnsContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    paddingTop: 0,
+    gap: 6,
+  },
+  addOnPill: {
+    backgroundColor: COLORS.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  addOnText: {
+    fontSize: 11,
+    color: COLORS.success,
+    fontWeight: '600',
+  },
+  // Stats Card
+  statsCard: {
     backgroundColor: COLORS.card,
     borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  emptyStateText: {
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.maroon,
+    textTransform: 'capitalize',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.border,
+  },
+  // Rating Modal
+  ratingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  ratingModal: {
+    backgroundColor: COLORS.card,
+    borderRadius: 24,
+    padding: 24,
+    width: '85%',
+    alignItems: 'center',
+  },
+  ratingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  ratingOptions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  ratingBtn: {
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: COLORS.cream,
+    minWidth: 80,
+  },
+  ratingEmoji: {
+    fontSize: 32,
+    marginBottom: 4,
+  },
+  ratingLabel: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  ratingSkip: {
+    marginTop: 20,
+  },
+  ratingSkipText: {
     fontSize: 14,
     color: COLORS.textLight,
-    marginTop: 12,
   },
+  // Footer
   footer: {
     alignItems: 'center',
     marginTop: 32,
@@ -1072,5 +1072,10 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
     fontStyle: 'italic',
     letterSpacing: 2,
+  },
+  footerSubtext: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    marginTop: 4,
   },
 });

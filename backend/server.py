@@ -113,6 +113,26 @@ class DinnerMenuSet(BaseModel):
     date: str
     item_ids: List[str]  # List of dish IDs for dinner (roti + sabji + dal + etc)
 
+# Platinum Tiffin Models
+class SpicePreference(BaseModel):
+    level: str  # mild, medium, spicy
+
+class MealRating(BaseModel):
+    date: str
+    rating: str  # yummy, good, bad
+    feedback: Optional[str] = None
+
+class AddOnOrder(BaseModel):
+    date: str
+    item_id: str
+    quantity: int = 1
+
+class ExtraItem(BaseModel):
+    name: str
+    description: str
+    price: float  # CAD
+    category: str = "beverage"  # beverage, dessert, snack
+
 # ==================== HELPERS ====================
 
 def hash_password(password: str) -> str:
@@ -1083,6 +1103,386 @@ async def track_driver(current_user: dict = Depends(get_current_user)):
         "distance_km": distance,
         "estimated_minutes": max(3, int(distance * 3)),
         "updated_at": driver_loc.get("updated_at")
+    }
+
+# ==================== PLATINUM TIFFIN FEATURES ====================
+
+# Spice Preferences
+@api_router.get("/customer/preferences")
+async def get_customer_preferences(current_user: dict = Depends(get_current_user)):
+    """Get customer's spice and dietary preferences"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    prefs = await db.customer_preferences.find_one({"user_id": current_user["id"]})
+    return {
+        "spice_level": prefs.get("spice_level", "medium") if prefs else "medium",
+        "dietary_notes": prefs.get("dietary_notes", "") if prefs else "",
+        "allergies": prefs.get("allergies", []) if prefs else []
+    }
+
+@api_router.put("/customer/preferences")
+async def update_customer_preferences(
+    preferences: SpicePreference,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update customer's spice preference"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    await db.customer_preferences.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": {
+            "user_id": current_user["id"],
+            "spice_level": preferences.level,
+            "updated_at": datetime.utcnow().isoformat()
+        }},
+        upsert=True
+    )
+    return {"message": "Preferences updated", "spice_level": preferences.level}
+
+# Rate My Dinner
+@api_router.post("/customer/rate-meal")
+async def rate_meal(rating: MealRating, current_user: dict = Depends(get_current_user)):
+    """Quick emoji feedback for a meal"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    rating_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "date": rating.date,
+        "rating": rating.rating,  # yummy, good, bad
+        "feedback": rating.feedback,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.meal_ratings.insert_one(rating_data)
+    
+    # If bad rating, could trigger automatic follow-up
+    if rating.rating == "bad" and not rating.feedback:
+        return {
+            "message": "Thanks for your feedback! What could we improve?",
+            "needs_feedback": True
+        }
+    
+    return {"message": "Thank you for rating your meal!", "needs_feedback": False}
+
+# Halifax Weather Alert System
+HALIFAX_WEATHER_ALERTS = {
+    "normal": {"status": "normal", "message": "Deliveries running on schedule", "delay_minutes": 0},
+    "light_snow": {"status": "caution", "message": "Light snow: Deliveries may be delayed by 15-30 mins", "delay_minutes": 30},
+    "heavy_snow": {"status": "warning", "message": "Heavy snow warning: Deliveries delayed by 30-60 mins. Stay safe!", "delay_minutes": 60},
+    "ice_storm": {"status": "severe", "message": "Ice storm alert: Deliveries paused for safety. Credits will be issued.", "delay_minutes": -1},
+    "blizzard": {"status": "severe", "message": "Blizzard warning: All deliveries cancelled today. Full credits issued.", "delay_minutes": -1}
+}
+
+@api_router.get("/weather-status")
+async def get_weather_status():
+    """Get current Halifax weather status for delivery alerts"""
+    # In production, this would integrate with Environment Canada API
+    # For now, check our mock weather status
+    weather = await db.system_settings.find_one({"key": "weather_status"})
+    
+    if weather and weather.get("value") in HALIFAX_WEATHER_ALERTS:
+        alert = HALIFAX_WEATHER_ALERTS[weather["value"]]
+        return {
+            "condition": weather["value"],
+            **alert,
+            "region": "Halifax Regional Municipality",
+            "updated_at": weather.get("updated_at", datetime.utcnow().isoformat())
+        }
+    
+    return {
+        "condition": "normal",
+        **HALIFAX_WEATHER_ALERTS["normal"],
+        "region": "Halifax Regional Municipality",
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+@api_router.put("/kitchen/weather-status")
+async def set_weather_status(status: str, current_user: dict = Depends(get_kitchen_user)):
+    """Kitchen admin can set weather status manually"""
+    if status not in HALIFAX_WEATHER_ALERTS:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Use: {list(HALIFAX_WEATHER_ALERTS.keys())}")
+    
+    await db.system_settings.update_one(
+        {"key": "weather_status"},
+        {"$set": {
+            "key": "weather_status",
+            "value": status,
+            "updated_at": datetime.utcnow().isoformat(),
+            "updated_by": current_user["id"]
+        }},
+        upsert=True
+    )
+    
+    return {"message": f"Weather status set to: {status}", "alert": HALIFAX_WEATHER_ALERTS[status]}
+
+# 7-Day Dinner Discovery
+@api_router.get("/customer/weekly-plan")
+async def get_weekly_dinner_plan(current_user: dict = Depends(get_current_user)):
+    """Get 7-day dinner plan with skip status and menu items"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"],
+        "status": "active"
+    })
+    
+    if not subscription:
+        return {"error": "No active subscription", "days": []}
+    
+    skipped_meals = subscription.get("skipped_meals", [])
+    skipped_dates = {s["date"] for s in skipped_meals}
+    
+    today = datetime.now().date()
+    days = []
+    
+    for i in range(7):
+        date = today + timedelta(days=i)
+        date_str = date.isoformat()
+        
+        # Get menu for this day
+        menu = await db.menu_schedule.find_one({"date": date_str})
+        dinner_items = []
+        
+        if menu:
+            item_ids = menu.get("dinner_item_ids", [])
+            if item_ids:
+                dishes = await db.dishes.find({"id": {"$in": item_ids}}).to_list(10)
+                dinner_items = [
+                    {
+                        "id": d["id"],
+                        "name": d["name"],
+                        "category": d.get("category", "sabji"),
+                        "quantity": d.get("quantity_per_tiffin", 1),
+                        "unit": d.get("unit", "portion")
+                    }
+                    for d in dishes
+                ]
+        
+        # Get add-ons for this day
+        add_ons = await db.customer_addons.find({
+            "user_id": current_user["id"],
+            "date": date_str
+        }).to_list(5)
+        
+        # Calculate skip deadline (24 hours before 4 PM delivery)
+        delivery_time = datetime.combine(date, datetime.min.time()).replace(hour=16)
+        cutoff_time = delivery_time - timedelta(hours=24)
+        can_skip = datetime.now() < cutoff_time
+        
+        days.append({
+            "date": date_str,
+            "day_name": date.strftime("%A"),
+            "is_today": i == 0,
+            "is_skipped": date_str in skipped_dates,
+            "can_skip": can_skip,
+            "cutoff_time": cutoff_time.isoformat(),
+            "dinner_items": dinner_items,
+            "item_summary": ", ".join([f"{d['quantity']}x {d['name']}" for d in dinner_items[:3]]) if dinner_items else "Menu not set",
+            "add_ons": [{"name": a.get("item_name"), "price": a.get("price", 0)} for a in add_ons]
+        })
+    
+    return {
+        "subscription_plan": subscription.get("plan"),
+        "days": days,
+        "wallet_balance": (await db.wallets.find_one({"user_id": current_user["id"]}) or {}).get("balance", 0)
+    }
+
+# Add-On Marketplace
+@api_router.get("/extras")
+async def get_extra_items():
+    """Get available add-on items"""
+    extras = await db.extra_items.find({"is_available": True}).to_list(20)
+    
+    # Seed default extras if none exist
+    if not extras:
+        default_extras = [
+            {"id": str(uuid.uuid4()), "name": "Cold Mango Lassi", "description": "Refreshing mango yogurt drink", "price": 4.99, "category": "beverage", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Sweet Lassi", "description": "Traditional sweet yogurt drink", "price": 3.99, "category": "beverage", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Masala Chai", "description": "Spiced Indian tea", "price": 2.99, "category": "beverage", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Extra Gulab Jamun (2pc)", "description": "Additional sweet dumplings", "price": 3.99, "category": "dessert", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Rasmalai (2pc)", "description": "Soft cottage cheese in sweet milk", "price": 4.99, "category": "dessert", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Samosa (2pc)", "description": "Crispy potato-filled pastries", "price": 3.49, "category": "snack", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Extra Roti (3pc)", "description": "Additional butter rotis", "price": 2.99, "category": "bread", "is_available": True},
+            {"id": str(uuid.uuid4()), "name": "Papad Pack", "description": "Crispy lentil wafers", "price": 1.99, "category": "snack", "is_available": True},
+        ]
+        for extra in default_extras:
+            await db.extra_items.insert_one(extra)
+        extras = default_extras
+    
+    return {"extras": [{k: v for k, v in e.items() if k != "_id"} for e in extras]}
+
+@api_router.post("/customer/add-extra")
+async def add_extra_to_day(addon: AddOnOrder, current_user: dict = Depends(get_current_user)):
+    """Add an extra item to a specific day's order"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    # Get the extra item
+    extra = await db.extra_items.find_one({"id": addon.item_id})
+    if not extra:
+        raise HTTPException(status_code=404, detail="Extra item not found")
+    
+    # Add to customer's order for that day
+    order_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "date": addon.date,
+        "item_id": addon.item_id,
+        "item_name": extra["name"],
+        "price": extra["price"] * addon.quantity,
+        "quantity": addon.quantity,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    await db.customer_addons.insert_one(order_data)
+    
+    return {
+        "message": f"Added {addon.quantity}x {extra['name']} for {addon.date}",
+        "total_price": extra["price"] * addon.quantity
+    }
+
+# Ingredient Forecast for Kitchen
+@api_router.get("/kitchen/ingredient-forecast")
+async def get_ingredient_forecast(current_user: dict = Depends(get_kitchen_user)):
+    """Generate 7-day procurement list based on upcoming menu and subscriptions"""
+    today = datetime.now().date()
+    forecast = {}
+    daily_breakdown = []
+    
+    # Get active subscriptions count
+    active_subs = await db.subscriptions.find({"status": "active"}).to_list(500)
+    
+    for i in range(7):
+        date = today + timedelta(days=i)
+        date_str = date.isoformat()
+        
+        # Get menu for this day
+        menu = await db.menu_schedule.find_one({"date": date_str})
+        if not menu:
+            daily_breakdown.append({
+                "date": date_str,
+                "day": date.strftime("%A"),
+                "menu_set": False,
+                "items": []
+            })
+            continue
+        
+        # Count non-skipped orders
+        skipped_count = 0
+        for sub in active_subs:
+            if any(s.get("date") == date_str for s in sub.get("skipped_meals", [])):
+                skipped_count += 1
+        
+        active_orders = len(active_subs) - skipped_count
+        
+        # Get dishes and calculate quantities
+        item_ids = menu.get("dinner_item_ids", [])
+        dishes = await db.dishes.find({"id": {"$in": item_ids}}).to_list(20)
+        
+        day_items = []
+        for dish in dishes:
+            qty = dish.get("quantity_per_tiffin", 1)
+            unit = dish.get("unit", "portion")
+            total = qty * active_orders
+            
+            day_items.append({
+                "name": dish["name"],
+                "category": dish.get("category", "sabji"),
+                "per_tiffin": qty,
+                "unit": unit,
+                "total_needed": total
+            })
+            
+            # Aggregate for weekly forecast
+            key = f"{dish['name']} ({unit})"
+            if key not in forecast:
+                forecast[key] = {"name": dish["name"], "unit": unit, "total": 0, "category": dish.get("category")}
+            forecast[key]["total"] += total
+        
+        daily_breakdown.append({
+            "date": date_str,
+            "day": date.strftime("%A"),
+            "menu_set": True,
+            "active_orders": active_orders,
+            "skipped": skipped_count,
+            "items": day_items
+        })
+    
+    # Group forecast by category
+    by_category = {}
+    for key, item in forecast.items():
+        cat = item.get("category", "other")
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append({
+            "name": item["name"],
+            "total": item["total"],
+            "unit": item["unit"]
+        })
+    
+    return {
+        "period": f"{today.isoformat()} to {(today + timedelta(days=6)).isoformat()}",
+        "total_active_subscriptions": len(active_subs),
+        "weekly_forecast": list(forecast.values()),
+        "by_category": by_category,
+        "daily_breakdown": daily_breakdown
+    }
+
+# Kitchen Dashboard - Get customer spice preferences
+@api_router.get("/kitchen/customer-preferences")
+async def get_all_customer_preferences(current_user: dict = Depends(get_kitchen_user)):
+    """Get all customer spice preferences for the prep list"""
+    prefs = await db.customer_preferences.find({}).to_list(500)
+    
+    # Get user names
+    result = []
+    for pref in prefs:
+        user = await db.users.find_one({"id": pref["user_id"]})
+        if user:
+            result.append({
+                "customer_name": user.get("name"),
+                "customer_id": pref["user_id"],
+                "spice_level": pref.get("spice_level", "medium"),
+                "allergies": pref.get("allergies", []),
+                "dietary_notes": pref.get("dietary_notes", "")
+            })
+    
+    return {"preferences": result}
+
+# Meal Ratings for Kitchen
+@api_router.get("/kitchen/meal-ratings")
+async def get_meal_ratings(current_user: dict = Depends(get_kitchen_user)):
+    """Get recent meal ratings for quality improvement"""
+    ratings = await db.meal_ratings.find({}).sort("created_at", -1).to_list(50)
+    
+    # Aggregate ratings
+    total = len(ratings)
+    yummy = sum(1 for r in ratings if r.get("rating") == "yummy")
+    good = sum(1 for r in ratings if r.get("rating") == "good")
+    bad = sum(1 for r in ratings if r.get("rating") == "bad")
+    
+    # Get bad ratings with feedback for improvement
+    bad_feedback = [
+        {
+            "date": r.get("date"),
+            "feedback": r.get("feedback"),
+            "user_id": r.get("user_id")
+        }
+        for r in ratings if r.get("rating") == "bad" and r.get("feedback")
+    ]
+    
+    return {
+        "total_ratings": total,
+        "summary": {
+            "yummy": yummy,
+            "good": good, 
+            "bad": bad,
+            "satisfaction_rate": round((yummy + good) / total * 100, 1) if total > 0 else 0
+        },
+        "recent_bad_feedback": bad_feedback[:10]
     }
 
 # ==================== SEED DEFAULT DISHES ====================
