@@ -117,10 +117,16 @@ export const kitchenAPI = {
     api.put(`/kitchen/plans/${id}`, data),
   deletePlan: (id: string) => api.delete(`/kitchen/plans/${id}`),
   
-  // Menu
+  // Menu (Modular Dinner Builder)
   getMenu: () => api.get('/kitchen/menu'),
-  setMenuDay: (data: { date: string; lunch_dish_id: string; dinner_dish_id: string }) =>
+  setMenuDay: (data: { date: string; dinner_item_ids: string[] }) =>
     api.post('/kitchen/menu', data),
+  
+  // Modular Prep List
+  getModularPrepList: () => api.get('/kitchen/modular-prep-list'),
+  
+  // Halifax Test Data
+  seedHalifaxData: () => api.post('/kitchen/seed-halifax-data'),
   
   // Customers
   getCustomers: () => api.get('/kitchen/customers'),
@@ -157,6 +163,8 @@ export const driverAPI = {
     api.put(`/driver/start-delivery/${deliveryId}`),
   completeDelivery: (deliveryId: string, status: string, photoBase64?: string) =>
     api.put(`/driver/complete-delivery/${deliveryId}`, { status, photo_base64: photoBase64 }),
+  failDelivery: (deliveryId: string, reason: string = 'customer_unavailable') =>
+    api.put(`/driver/fail-delivery/${deliveryId}`, null, { params: { reason } }),
   updateDeliveryStatus: (id: string, status: string, photoBase64?: string) =>
     api.put(`/driver/delivery/${id}/status`, { 
       status,

@@ -90,20 +90,28 @@ class DishCreate(BaseModel):
     name: str
     description: str
     type: str = "vegetarian"
-    price: float = 120.0
+    category: str = "sabji"  # Categories: roti, sabji, dal, rice, salad, extra
+    quantity_per_tiffin: float = 1.0  # For prep calculations
+    unit: str = "portion"  # portion, pieces, grams, kg
     image_url: Optional[str] = None
 
 class DishUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     type: Optional[str] = None
-    price: Optional[float] = None
+    category: Optional[str] = None
+    quantity_per_tiffin: Optional[float] = None
+    unit: Optional[str] = None
     image_url: Optional[str] = None
 
 class MenuDaySet(BaseModel):
     date: str
-    lunch_dish_id: str
-    dinner_dish_id: str
+    dinner_item_ids: List[str]  # Multiple items for modular dinner menu
+
+# Modular Dinner Menu - Multi-select items
+class DinnerMenuSet(BaseModel):
+    date: str
+    item_ids: List[str]  # List of dish IDs for dinner (roti + sabji + dal + etc)
 
 # ==================== HELPERS ====================
 
@@ -487,7 +495,9 @@ async def create_dish(dish: DishCreate, current_user: dict = Depends(get_kitchen
         "name": dish.name,
         "description": dish.description,
         "type": dish.type,
-        "price": dish.price,
+        "category": dish.category,
+        "quantity_per_tiffin": dish.quantity_per_tiffin,
+        "unit": dish.unit,
         "image_url": dish.image_url,
         "created_at": datetime.utcnow().isoformat(),
         "created_by": current_user["id"]
@@ -532,22 +542,40 @@ async def get_kitchen_menu(current_user: dict = Depends(get_kitchen_user)):
     
     result = []
     for item in menu_items:
-        lunch = dish_map.get(item.get("lunch_dish_id"), {})
-        dinner = dish_map.get(item.get("dinner_dish_id"), {})
+        # Get dinner items (multi-select)
+        dinner_ids = item.get("dinner_item_ids", [])
+        dinner_items = [
+            {k: v for k, v in dish_map.get(did, {}).items() if k != "_id"} 
+            for did in dinner_ids if did in dish_map
+        ]
         result.append({
             "date": item["date"],
-            "lunch": {k: v for k, v in lunch.items() if k != "_id"} if lunch else None,
-            "dinner": {k: v for k, v in dinner.items() if k != "_id"} if dinner else None
+            "dinner_items": dinner_items,
+            # Legacy support
+            "dinner": dinner_items[0] if dinner_items else None
         })
     
-    return {"menu": result, "dishes": [{k: v for k, v in d.items() if k != "_id"} for d in dishes]}
+    # Group dishes by category
+    categories = ["roti", "sabji", "dal", "rice", "salad", "extra"]
+    dishes_by_category = {cat: [] for cat in categories}
+    for d in dishes:
+        cat = d.get("category", "sabji")
+        if cat in dishes_by_category:
+            dishes_by_category[cat].append({k: v for k, v in d.items() if k != "_id"})
+    
+    return {
+        "menu": result, 
+        "dishes": [{k: v for k, v in d.items() if k != "_id"} for d in dishes],
+        "dishes_by_category": dishes_by_category,
+        "categories": categories
+    }
 
 @api_router.post("/kitchen/menu")
 async def set_menu_day(menu_data: MenuDaySet, current_user: dict = Depends(get_kitchen_user)):
+    """Set dinner menu for a day - supports multi-select items"""
     menu_entry = {
         "date": menu_data.date,
-        "lunch_dish_id": menu_data.lunch_dish_id,
-        "dinner_dish_id": menu_data.dinner_dish_id,
+        "dinner_item_ids": menu_data.dinner_item_ids,
         "updated_at": datetime.utcnow().isoformat(),
         "updated_by": current_user["id"]
     }
@@ -558,7 +586,7 @@ async def set_menu_day(menu_data: MenuDaySet, current_user: dict = Depends(get_k
         upsert=True
     )
     
-    return {"message": f"Menu set for {menu_data.date}"}
+    return {"message": f"Dinner menu set for {menu_data.date}", "item_count": len(menu_data.dinner_item_ids)}
 
 # ==================== CUSTOMER MANAGEMENT ====================
 
@@ -854,6 +882,80 @@ async def complete_delivery(
         )
     
     return {"message": "Delivery completed", "delivery_id": delivery_id}
+
+# Constants for credit system
+MEAL_CREDIT_VALUE_CAD = 12.00  # Per meal credit value in CAD
+
+@api_router.put("/driver/fail-delivery/{delivery_id}")
+async def fail_delivery(
+    delivery_id: str,
+    reason: str = "customer_unavailable",
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark delivery as failed and auto-credit customer wallet"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    delivery = await db.delivery_queue.find_one({"id": delivery_id})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    # Update delivery status
+    await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "status": "failed",
+            "failed_at": datetime.utcnow().isoformat(),
+            "failure_reason": reason,
+            "driver_id": current_user["id"]
+        }}
+    )
+    
+    # Auto-credit customer wallet
+    customer_id = delivery.get("customer_id")
+    if customer_id:
+        # Get current wallet balance
+        wallet = await db.wallets.find_one({"user_id": customer_id})
+        current_balance = wallet.get("balance", 0) if wallet else 0
+        new_balance = current_balance + MEAL_CREDIT_VALUE_CAD
+        
+        await db.wallets.update_one(
+            {"user_id": customer_id},
+            {"$set": {
+                "balance": new_balance,
+                "updated_at": datetime.utcnow().isoformat()
+            }},
+            upsert=True
+        )
+        
+        # Record transaction
+        transaction = {
+            "id": str(uuid.uuid4()),
+            "user_id": customer_id,
+            "type": "credit",
+            "amount": MEAL_CREDIT_VALUE_CAD,
+            "description": f"Failed delivery credit ({reason})",
+            "delivery_id": delivery_id,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        await db.wallet_transactions.insert_one(transaction)
+        
+        # Deduct from kitchen payout (track separately)
+        today = datetime.now().date().isoformat()
+        await db.kitchen_deductions.insert_one({
+            "date": today,
+            "amount": MEAL_CREDIT_VALUE_CAD,
+            "reason": f"Failed delivery: {reason}",
+            "delivery_id": delivery_id,
+            "customer_id": customer_id,
+            "created_at": datetime.utcnow().isoformat()
+        })
+    
+    return {
+        "message": "Delivery marked as failed",
+        "customer_credited": MEAL_CREDIT_VALUE_CAD,
+        "reason": reason
+    }
 
 # ==================== CUSTOMER TRACKING ====================
 
@@ -1785,6 +1887,204 @@ async def get_sold_out_items(current_user: dict = Depends(get_kitchen_user)):
     today = datetime.now().date().isoformat()
     items = await db.sold_out_items.find({"date": today}).to_list(50)
     return {"sold_out": [item.get("item_name") for item in items]}
+
+# ==================== HALIFAX TEST DATA SEEDING ====================
+
+HALIFAX_TEST_CUSTOMERS = [
+    {"name": "Priya Patel", "email": "priya@test.com", "phone": "902-555-0101", "address": "1505 Barrington St, Halifax, NS", "lat": 44.6488, "lon": -63.5752},
+    {"name": "Raj Sharma", "email": "raj@test.com", "phone": "902-555-0102", "address": "6299 Quinpool Rd, Halifax, NS", "lat": 44.6463, "lon": -63.5979},
+    {"name": "Anita Singh", "email": "anita@test.com", "phone": "902-555-0103", "address": "210 Chain Lake Dr, Halifax, NS", "lat": 44.6605, "lon": -63.6744},
+    {"name": "Vikram Mehta", "email": "vikram@test.com", "phone": "902-555-0104", "address": "5670 Spring Garden Rd, Halifax, NS", "lat": 44.6408, "lon": -63.5787},
+    {"name": "Neha Gupta", "email": "neha@test.com", "phone": "902-555-0105", "address": "1595 Bedford Hwy, Bedford, NS", "lat": 44.7175, "lon": -63.6592},
+    {"name": "Amit Kumar", "email": "amit@test.com", "phone": "902-555-0106", "address": "90 Alderney Dr, Dartmouth, NS", "lat": 44.6661, "lon": -63.5680},
+    {"name": "Sunita Devi", "email": "sunita@test.com", "phone": "902-555-0107", "address": "7001 Mumford Rd, Halifax, NS", "lat": 44.6538, "lon": -63.6313},
+    {"name": "Deepak Joshi", "email": "deepak@test.com", "phone": "902-555-0108", "address": "1969 Upper Water St, Halifax, NS", "lat": 44.6488, "lon": -63.5710},
+    {"name": "Kavita Rao", "email": "kavita@test.com", "phone": "902-555-0109", "address": "3280 Kempt Rd, Halifax, NS", "lat": 44.6644, "lon": -63.6105},
+    {"name": "Suresh Nair", "email": "suresh@test.com", "phone": "902-555-0110", "address": "1000 Micmac Blvd, Dartmouth, NS", "lat": 44.6860, "lon": -63.5410},
+]
+
+DEFAULT_DISHES = [
+    # Roti
+    {"name": "Butter Roti", "description": "Soft wheat flatbread with butter", "type": "vegetarian", "category": "roti", "quantity_per_tiffin": 3, "unit": "pieces"},
+    {"name": "Plain Chapati", "description": "Traditional unleavened flatbread", "type": "vegetarian", "category": "roti", "quantity_per_tiffin": 3, "unit": "pieces"},
+    {"name": "Garlic Naan", "description": "Leavened bread with garlic", "type": "vegetarian", "category": "roti", "quantity_per_tiffin": 2, "unit": "pieces"},
+    {"name": "Paratha", "description": "Layered flatbread", "type": "vegetarian", "category": "roti", "quantity_per_tiffin": 2, "unit": "pieces"},
+    # Sabji
+    {"name": "Paneer Tikka Masala", "description": "Cottage cheese in spiced tomato gravy", "type": "vegetarian", "category": "sabji", "quantity_per_tiffin": 150, "unit": "grams"},
+    {"name": "Aloo Gobi", "description": "Potato and cauliflower curry", "type": "vegetarian", "category": "sabji", "quantity_per_tiffin": 150, "unit": "grams"},
+    {"name": "Bhindi Masala", "description": "Spiced okra stir fry", "type": "vegetarian", "category": "sabji", "quantity_per_tiffin": 120, "unit": "grams"},
+    {"name": "Mixed Veg Curry", "description": "Assorted vegetables in gravy", "type": "vegetarian", "category": "sabji", "quantity_per_tiffin": 150, "unit": "grams"},
+    {"name": "Palak Paneer", "description": "Spinach with cottage cheese", "type": "vegetarian", "category": "sabji", "quantity_per_tiffin": 150, "unit": "grams"},
+    # Dal
+    {"name": "Tadka Dal", "description": "Yellow lentils with tempering", "type": "vegetarian", "category": "dal", "quantity_per_tiffin": 150, "unit": "ml"},
+    {"name": "Dal Makhani", "description": "Creamy black lentils", "type": "vegetarian", "category": "dal", "quantity_per_tiffin": 150, "unit": "ml"},
+    {"name": "Chana Dal", "description": "Split chickpea lentils", "type": "vegetarian", "category": "dal", "quantity_per_tiffin": 150, "unit": "ml"},
+    # Rice
+    {"name": "Jeera Rice", "description": "Cumin flavored basmati rice", "type": "vegetarian", "category": "rice", "quantity_per_tiffin": 150, "unit": "grams"},
+    {"name": "Plain Rice", "description": "Steamed basmati rice", "type": "vegetarian", "category": "rice", "quantity_per_tiffin": 150, "unit": "grams"},
+    {"name": "Veg Pulao", "description": "Rice with mixed vegetables", "type": "vegetarian", "category": "rice", "quantity_per_tiffin": 180, "unit": "grams"},
+    # Salad
+    {"name": "Kachumber Salad", "description": "Fresh cucumber, tomato, onion", "type": "vegetarian", "category": "salad", "quantity_per_tiffin": 50, "unit": "grams"},
+    {"name": "Green Salad", "description": "Mixed greens with lemon", "type": "vegetarian", "category": "salad", "quantity_per_tiffin": 50, "unit": "grams"},
+    {"name": "Raita", "description": "Yogurt with cucumber", "type": "vegetarian", "category": "salad", "quantity_per_tiffin": 80, "unit": "ml"},
+    # Extra
+    {"name": "Papad", "description": "Crispy lentil wafer", "type": "vegetarian", "category": "extra", "quantity_per_tiffin": 1, "unit": "pieces"},
+    {"name": "Pickle", "description": "Spicy mango pickle", "type": "vegetarian", "category": "extra", "quantity_per_tiffin": 15, "unit": "grams"},
+    {"name": "Gulab Jamun", "description": "Sweet milk dumplings", "type": "vegetarian", "category": "extra", "quantity_per_tiffin": 2, "unit": "pieces"},
+]
+
+@api_router.post("/kitchen/seed-halifax-data")
+async def seed_halifax_data(current_user: dict = Depends(get_kitchen_user)):
+    """Seed Halifax test customers and modular dishes"""
+    
+    # Clear existing test data
+    await db.users.delete_many({"email": {"$regex": "@test.com$"}})
+    await db.subscriptions.delete_many({"user_id": {"$regex": "^halifax-"}})
+    
+    created_customers = []
+    for idx, customer in enumerate(HALIFAX_TEST_CUSTOMERS):
+        user_id = f"halifax-{idx+1}"
+        user_data = {
+            "id": user_id,
+            "name": customer["name"],
+            "email": customer["email"],
+            "password": hash_password("test123"),
+            "phone": customer["phone"],
+            "address": customer["address"],
+            "role": "customer",
+            "created_at": datetime.utcnow()
+        }
+        await db.users.update_one({"id": user_id}, {"$set": user_data}, upsert=True)
+        
+        # Create subscription
+        sub_data = {
+            "id": f"sub-halifax-{idx+1}",
+            "user_id": user_id,
+            "plan": ["daily", "weekly", "monthly"][idx % 3],
+            "status": "active",
+            "start_date": datetime.utcnow().isoformat(),
+            "end_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
+            "delivery_address": customer["address"],
+            "latitude": customer["lat"],
+            "longitude": customer["lon"],
+            "skipped_meals": [],
+            "created_at": datetime.utcnow().isoformat()
+        }
+        await db.subscriptions.update_one(
+            {"id": f"sub-halifax-{idx+1}"},
+            {"$set": sub_data},
+            upsert=True
+        )
+        
+        # Create delivery queue entry for today
+        today = datetime.now().date().isoformat()
+        delivery_data = {
+            "id": f"del-halifax-{idx+1}-{today}",
+            "subscription_id": f"sub-halifax-{idx+1}",
+            "customer_id": user_id,
+            "customer_name": customer["name"],
+            "customer_phone": customer["phone"],
+            "address": customer["address"],
+            "latitude": customer["lat"],
+            "longitude": customer["lon"],
+            "plan": sub_data["plan"],
+            "date": today,
+            "delivery_number": idx + 1,
+            "status": "ready",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        await db.delivery_queue.update_one(
+            {"id": f"del-halifax-{idx+1}-{today}"},
+            {"$set": delivery_data},
+            upsert=True
+        )
+        
+        created_customers.append({"name": customer["name"], "address": customer["address"]})
+    
+    # Seed dishes by category
+    created_dishes = {"roti": 0, "sabji": 0, "dal": 0, "rice": 0, "salad": 0, "extra": 0}
+    for dish in DEFAULT_DISHES:
+        existing = await db.dishes.find_one({"name": dish["name"]})
+        if not existing:
+            dish_data = {
+                "id": str(uuid.uuid4()),
+                **dish,
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": current_user["id"]
+            }
+            await db.dishes.insert_one(dish_data)
+            created_dishes[dish["category"]] += 1
+    
+    return {
+        "message": "Halifax test data seeded successfully!",
+        "customers_created": len(created_customers),
+        "customers": created_customers,
+        "dishes_created": created_dishes,
+        "total_deliveries_queued": len(HALIFAX_TEST_CUSTOMERS)
+    }
+
+@api_router.get("/kitchen/modular-prep-list")
+async def get_modular_prep_list(current_user: dict = Depends(get_kitchen_user)):
+    """Get detailed preparation list based on modular menu items"""
+    today = datetime.now().date().isoformat()
+    
+    # Get today's menu
+    menu = await db.menu_schedule.find_one({"date": today})
+    if not menu:
+        return {"error": "No menu set for today", "date": today}
+    
+    dinner_ids = menu.get("dinner_item_ids", [])
+    
+    # Get all active subscriptions
+    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(500)
+    
+    # Count active orders (not skipped)
+    total_orders = 0
+    for sub in subscriptions:
+        is_skipped = any(s.get("date") == today for s in sub.get("skipped_meals", []))
+        if not is_skipped:
+            total_orders += 1
+    
+    # Get dishes and calculate quantities
+    dishes = await db.dishes.find({"id": {"$in": dinner_ids}}).to_list(20)
+    
+    prep_breakdown = []
+    category_totals = {}
+    
+    for dish in dishes:
+        qty = dish.get("quantity_per_tiffin", 1)
+        unit = dish.get("unit", "portion")
+        category = dish.get("category", "sabji")
+        total_qty = qty * total_orders
+        
+        item = {
+            "name": dish["name"],
+            "category": category,
+            "per_tiffin": qty,
+            "unit": unit,
+            "total_quantity": total_qty,
+            "total_display": f"{total_qty} {unit}"
+        }
+        prep_breakdown.append(item)
+        
+        # Sum by category
+        if category not in category_totals:
+            category_totals[category] = []
+        category_totals[category].append(item)
+    
+    return {
+        "date": today,
+        "total_dinners": total_orders,
+        "menu_items": len(dinner_ids),
+        "prep_breakdown": prep_breakdown,
+        "by_category": category_totals,
+        "summary": {
+            "total_rotis": sum(d["total_quantity"] for d in prep_breakdown if d["category"] == "roti"),
+            "total_sabji_grams": sum(d["total_quantity"] for d in prep_breakdown if d["category"] == "sabji"),
+            "total_dal_ml": sum(d["total_quantity"] for d in prep_breakdown if d["category"] == "dal"),
+            "total_rice_grams": sum(d["total_quantity"] for d in prep_breakdown if d["category"] == "rice"),
+        }
+    }
 
 # ==================== MEAL SWAP FUNCTIONALITY ====================
 

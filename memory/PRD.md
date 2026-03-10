@@ -1,111 +1,89 @@
 # The Dabba - Premium Tiffin Delivery Ecosystem PRD
 
 ## Original Problem Statement
-Build "The Dabba" - the greatest tiffin delivery app for iOS. A full-featured ecosystem with Customer, Kitchen, and Driver portals featuring premium animations, haptic feedback, and exceptional UI/UX.
+Build "The Dabba" - a premium tiffin delivery iOS app for the Halifax market. Three portals (Customer, Kitchen, Driver) with modular menu building, Halifax logistics, and CAD currency.
 
-## User Personas
-1. **Busy Professionals** - Need convenient, healthy meal subscriptions
-2. **Indian Families** - Want authentic home-style Indian cooking  
-3. **Kitchen Staff** - Need efficient batch preparation and order management
-4. **Delivery Drivers** - Need optimized routes and delivery tracking
+## What's Been Implemented (Latest Update)
 
-## Technical Stack
-- **Frontend (Mobile)**: React Native, Expo, Expo Router, React Native Reanimated, Expo Haptics
-- **Frontend (Web)**: HTML, CSS, JavaScript, Mapbox GL JS
-- **Backend**: FastAPI (Python)
-- **Database**: In-memory Python dictionaries (Mocked - not persistent)
-- **Deployment**: Expo Application Services (EAS) for iOS builds
+### System Refinement - Halifax Localization (Mar 8, 2025)
 
-## What's Been Implemented
+**1. Modular "Meal Builder" (Kitchen Portal)**
+- [x] Category-Based Menu: Roti, Sabji, Dal, Rice, Salad, Extra
+- [x] Multi-Select Logic: Kitchen admin taps to select multiple items for "Today's Dinner"
+- [x] New `/kitchen/menu` page with category tabs and tap-to-select chips
+- [x] Changed all "Lunch" references to "Dinner"
 
-### Mar 8, 2025 - "Greatest App" Polish
-- [x] **Animated Components Library** (`/app/frontend/src/components/AnimatedComponents.tsx`)
-  - AnimatedCard with stagger effects
-  - PulsingDot for status indicators
-  - AnimatedProgress bars
-  - AnimatedCounter for stats
-  - Skeleton loading states
-  - AnimatedButton with haptic feedback
-  - SuccessCheckmark animation
-  - FloatingActionButton
+**2. Manage Dabba & Pricing**
+- [x] Removed pricing from dish/recipe management (prices at subscription level)
+- [x] Added `quantity_per_tiffin` and `unit` fields for prep calculations
+- [x] Currency set to CAD ($)
 
-- [x] **Enhanced Customer Portal**
-  - Smooth entrance animations on all cards
-  - Staggered reveal for content
-  - Haptic feedback on all interactions
-  - Animated delivery tracking progress
-  - PulsingDot on active subscription status
-  - Skeleton loading state
-  - Tab animations for Today/Tomorrow
+**3. Halifax Test Data**
+- [x] 10 test customers with real Halifax addresses:
+  - 1505 Barrington St, Halifax
+  - 6299 Quinpool Rd, Halifax
+  - 210 Chain Lake Dr, Halifax
+  - 5670 Spring Garden Rd, Halifax
+  - 1595 Bedford Hwy, Bedford
+  - 90 Alderney Dr, Dartmouth
+  - 7001 Mumford Rd, Halifax
+  - 1969 Upper Water St, Halifax
+  - 3280 Kempt Rd, Halifax
+  - 1000 Micmac Blvd, Dartmouth
+- [x] Seeding endpoint: `POST /api/kitchen/seed-halifax-data`
 
-- [x] **Enhanced Kitchen Portal**
-  - Animated stat cards with counters
-  - Progress bar for delivery completion
-  - Staggered quick action cards
-  - PulsingDot on pending deliveries
-  - Haptic feedback throughout
+**4. Modular Prep List**
+- [x] New `/api/kitchen/modular-prep-list` endpoint
+- [x] Calculates totals by category (e.g., "Total Rotis: 150", "Total Sabji: 10kg")
+- [x] Based on modular menu items selected for the day
 
-- [x] **Enhanced Login Screen**
-  - Smooth entrance animations
-  - Button press animations with scale
-  - Error shake animation
-  - Demo credentials quick-fill buttons
-  - Haptic feedback on all interactions
+**5. Credit System Logic**
+- [x] Automatic credit deductions on failed deliveries
+- [x] `PUT /driver/fail-delivery/{id}` credits customer wallet $12 CAD
+- [x] Kitchen payout deductions tracked separately
 
-- [x] **Enhanced Profile Screen**
-  - Animated menu items
-  - Staggered reveal
-  - Quick link cards with scale animation
+**6. Default Dishes Seeded**
+- Roti: Butter Roti (3 pcs), Plain Chapati (3 pcs), Garlic Naan (2 pcs), Paratha (2 pcs)
+- Sabji: Paneer Tikka Masala (150g), Aloo Gobi (150g), Bhindi Masala (120g), Mixed Veg (150g), Palak Paneer (150g)
+- Dal: Tadka Dal (150ml), Dal Makhani (150ml), Chana Dal (150ml)
+- Rice: Jeera Rice (150g), Plain Rice (150g), Veg Pulao (180g)
+- Salad: Kachumber (50g), Green Salad (50g), Raita (80ml)
+- Extra: Papad (1 pc), Pickle (15g), Gulab Jamun (2 pcs)
 
-### Previous Implementations
-- [x] Delivery tracking card on Customer home
-- [x] Quick Actions moved to Profile (Menu/Wallet/Support)
-- [x] Premium dark-themed website with Mapbox tracking
-- [x] Wallet/Trust Engine with auto-credits
-- [x] Kitchen editable plans, categories, menu
-- [x] Full 42-item menu database
-- [x] Driver delivery with map selection
+## API Endpoints
 
-## Key API Endpoints
-- `POST /api/auth/login` - User authentication
-- `GET /api/customer/delivery-status` - Real-time delivery status
-- `GET /api/kitchen/dashboard` - Kitchen stats
-- `GET /api/kitchen/preparation-list` - Daily prep breakdown
+### New Endpoints
+- `POST /api/kitchen/seed-halifax-data` - Seed Halifax test data
+- `GET /api/kitchen/modular-prep-list` - Get detailed prep breakdown
+- `PUT /api/driver/fail-delivery/{id}` - Mark delivery failed, auto-credit customer
+
+### Updated Endpoints
+- `POST /api/kitchen/menu` - Now accepts `dinner_item_ids: string[]` for multi-select
+- `GET /api/kitchen/menu` - Returns `dishes_by_category` and `categories`
 
 ## Test Credentials
 - **Customer**: `test2@dabba.com` / `test123`
-- **Driver**: `driver@dabba.com` / `driver123`  
-- **Kitchen Admin**: `kitchen@dabba.com` / `kitchen123`
+- **Kitchen**: `kitchen@dabba.com` / `kitchen123`
+- **Driver**: `driver@dabba.com` / `driver123`
+- **Halifax Test Customers**: `priya@test.com`, `raj@test.com`, etc. / `test123`
 
 ## Current Build
 - **Version**: 1.1.0
-- **Build Number**: 12
-- **Bundle ID**: com.thedabba.app
+- **Build Number**: 13
 
-## Prioritized Backlog
-
-### P0 - Critical
-- [ ] User to test iOS build 1.1.0 (12) on TestFlight
+## Remaining Tasks
 
 ### P1 - High Priority
-- [ ] Driver portal animations polish
-- [ ] Driver smart routing (GPS-based sorting)
-- [ ] Driver live location sharing
+- [ ] Driver Portal: Slide-to-Deliver fix with smooth haptic
+- [ ] Driver Portal: Smart routing with Halifax addresses
+- [ ] Kitchen Home: Visual overhaul with "Live Pulse" animation
+- [ ] Dishes page: Update to use categories, remove price fields
 
 ### P2 - Medium Priority
-- [ ] Backend refactoring (break down monolithic server.py)
-- [ ] MongoDB integration (replace in-memory mock DB)
-- [ ] Payment integration (Stripe/Apple Pay)
-
-### P3 - Nice to Have
-- [ ] Domain setup (`thadabba.ca`)
-- [ ] 3D Tiffin Customizer with Three.js
-- [ ] Push notifications
+- [ ] Backend refactoring to MongoDB
+- [ ] Payment integration (Stripe)
+- [ ] Production deployment for 24/7 access
 
 ## Known Issues
-1. Backend uses in-memory mock DB - data not persistent
-2. Website domain shows GoDaddy parked page
-
-## URLs
-- Preview: https://delivery-test-2.preview.emergentagent.com/
-- Target domain: thadabba.ca
+1. App only works when Emergent session is active (needs production deployment)
+2. Backend uses in-memory mock DB (data resets on restart)
