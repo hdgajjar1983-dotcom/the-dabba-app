@@ -186,8 +186,17 @@ export default function KitchenDashboard() {
   const actionsData = [
     { icon: 'add-circle', label: 'Add Dish', bgColor: '#E8F5E9', iconColor: COLORS.success, route: '/(kitchen)/dishes' },
     { icon: 'calendar', label: 'Set Menu', bgColor: '#FFF3E0', iconColor: COLORS.warning, route: '/(kitchen)/menu' },
+    { icon: 'pricetags', label: 'Plans', bgColor: '#E3F2FD', iconColor: COLORS.info, route: '/(kitchen)/plans' },
     { icon: 'receipt', label: 'Orders', bgColor: '#FCE4EC', iconColor: COLORS.maroon, route: '/(kitchen)/orders' },
   ];
+
+  // Get current time greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,78 +207,84 @@ export default function KitchenDashboard() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Premium Header */}
         <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.header}>
           <View style={styles.headerLeft}>
-            <DabbaLogo size={50} />
+            <DabbaLogo size={48} />
             <View style={styles.headerText}>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.title}>Kitchen Portal</Text>
-              <Text style={styles.subtitle}>Manage your Dabba</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color={COLORS.maroon} />
+            <Ionicons name="log-out-outline" size={22} color={COLORS.maroon} />
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Decorative Divider */}
-        <Animated.View entering={FadeIn.delay(200)} style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <View style={styles.dividerDot} />
-          <View style={styles.dividerLine} />
+        {/* Hero Card - Today's Overview */}
+        <Animated.View entering={FadeInUp.delay(150).springify()} style={styles.heroCard}>
+          <View style={styles.heroGradient}>
+            <View style={styles.heroContent}>
+              <View style={styles.heroLeft}>
+                <Text style={styles.heroLabel}>Today&apos;s Orders</Text>
+                <View style={styles.heroValueRow}>
+                  <AnimatedCounter value={stats?.deliveries_today || 0} style={styles.heroValue} />
+                  <View style={styles.heroBadge}>
+                    <PulsingDot color="#FFF" size={8} isActive={(stats?.pending_today || 0) > 0} />
+                    <Text style={styles.heroBadgeText}>{stats?.pending_today || 0} pending</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.heroRight}>
+                <View style={styles.heroIconContainer}>
+                  <Ionicons name="restaurant" size={32} color="rgba(255,255,255,0.9)" />
+                </View>
+              </View>
+            </View>
+            
+            {/* Progress Bar */}
+            <View style={styles.heroProgress}>
+              <View style={styles.heroProgressBg}>
+                <Animated.View 
+                  entering={FadeIn.delay(600)}
+                  style={[
+                    styles.heroProgressFill, 
+                    { 
+                      width: `${stats?.deliveries_today ? ((stats?.completed_today || 0) / stats.deliveries_today) * 100 : 0}%` 
+                    }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.heroProgressText}>
+                {stats?.completed_today || 0} delivered • {stats?.deliveries_today ? Math.round(((stats?.completed_today || 0) / stats.deliveries_today) * 100) : 0}% complete
+              </Text>
+            </View>
+          </View>
         </Animated.View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          {statsData.map((stat, index) => (
-            <StatCard key={stat.label} {...stat} index={index} />
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          {statsData.slice(0, 3).map((stat, index) => (
+            <Animated.View 
+              key={stat.label} 
+              entering={FadeInDown.delay(200 + index * 80).springify()}
+              style={styles.miniStatCard}
+            >
+              <View style={[styles.miniStatIcon, { backgroundColor: stat.bgColor }]}>
+                <Ionicons name={stat.icon as any} size={20} color={stat.iconColor} />
+              </View>
+              <AnimatedCounter value={stat.value} style={styles.miniStatValue} />
+              <Text style={styles.miniStatLabel}>{stat.label}</Text>
+            </Animated.View>
           ))}
         </View>
 
-        {/* Today's Summary */}
-        <AnimatedCard index={5} style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Today&apos;s Delivery Status</Text>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <View style={styles.summaryItemHeader}>
-                <PulsingDot color={COLORS.success} size={10} isActive={true} />
-                <AnimatedCounter value={stats?.completed_today || 0} style={styles.summaryValue} />
-              </View>
-              <Text style={styles.summaryLabel}>Completed</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <View style={styles.summaryItemHeader}>
-                <PulsingDot color={COLORS.warning} size={10} isActive={(stats?.pending_today || 0) > 0} />
-                <AnimatedCounter value={stats?.pending_today || 0} style={styles.summaryValue} />
-              </View>
-              <Text style={styles.summaryLabel}>Pending</Text>
-            </View>
-          </View>
-          
-          {/* Progress bar */}
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBg}>
-              <Animated.View 
-                entering={FadeIn.delay(800)}
-                style={[
-                  styles.progressBarFill, 
-                  { 
-                    width: `${stats?.deliveries_today ? ((stats?.completed_today || 0) / stats.deliveries_today) * 100 : 0}%` 
-                  }
-                ]} 
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {stats?.deliveries_today ? Math.round(((stats?.completed_today || 0) / stats.deliveries_today) * 100) : 0}% Complete
-            </Text>
-          </View>
-        </AnimatedCard>
-
-        {/* Quick Actions */}
-        <Animated.Text entering={FadeInDown.delay(450).springify()} style={styles.sectionTitle}>
-          Quick Actions
-        </Animated.Text>
+        {/* Quick Actions Section */}
+        <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionSubtitle}>Manage your kitchen</Text>
+        </Animated.View>
+        
         <View style={styles.actionsRow}>
           {actionsData.map((action, index) => (
             <ActionCard
@@ -281,23 +296,48 @@ export default function KitchenDashboard() {
           ))}
         </View>
 
-        {/* Prep List Button */}
+        {/* Prep List CTA */}
         <AnimatedCard index={8} style={styles.prepListCard} onPress={() => router.push('/(kitchen)/preparation' as any)}>
           <View style={styles.prepListContent}>
-            <View style={styles.prepListIcon}>
-              <Ionicons name="clipboard" size={28} color={COLORS.card} />
+            <View style={styles.prepListLeft}>
+              <View style={styles.prepListIconContainer}>
+                <Ionicons name="clipboard" size={26} color="#FFF" />
+              </View>
+              <View style={styles.prepListText}>
+                <Text style={styles.prepListTitle}>Preparation List</Text>
+                <Text style={styles.prepListSubtitle}>What to cook today</Text>
+              </View>
             </View>
-            <View style={styles.prepListText}>
-              <Text style={styles.prepListTitle}>Today&apos;s Preparation List</Text>
-              <Text style={styles.prepListSubtitle}>View what needs to be cooked</Text>
+            <View style={styles.prepListArrow}>
+              <Ionicons name="arrow-forward" size={20} color={COLORS.goldLight} />
             </View>
-            <Ionicons name="chevron-forward" size={24} color={COLORS.gold} />
+          </View>
+        </AnimatedCard>
+
+        {/* Customers Card */}
+        <AnimatedCard index={9} style={styles.customersCard} onPress={() => router.push('/(kitchen)/customers' as any)}>
+          <View style={styles.customersContent}>
+            <View style={styles.customersLeft}>
+              <View style={styles.customersIconContainer}>
+                <Ionicons name="people" size={24} color={COLORS.success} />
+              </View>
+              <View>
+                <Text style={styles.customersTitle}>Customers</Text>
+                <Text style={styles.customersCount}>{stats?.total_customers || 0} total</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={COLORS.textLight} />
           </View>
         </AnimatedCard>
 
         {/* Footer */}
         <Animated.View entering={FadeIn.delay(700)} style={styles.footer}>
-          <Text style={styles.footerText}>~ Kitchen Admin Portal ~</Text>
+          <View style={styles.footerDivider}>
+            <View style={styles.footerLine} />
+            <Ionicons name="restaurant" size={16} color={COLORS.gold} />
+            <View style={styles.footerLine} />
+          </View>
+          <Text style={styles.footerText}>The Dabba Kitchen</Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -326,8 +366,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -340,6 +381,11 @@ const styles = StyleSheet.create({
   },
   headerText: {
     marginLeft: 12,
+  },
+  greeting: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    fontWeight: '500',
   },
   title: {
     fontSize: 22,
@@ -362,6 +408,284 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.border,
   },
+  // Hero Card
+  heroCard: {
+    marginTop: 8,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  heroGradient: {
+    backgroundColor: COLORS.maroon,
+    padding: 20,
+  },
+  heroContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  heroLeft: {
+    flex: 1,
+  },
+  heroLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  heroValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroValue: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: '#FFF',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  heroRight: {
+    justifyContent: 'center',
+  },
+  heroIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroProgress: {
+    marginTop: 20,
+  },
+  heroProgressBg: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  heroProgressFill: {
+    height: '100%',
+    backgroundColor: COLORS.goldLight,
+    borderRadius: 3,
+  },
+  heroProgressText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 10,
+  },
+  miniStatCard: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  miniStatIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  miniStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  miniStatLabel: {
+    fontSize: 11,
+    color: COLORS.textLight,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  // Section Header
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
+  },
+  // Actions
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 10,
+  },
+  actionCard: {
+    width: '48%',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  actionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  // Prep List Card
+  prepListCard: {
+    backgroundColor: COLORS.maroon,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  prepListContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+  },
+  prepListLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  prepListIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prepListText: {
+    marginLeft: 14,
+    flex: 1,
+  },
+  prepListTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.goldLight,
+  },
+  prepListSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  prepListArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Customers Card
+  customersCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 16,
+  },
+  customersContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  customersLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  customersIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E8F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  customersTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  customersCount: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 1,
+  },
+  // Footer
+  footer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingBottom: 8,
+  },
+  footerDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  footerLine: {
+    width: 40,
+    height: 1,
+    backgroundColor: COLORS.gold,
+    opacity: 0.4,
+    marginHorizontal: 10,
+  },
+  footerText: {
+    fontSize: 13,
+    color: COLORS.gold,
+    fontStyle: 'italic',
+    letterSpacing: 1,
+  },
+  // Legacy styles kept for backward compatibility
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -480,52 +804,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'right',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  actionCard: {
-    width: '31%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  actionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  prepListCard: {
-    backgroundColor: COLORS.maroon,
-    borderRadius: 16,
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  prepListContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
   prepListIcon: {
     width: 52,
     height: 52,
@@ -533,30 +811,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  prepListText: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  prepListTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.goldLight,
-  },
-  prepListSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 12,
-    paddingBottom: 16,
-  },
-  footerText: {
-    fontSize: 13,
-    color: COLORS.gold,
-    fontStyle: 'italic',
-    letterSpacing: 2,
   },
 });

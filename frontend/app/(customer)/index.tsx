@@ -90,7 +90,39 @@ interface Subscription {
   skipped_meals: { date: string; meal_type: string }[];
 }
 
-// Day Card Component
+// Category icons for menu items with premium styling
+const CATEGORY_ICONS: Record<string, { icon: string; color: string; bgColor: string; label: string }> = {
+  roti: { icon: 'pizza-outline', color: '#E65100', bgColor: '#FFF3E0', label: 'Roti' },
+  sabji: { icon: 'leaf-outline', color: '#2E7D32', bgColor: '#E8F5E9', label: 'Sabji' },
+  dal: { icon: 'water-outline', color: '#1565C0', bgColor: '#E3F2FD', label: 'Dal' },
+  rice: { icon: 'restaurant-outline', color: '#7B1FA2', bgColor: '#F3E5F5', label: 'Rice' },
+  salad: { icon: 'nutrition-outline', color: '#00838F', bgColor: '#E0F7FA', label: 'Salad' },
+  extra: { icon: 'add-circle-outline', color: '#C41E3A', bgColor: '#FFEBEE', label: 'Extra' },
+};
+
+// Beautiful Menu Item Component
+const MenuItemCard = ({ item, category }: { item: { id: string; name: string; category: string; quantity: number; unit: string }; category: string }) => {
+  const catInfo = CATEGORY_ICONS[category] || CATEGORY_ICONS.sabji;
+  
+  return (
+    <View style={menuStyles.menuItemCard}>
+      <View style={[menuStyles.menuItemIconBg, { backgroundColor: catInfo.bgColor }]}>
+        <Ionicons name={catInfo.icon as any} size={20} color={catInfo.color} />
+      </View>
+      <View style={menuStyles.menuItemInfo}>
+        <Text style={menuStyles.menuItemName} numberOfLines={1}>{item.name}</Text>
+        <Text style={[menuStyles.menuItemCategory, { color: catInfo.color }]}>{catInfo.label}</Text>
+      </View>
+      <View style={[menuStyles.menuItemQtyBadge, { backgroundColor: catInfo.bgColor }]}>
+        <Text style={[menuStyles.menuItemQtyText, { color: catInfo.color }]}>
+          {item.quantity} {item.unit || 'pcs'}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+// Day Card Component - Beautiful Menu Display
 const DayCard = ({ day, onSkip, onAddExtra, index }: { 
   day: DayPlan; 
   onSkip: () => void; 
@@ -103,15 +135,18 @@ const DayCard = ({ day, onSkip, onAddExtra, index }: {
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePress = () => {
-    scale.value = withSpring(0.95, { damping: 15 });
-    setTimeout(() => scale.value = withSpring(1), 100);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
   const formattedDate = new Date(day.date);
   const dateNum = formattedDate.getDate();
   const monthShort = formattedDate.toLocaleDateString('en-US', { month: 'short' });
+
+  // Calculate total items by category
+  const categoryTotals = day.dinner_items.reduce((acc, item) => {
+    const cat = item.category || 'sabji';
+    if (!acc[cat]) acc[cat] = { count: 0, items: [] };
+    acc[cat].count += item.quantity;
+    acc[cat].items.push(item);
+    return acc;
+  }, {} as Record<string, { count: number; items: typeof day.dinner_items }>);
 
   return (
     <Animated.View
@@ -120,13 +155,16 @@ const DayCard = ({ day, onSkip, onAddExtra, index }: {
     >
       {/* Date Header */}
       <View style={[styles.dayHeader, day.is_today && styles.dayHeaderToday]}>
-        <View>
-          <Text style={[styles.dayName, day.is_today && styles.dayNameToday]}>
-            {day.is_today ? 'TODAY' : day.day_name.substring(0, 3).toUpperCase()}
-          </Text>
-          <Text style={[styles.dayDate, day.is_today && styles.dayDateToday]}>
-            {monthShort} {dateNum}
-          </Text>
+        <View style={styles.dayHeaderLeft}>
+          <View style={[styles.dateCircle, day.is_today && styles.dateCircleToday]}>
+            <Text style={[styles.dateNum, day.is_today && styles.dateNumToday]}>{dateNum}</Text>
+          </View>
+          <View>
+            <Text style={[styles.dayName, day.is_today && styles.dayNameToday]}>
+              {day.is_today ? 'TODAY' : day.day_name.substring(0, 3).toUpperCase()}
+            </Text>
+            <Text style={[styles.monthText, day.is_today && styles.monthTextToday]}>{monthShort}</Text>
+          </View>
         </View>
         {day.is_skipped ? (
           <View style={styles.skippedBadge}>
@@ -134,34 +172,53 @@ const DayCard = ({ day, onSkip, onAddExtra, index }: {
             <Text style={styles.skippedText}>Skipped</Text>
           </View>
         ) : day.can_skip ? (
-          <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
-            <Text style={styles.skipBtnText}>Skip</Text>
+          <TouchableOpacity style={[styles.skipBtn, day.is_today && styles.skipBtnToday]} onPress={onSkip}>
+            <Text style={[styles.skipBtnText, day.is_today && styles.skipBtnTextToday]}>Skip</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.lockedBadge}>
-            <Ionicons name="lock-closed" size={12} color={COLORS.textLight} />
+            <Ionicons name="lock-closed" size={12} color={day.is_today ? 'rgba(255,255,255,0.6)' : COLORS.textLight} />
           </View>
         )}
       </View>
 
-      {/* Menu Items */}
+      {/* Beautiful Menu Items Display */}
       <View style={styles.dayContent}>
         {day.dinner_items.length > 0 ? (
-          <View style={styles.menuItemsWrap}>
-            {day.dinner_items.slice(0, 4).map((item, i) => (
-              <View key={i} style={styles.menuItemPill}>
-                <Text style={styles.menuItemQty}>{item.quantity}×</Text>
-                <Text style={styles.menuItemName} numberOfLines={1}>{item.name}</Text>
-              </View>
+          <View style={menuStyles.menuGrid}>
+            {day.dinner_items.slice(0, 4).map((item, idx) => (
+              <MenuItemCard key={item.id || idx} item={item} category={item.category || 'sabji'} />
             ))}
             {day.dinner_items.length > 4 && (
-              <Text style={styles.moreItems}>+{day.dinner_items.length - 4} more</Text>
+              <View style={menuStyles.moreItemsBadge}>
+                <Text style={menuStyles.moreItemsText}>+{day.dinner_items.length - 4} more</Text>
+              </View>
             )}
           </View>
         ) : (
-          <Text style={styles.noMenuText}>Menu not set yet</Text>
+          <View style={styles.noMenuContainer}>
+            <Ionicons name="restaurant-outline" size={28} color={COLORS.textLight} />
+            <Text style={styles.noMenuText}>Menu coming soon</Text>
+          </View>
         )}
       </View>
+
+      {/* Quick Stats Bar */}
+      {day.dinner_items.length > 0 && !day.is_skipped && (
+        <View style={menuStyles.quickStatsBar}>
+          {Object.entries(categoryTotals).slice(0, 4).map(([cat, data]) => {
+            const catInfo = CATEGORY_ICONS[cat] || CATEGORY_ICONS.sabji;
+            return (
+              <View key={cat} style={menuStyles.quickStatItem}>
+                <View style={[menuStyles.quickStatIcon, { backgroundColor: catInfo.bgColor }]}>
+                  <Ionicons name={catInfo.icon as any} size={14} color={catInfo.color} />
+                </View>
+                <Text style={menuStyles.quickStatText}>{data.count}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* Add Extra Button */}
       {!day.is_skipped && (
@@ -184,6 +241,86 @@ const DayCard = ({ day, onSkip, onAddExtra, index }: {
     </Animated.View>
   );
 };
+
+// Menu-specific styles
+const menuStyles = StyleSheet.create({
+  menuGrid: {
+    gap: 8,
+  },
+  menuItemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.cream,
+    borderRadius: 12,
+    padding: 10,
+    gap: 10,
+  },
+  menuItemIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuItemInfo: {
+    flex: 1,
+  },
+  menuItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  menuItemCategory: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  menuItemQtyBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  menuItemQtyText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  moreItemsBadge: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  moreItemsText: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    fontWeight: '500',
+  },
+  quickStatsBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.cream,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  quickStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  quickStatIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickStatText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+});
 
 // Rating Modal Component
 const RatingModal = ({ visible, onClose, onRate, date }: any) => {
@@ -876,6 +1013,33 @@ const styles = StyleSheet.create({
   dayHeaderToday: {
     backgroundColor: COLORS.maroon,
   },
+  dayHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dateCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
+  dateCircleToday: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  dateNum: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.maroon,
+  },
+  dateNumToday: {
+    color: '#FFF',
+  },
   dayName: {
     fontSize: 12,
     fontWeight: '700',
@@ -884,6 +1048,15 @@ const styles = StyleSheet.create({
   },
   dayNameToday: {
     color: COLORS.goldLight,
+  },
+  monthText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 1,
+  },
+  monthTextToday: {
+    color: '#FFF',
   },
   dayDate: {
     fontSize: 16,
@@ -895,15 +1068,21 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   skipBtn: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  skipBtnToday: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   skipBtnText: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.maroon,
+  },
+  skipBtnTextToday: {
+    color: '#FFF',
   },
   skippedBadge: {
     flexDirection: 'row',
@@ -924,42 +1103,18 @@ const styles = StyleSheet.create({
   },
   dayContent: {
     padding: 14,
-    minHeight: 80,
+    minHeight: 100,
   },
-  menuItemsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  menuItemPill: {
-    flexDirection: 'row',
+  noMenuContainer: {
     alignItems: 'center',
-    backgroundColor: COLORS.cream,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
-  },
-  menuItemQty: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.maroon,
-  },
-  menuItemName: {
-    fontSize: 12,
-    color: COLORS.text,
-    maxWidth: 100,
-  },
-  moreItems: {
-    fontSize: 11,
-    color: COLORS.textLight,
-    alignSelf: 'center',
-    marginLeft: 4,
+    justifyContent: 'center',
+    paddingVertical: 24,
   },
   noMenuText: {
     fontSize: 14,
     color: COLORS.textLight,
     fontStyle: 'italic',
+    marginTop: 8,
   },
   addExtraBtn: {
     flexDirection: 'row',

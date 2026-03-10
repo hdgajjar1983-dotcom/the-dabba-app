@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 import json
 
-BASE_URL = "https://delivery-test-2.preview.emergentagent.com/api"
+BASE_URL = "https://halifax-meal-planner.preview.emergentagent.com/api"
 
 async def debug_subscription():
     async with aiohttp.ClientSession() as session:

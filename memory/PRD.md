@@ -87,5 +87,5 @@ GET  /api/menu/knowledge-base - Full menu for AI knowledge base
 - [ ] MongoDB persistent storage
 
 ## URLs
-- Preview: https://delivery-test-2.preview.emergentagent.com/
+- Preview: https://halifax-meal-planner.preview.emergentagent.com/
 - Target domain: thadabba.ca
