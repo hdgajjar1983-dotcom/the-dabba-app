@@ -264,7 +264,7 @@ export default function SubscriptionScreen() {
                 </View>
               </View>
               <View style={styles.featuresContainer}>
-                {plan.features.map((feature, index) => (
+                {(plan.features || []).map((feature, index) => (
                   <View key={index} style={styles.featureRow}>
                     <Ionicons name="checkmark" size={16} color={plan.color} />
                     <Text style={styles.featureText}>{feature}</Text>

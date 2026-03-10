@@ -542,7 +542,7 @@ export default function DriverDeliveries() {
             <View style={styles.offlineIcon}>
               <Ionicons name="moon" size={64} color={COLORS.textMuted} />
             </View>
-            <Text style={styles.offlineTitle}>You're Offline</Text>
+            <Text style={styles.offlineTitle}>You&apos;re Offline</Text>
             <Text style={styles.offlineSubtitle}>Go online to start receiving deliveries</Text>
             <TouchableOpacity style={styles.goOnlineButton} onPress={() => setIsOnline(true)}>
               <Text style={styles.goOnlineButtonText}>Go Online</Text>
@@ -554,7 +554,7 @@ export default function DriverDeliveries() {
               <Ionicons name="checkmark-circle" size={80} color={COLORS.primary} />
             </View>
             <Text style={styles.emptyTitle}>All Done!</Text>
-            <Text style={styles.emptySubtitle}>You've completed all deliveries for today</Text>
+            <Text style={styles.emptySubtitle}>You&apos;ve completed all deliveries for today</Text>
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <View style={styles.summaryItem}>

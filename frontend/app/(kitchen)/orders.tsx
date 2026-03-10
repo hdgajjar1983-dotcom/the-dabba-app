@@ -186,7 +186,7 @@ export default function OrdersManagement() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Today's Orders</Text>
+          <Text style={styles.title}>Today&apos;s Orders</Text>
           <Text style={styles.subtitle}>{date}</Text>
         </View>
         <View style={styles.statsRow}>

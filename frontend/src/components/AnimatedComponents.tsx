@@ -214,7 +214,7 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
 
 // Skeleton loader
 interface SkeletonProps {
-  width: number | string;
+  width: number | `${number}%`;
   height: number;
   borderRadius?: number;
   style?: ViewStyle;

@@ -282,13 +282,13 @@ export default function KitchenDashboard() {
         </View>
 
         {/* Prep List Button */}
-        <AnimatedCard index={8} style={styles.prepListCard} onPress={() => router.push('/(kitchen)/preparation-list')}>
+        <AnimatedCard index={8} style={styles.prepListCard} onPress={() => router.push('/(kitchen)/preparation' as any)}>
           <View style={styles.prepListContent}>
             <View style={styles.prepListIcon}>
               <Ionicons name="clipboard" size={28} color={COLORS.card} />
             </View>
             <View style={styles.prepListText}>
-              <Text style={styles.prepListTitle}>Today's Preparation List</Text>
+              <Text style={styles.prepListTitle}>Today&apos;s Preparation List</Text>
               <Text style={styles.prepListSubtitle}>View what needs to be cooked</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={COLORS.gold} />

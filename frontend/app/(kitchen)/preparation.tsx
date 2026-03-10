@@ -225,28 +225,28 @@ export default function PreparationScreen() {
                   index % 2 === 0 ? styles.rowEven : styles.rowOdd,
                 ]}
               >
-                <View style={[styles.cell, styles.nameCell]}>
+                <View style={[styles.nameCell]}>
                   <Text style={styles.customerName} numberOfLines={1}>
                     {customer.customer_name}
                   </Text>
                   <Text style={styles.customerPlan}>{customer.plan}</Text>
                 </View>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.roti}
                 </Text>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.sabji}
                 </Text>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.dal}
                 </Text>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.rice}
                 </Text>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.salad}
                 </Text>
-                <Text style={[styles.cell, styles.numCell, styles.numValue]}>
+                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
                   {customer.bread}
                 </Text>
               </View>

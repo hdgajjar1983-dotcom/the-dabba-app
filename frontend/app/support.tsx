@@ -64,7 +64,7 @@ export default function Support() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>We're here to help!</Text>
+        <Text style={styles.subtitle}>We&apos;re here to help!</Text>
 
         {/* Contact Options */}
         <View style={styles.contactGrid}>

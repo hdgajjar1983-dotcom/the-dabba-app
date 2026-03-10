@@ -166,7 +166,7 @@ export default function WalletScreen() {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Skip a meal</Text>
-                <Text style={styles.infoText}>Don't need lunch or dinner? Skip it!</Text>
+                <Text style={styles.infoText}>Don&apos;t need lunch or dinner? Skip it!</Text>
               </View>
             </View>
             <View style={styles.infoRow}>
