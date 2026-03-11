@@ -300,6 +300,27 @@ def calculate_eta_minutes(distance_km: float, avg_speed_kmh: float = 30, buffer_
 
 # ==================== AUTH ROUTES ====================
 
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint for Railway/deployment monitoring"""
+    try:
+        # Quick DB ping
+        await db.command("ping")
+        return {
+            "status": "healthy",
+            "service": "The Dabba API",
+            "version": "2.0.0",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "service": "The Dabba API",
+            "version": "2.0.0",
+            "database": "disconnected",
+            "error": str(e)
+        }
+
 @api_router.post("/auth/register")
 async def register(user_data: UserCreate):
     # Check if user exists
