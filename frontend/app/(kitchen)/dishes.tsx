@@ -216,7 +216,7 @@ export default function DishesManagement() {
                       <Ionicons name="leaf" size={12} color={COLORS.success} />
                       <Text style={styles.typeText}>{dish.type}</Text>
                     </View>
-                    <Text style={styles.priceText}>₹{dish.price}</Text>
+                    {/* Price removed from Kitchen view - logistics only */}
                   </View>
                 </View>
                 <View style={styles.dishActions}>
@@ -296,17 +296,7 @@ export default function DishesManagement() {
                 </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Price (₹)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={price}
-                  onChangeText={setPrice}
-                  placeholder="120"
-                  placeholderTextColor={COLORS.textLight}
-                  keyboardType="numeric"
-                />
-              </View>
+              {/* Price input removed - Kitchen is logistics only, no pricing */}
 
               <TouchableOpacity
                 style={[styles.saveButton, isSubmitting && styles.buttonDisabled]}

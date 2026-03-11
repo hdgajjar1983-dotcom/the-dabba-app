@@ -7,10 +7,12 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { kitchenAPI } from '../../src/services/api';
+import * as Haptics from 'expo-haptics';
 
 const COLORS = {
   background: '#1A1A1A',
@@ -39,6 +41,10 @@ interface CustomerItem {
   salad: number;
   bread: number;
   notes: string;
+  sequence_number?: number;
+  expected_delivery?: string;
+  dabba_ready?: boolean;
+  delivery_id?: string;
 }
 
 interface Totals {
@@ -61,11 +67,18 @@ export default function PreparationScreen() {
   const [date, setDate] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [readyDabbas, setReadyDabbas] = useState<Set<string>>(new Set());
 
   const fetchPrepList = useCallback(async () => {
     try {
       const response = await kitchenAPI.getPreparationList();
-      setPrepList(response.data.preparation_list || []);
+      const list = response.data.preparation_list || [];
+      // Add sequence numbers dynamically
+      const numberedList = list.map((item: CustomerItem, idx: number) => ({
+        ...item,
+        sequence_number: idx + 1,
+      }));
+      setPrepList(numberedList);
       setTotals(response.data.totals || null);
       setDate(response.data.date || '');
     } catch (error) {
@@ -78,12 +91,53 @@ export default function PreparationScreen() {
 
   useEffect(() => {
     fetchPrepList();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchPrepList, 30000);
+    return () => clearInterval(interval);
   }, [fetchPrepList]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchPrepList();
   }, [fetchPrepList]);
+
+  const handleMarkReady = async (customerId: string, deliveryId?: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      
+      // Toggle locally first for instant feedback
+      setReadyDabbas(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(customerId)) {
+          newSet.delete(customerId);
+        } else {
+          newSet.add(customerId);
+        }
+        return newSet;
+      });
+
+      // Sync to server - this notifies Driver portal
+      if (deliveryId) {
+        await kitchenAPI.markDabbaReady(deliveryId);
+      }
+      
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error marking dabba ready:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Error', 'Failed to update dabba status');
+      // Revert local state on error
+      setReadyDabbas(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(customerId)) {
+          newSet.delete(customerId);
+        } else {
+          newSet.add(customerId);
+        }
+        return newSet;
+      });
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -196,19 +250,20 @@ export default function PreparationScreen() {
           </View>
         )}
 
-        {/* Customer List Table */}
+        {/* Customer List Table with Sequence & Ready Checkbox */}
         <View style={styles.tableCard}>
           <Text style={styles.tableTitle}>Customer-wise Breakdown</Text>
+          <Text style={styles.tableSubtitle}>Tap checkbox when dabba is ready - syncs to Driver</Text>
           
           {/* Table Header */}
           <View style={styles.tableHeader}>
+            <Text style={[styles.headerCell, styles.seqCell]}>#</Text>
+            <Text style={[styles.headerCell, styles.checkCell]}>Ready</Text>
             <Text style={[styles.headerCell, styles.nameCell]}>Customer</Text>
             <Text style={[styles.headerCell, styles.numCell]}>Roti</Text>
             <Text style={[styles.headerCell, styles.numCell]}>Sabji</Text>
             <Text style={[styles.headerCell, styles.numCell]}>Dal</Text>
             <Text style={[styles.headerCell, styles.numCell]}>Rice</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Salad</Text>
-            <Text style={[styles.headerCell, styles.numCell]}>Bread</Text>
           </View>
           
           {/* Table Rows */}
@@ -217,52 +272,68 @@ export default function PreparationScreen() {
               <Text style={styles.emptyText}>No active customers for today</Text>
             </View>
           ) : (
-            prepList.map((customer, index) => (
-              <View
-                key={customer.customer_id}
-                style={[
-                  styles.tableRow,
-                  index % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                ]}
-              >
-                <View style={[styles.nameCell]}>
-                  <Text style={styles.customerName} numberOfLines={1}>
-                    {customer.customer_name}
+            prepList.map((customer, index) => {
+              const isReady = readyDabbas.has(customer.customer_id) || customer.dabba_ready;
+              return (
+                <View
+                  key={customer.customer_id}
+                  style={[
+                    styles.tableRow,
+                    index % 2 === 0 ? styles.rowEven : styles.rowOdd,
+                    isReady && styles.rowReady,
+                  ]}
+                >
+                  {/* Sequence Number */}
+                  <View style={[styles.seqCell, styles.seqBadge]}>
+                    <Text style={styles.seqText}>{customer.sequence_number || index + 1}</Text>
+                  </View>
+                  
+                  {/* Ready Checkbox */}
+                  <TouchableOpacity 
+                    style={styles.checkCell}
+                    onPress={() => handleMarkReady(customer.customer_id, customer.delivery_id)}
+                  >
+                    <View style={[styles.checkbox, isReady && styles.checkboxChecked]}>
+                      {isReady && <Ionicons name="checkmark" size={16} color="#FFF" />}
+                    </View>
+                  </TouchableOpacity>
+                  
+                  {/* Customer Info */}
+                  <View style={[styles.nameCell]}>
+                    <Text style={styles.customerName} numberOfLines={1}>
+                      {customer.customer_name}
+                    </Text>
+                    <Text style={styles.customerPlan}>{customer.plan}</Text>
+                  </View>
+                  
+                  {/* Item Counts */}
+                  <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
+                    {customer.roti}
                   </Text>
-                  <Text style={styles.customerPlan}>{customer.plan}</Text>
+                  <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
+                    {customer.sabji}
+                  </Text>
+                  <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
+                    {customer.dal}
+                  </Text>
+                  <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
+                    {customer.rice}
+                  </Text>
                 </View>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.roti}
-                </Text>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.sabji}
-                </Text>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.dal}
-                </Text>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.rice}
-                </Text>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.salad}
-                </Text>
-                <Text style={[styles.cell, styles.numCell, { fontWeight: '600', color: COLORS.cream }]}>
-                  {customer.bread}
-                </Text>
-              </View>
-            ))
+              );
+            })
           )}
           
           {/* Table Footer with Totals */}
           {totals && prepList.length > 0 && (
             <View style={styles.tableFooter}>
+              <Text style={[styles.footerCell, styles.seqCell]}></Text>
+              <Text style={[styles.footerCell, styles.checkCell]}></Text>
               <Text style={[styles.footerCell, styles.nameCell]}>TOTAL</Text>
               <Text style={[styles.footerCell, styles.numCell]}>{totals.total_roti}</Text>
               <Text style={[styles.footerCell, styles.numCell]}>{totals.total_sabji_portions}</Text>
               <Text style={[styles.footerCell, styles.numCell]}>{totals.total_dal_portions}</Text>
               <Text style={[styles.footerCell, styles.numCell]}>{totals.total_rice_portions}</Text>
-              <Text style={[styles.footerCell, styles.numCell]}>{totals.total_salad_portions}</Text>
-              <Text style={[styles.footerCell, styles.numCell]}>{totals.total_bread}</Text>
             </View>
           )}
         </View>
@@ -399,6 +470,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.cream,
     padding: 16,
+    paddingBottom: 4,
+  },
+  tableSubtitle: {
+    fontSize: 12,
+    color: COLORS.textLight,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -413,6 +491,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  seqCell: {
+    width: 32,
+    textAlign: 'center',
+  },
+  seqBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seqText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.background,
+  },
+  checkCell: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.textLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.success,
+    borderColor: COLORS.success,
   },
   nameCell: {
     flex: 2,
@@ -434,6 +547,11 @@ const styles = StyleSheet.create({
   },
   rowOdd: {
     backgroundColor: COLORS.cardLight,
+  },
+  rowReady: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.success,
   },
   cell: {
     fontSize: 13,
