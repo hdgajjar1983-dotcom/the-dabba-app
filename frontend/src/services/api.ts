@@ -56,13 +56,16 @@ export const menuAPI = {
   },
 };
 
-// Subscription APIs with Smart Planner
+// Subscription APIs with Smart Planner & Dynamic Reindexing
 export const subscriptionAPI = {
   getSubscription: () => api.get('/subscription'),
   createSubscription: (data: { plan: string; delivery_address: string }) =>
     api.post('/subscription', data),
   skipMeal: (data: { date: string; meal_type: string }) =>
     api.post('/subscription/skip', data),
+  // NEW: Skip with automatic re-indexing (triggers ripple effect)
+  skipMealWithReindex: (data: { date: string; meal_type: string }) =>
+    api.post('/subscription/skip-with-reindex', data),
   setVacationMode: (data: { start_date: string; end_date: string; active?: boolean }) =>
     api.post('/subscription/vacation', data),
   getCalendar: () => api.get('/subscription/calendar'),
@@ -86,6 +89,21 @@ export const kitchenAPI = {
   getPreparationList: () => api.get('/kitchen/preparation-list'),
   updateCustomerItems: (customerId: string, items: { roti?: number; sabji?: number; dal?: number; rice?: number; salad?: number; bread?: number }) =>
     api.put(`/kitchen/customer-items/${customerId}`, items),
+  
+  // NEW: Clean Manifest (NO PRICES - pure logistics view)
+  getCleanManifest: (date?: string, filterPlan?: string) => {
+    const params: Record<string, string> = {};
+    if (date) params.date = date;
+    if (filterPlan) params.filter_plan = filterPlan;
+    return api.get('/kitchen/clean-manifest', { params });
+  },
+  
+  // NEW: Mark Dabba Ready (instant sync to drivers)
+  markDabbaReady: (deliveryId: string) => 
+    api.post(`/kitchen/mark-dabba-ready/${deliveryId}`),
+  
+  // NEW: Route Suggestions (AI-generated)
+  getRouteSuggestions: () => api.get('/admin/route-suggestions'),
   
   // Batch Totals
   getBatchTotals: () => api.get('/kitchen/batch-totals'),
@@ -145,7 +163,7 @@ export const publicAPI = {
   getCategories: () => api.get('/categories'),
 };
 
-// Driver APIs (Enhanced)
+// Driver APIs (Enhanced with Full Manifest)
 export const driverAPI = {
   getDeliveries: (lat?: number, lon?: number) => {
     const params: Record<string, string> = {};
@@ -155,12 +173,24 @@ export const driverAPI = {
     }
     return api.get('/driver/deliveries', { params });
   },
+  // NEW: Full manifest with no capping
+  getFullManifest: (lat?: number, lon?: number) => {
+    const params: Record<string, string> = {};
+    if (lat !== undefined && lon !== undefined) {
+      params.lat = lat.toString();
+      params.lon = lon.toString();
+    }
+    return api.get('/driver/full-manifest', { params });
+  },
   getOptimizedRoute: (lat: number, lon: number) => 
     api.get('/driver/optimized-route', { params: { lat, lon } }),
   updateLocation: (latitude: number, longitude: number) =>
     api.post('/driver/update-location', { latitude, longitude }),
   startDelivery: (deliveryId: string) =>
     api.put(`/driver/start-delivery/${deliveryId}`),
+  // NEW: Complete with photo - instant sync
+  completeWithPhoto: (deliveryId: string, status: string, photoBase64?: string) =>
+    api.post(`/driver/delivery/${deliveryId}/complete`, { status, photo_base64: photoBase64 }),
   completeDelivery: (deliveryId: string, status: string, photoBase64?: string) =>
     api.put(`/driver/complete-delivery/${deliveryId}`, { status, photo_base64: photoBase64 }),
   failDelivery: (deliveryId: string, reason: string = 'customer_unavailable') =>
@@ -169,6 +199,11 @@ export const driverAPI = {
     api.put(`/driver/delivery/${id}/status`, { 
       status,
       photo_base64: photoBase64 
+    }),
+  // NEW: Log delivery metrics for AI learning
+  logMetrics: (deliveryId: string, predictedEta: number, actualTime: number) =>
+    api.post('/metrics/delivery-completed', null, { 
+      params: { delivery_id: deliveryId, predicted_eta: predictedEta, actual_time: actualTime }
     }),
 };
 

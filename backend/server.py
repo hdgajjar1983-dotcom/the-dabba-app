@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -9,12 +9,14 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Set
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 import hashlib
 import math
+import json
+import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -162,6 +164,139 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+# ==================== REAL-TIME WEBSOCKET MANAGER ====================
+
+class ConnectionManager:
+    """Manages WebSocket connections for real-time updates"""
+    
+    def __init__(self):
+        # Connections organized by role and user_id
+        self.active_connections: Dict[str, Dict[str, WebSocket]] = {
+            "customer": {},
+            "driver": {},
+            "kitchen": {}
+        }
+        self.broadcast_lock = asyncio.Lock()
+    
+    async def connect(self, websocket: WebSocket, user_id: str, role: str):
+        await websocket.accept()
+        if role not in self.active_connections:
+            self.active_connections[role] = {}
+        self.active_connections[role][user_id] = websocket
+        logging.info(f"WebSocket connected: {role}/{user_id}")
+    
+    def disconnect(self, user_id: str, role: str):
+        if role in self.active_connections and user_id in self.active_connections[role]:
+            del self.active_connections[role][user_id]
+            logging.info(f"WebSocket disconnected: {role}/{user_id}")
+    
+    async def send_personal_message(self, message: dict, user_id: str, role: str):
+        """Send message to a specific user"""
+        if role in self.active_connections and user_id in self.active_connections[role]:
+            try:
+                await self.active_connections[role][user_id].send_json(message)
+            except Exception as e:
+                logging.error(f"Error sending to {role}/{user_id}: {e}")
+                self.disconnect(user_id, role)
+    
+    async def broadcast_to_role(self, message: dict, role: str):
+        """Broadcast message to all users of a specific role"""
+        async with self.broadcast_lock:
+            if role in self.active_connections:
+                disconnected = []
+                for user_id, connection in self.active_connections[role].items():
+                    try:
+                        await connection.send_json(message)
+                    except Exception:
+                        disconnected.append(user_id)
+                # Clean up disconnected
+                for user_id in disconnected:
+                    self.disconnect(user_id, role)
+    
+    async def broadcast_all(self, message: dict):
+        """Broadcast to all connected clients"""
+        for role in self.active_connections:
+            await self.broadcast_to_role(message, role)
+    
+    async def notify_delivery_update(self, delivery_id: str, status: str, customer_id: str, driver_id: str = None):
+        """Notify all relevant parties of a delivery status change"""
+        event = {
+            "event": "delivery_update",
+            "data": {
+                "delivery_id": delivery_id,
+                "status": status,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        # Notify customer
+        await self.send_personal_message(event, customer_id, "customer")
+        # Notify kitchen
+        await self.broadcast_to_role(event, "kitchen")
+        # Notify driver if specified
+        if driver_id:
+            await self.send_personal_message(event, driver_id, "driver")
+    
+    async def notify_manifest_update(self):
+        """Notify kitchen and drivers of manifest changes (skip/reindex)"""
+        event = {
+            "event": "manifest_update",
+            "data": {
+                "action": "reindex",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        await self.broadcast_to_role(event, "kitchen")
+        await self.broadcast_to_role(event, "driver")
+
+# Global connection manager
+ws_manager = ConnectionManager()
+
+# ==================== DYNAMIC INDEXING ENGINE ====================
+
+async def reindex_delivery_sequence(date_str: str):
+    """
+    Recursive re-indexing when a meal is skipped.
+    Ensures perfect 1, 2, 3... sequence with no gaps.
+    """
+    # Get all active deliveries for the date, excluding skipped
+    deliveries = await db.deliveries.find({
+        "delivery_date": date_str,
+        "status": {"$ne": "skipped"}
+    }).sort("sequence_number", 1).to_list(1000)
+    
+    # Re-assign sequence numbers
+    for idx, delivery in enumerate(deliveries, start=1):
+        if delivery.get("sequence_number") != idx:
+            await db.deliveries.update_one(
+                {"id": delivery["id"]},
+                {"$set": {"sequence_number": idx, "updated_at": datetime.now(timezone.utc)}}
+            )
+    
+    # Notify all parties of the reindex
+    await ws_manager.notify_manifest_update()
+    
+    logging.info(f"Reindexed {len(deliveries)} deliveries for {date_str}")
+    return len(deliveries)
+
+def calculate_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two GPS coordinates using Haversine formula"""
+    R = 6371  # Earth's radius in km
+    
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    
+    a = math.sin(delta_lat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    
+    return round(R * c, 2)
+
+def calculate_eta_minutes(distance_km: float, avg_speed_kmh: float = 30, buffer_minutes: int = 5) -> int:
+    """Calculate ETA in minutes: ETA = (Distance / Avg_Speed) * 60 + Buffer"""
+    travel_time = (distance_km / avg_speed_kmh) * 60
+    return int(travel_time + buffer_minutes)
 
 # ==================== AUTH ROUTES ====================
 
@@ -2928,6 +3063,351 @@ async def get_menu_knowledge_base():
         })
     
     return {"dishes": knowledge}
+
+# ==================== WEBSOCKET ENDPOINTS ====================
+
+@app.websocket("/ws/{role}/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, role: str, user_id: str):
+    """
+    Real-time WebSocket connection for live updates.
+    - /ws/customer/{user_id} - Customer portal updates
+    - /ws/driver/{user_id} - Driver portal updates
+    - /ws/kitchen/{user_id} - Kitchen portal updates
+    """
+    if role not in ["customer", "driver", "kitchen"]:
+        await websocket.close(code=4001)
+        return
+    
+    await ws_manager.connect(websocket, user_id, role)
+    try:
+        while True:
+            # Keep connection alive and handle incoming messages
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                # Handle ping/pong for keep-alive
+                if message.get("type") == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        ws_manager.disconnect(user_id, role)
+
+# ==================== ENHANCED DRIVER PORTAL - FULL MANIFEST ====================
+
+@api_router.get("/driver/full-manifest")
+async def get_driver_full_manifest(
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get the FULL daily route manifest with real-time distance and ETA.
+    No list capping - displays entire daily route.
+    """
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver access required")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get all deliveries for today, sorted by sequence
+    deliveries = await db.deliveries.find({
+        "delivery_date": today,
+        "status": {"$nin": ["skipped", "cancelled"]}
+    }).sort("sequence_number", 1).to_list(1000)
+    
+    manifest = []
+    driver_lat = lat or 44.6488  # Default: Halifax downtown
+    driver_lon = lon or -63.5752
+    
+    for delivery in deliveries:
+        # Get customer details
+        customer = await db.users.find_one({"id": delivery.get("customer_id")})
+        
+        # Calculate distance from driver's current position
+        dest_lat = delivery.get("latitude", 44.6488)
+        dest_lon = delivery.get("longitude", -63.5752)
+        distance_km = calculate_distance_km(driver_lat, driver_lon, dest_lat, dest_lon)
+        eta_minutes = calculate_eta_minutes(distance_km)
+        
+        manifest.append({
+            "delivery_id": delivery.get("id"),
+            "sequence": delivery.get("sequence_number"),
+            "customer_name": customer.get("name") if customer else "Unknown",
+            "address": delivery.get("delivery_address", customer.get("address") if customer else ""),
+            "phone": customer.get("phone") if customer else "",
+            "status": delivery.get("status"),
+            "distance_km": distance_km,
+            "eta_minutes": eta_minutes,
+            "eta_time": (datetime.now(timezone.utc) + timedelta(minutes=eta_minutes)).strftime("%I:%M %p"),
+            "items": delivery.get("items", []),
+            "special_instructions": delivery.get("special_instructions", ""),
+            "latitude": dest_lat,
+            "longitude": dest_lon,
+            "is_priority": delivery.get("is_priority", False),
+            "dabba_ready": delivery.get("dabba_ready", False)
+        })
+        
+        # Update driver position for next calculation (cumulative route)
+        driver_lat, driver_lon = dest_lat, dest_lon
+    
+    return {
+        "date": today,
+        "total_deliveries": len(manifest),
+        "completed": len([d for d in manifest if d["status"] == "delivered"]),
+        "pending": len([d for d in manifest if d["status"] != "delivered"]),
+        "manifest": manifest
+    }
+
+@api_router.post("/driver/delivery/{delivery_id}/complete")
+async def complete_delivery_with_photo(
+    delivery_id: str,
+    status_update: DeliveryStatusUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Complete delivery with proof photo - instant sync to customer.
+    """
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver access required")
+    
+    delivery = await db.deliveries.find_one({"id": delivery_id})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    update_data = {
+        "status": status_update.status,
+        "updated_at": datetime.now(timezone.utc),
+        "completed_by": current_user.get("id")
+    }
+    
+    if status_update.photo_base64:
+        update_data["proof_photo"] = status_update.photo_base64
+        update_data["photo_timestamp"] = datetime.now(timezone.utc)
+    
+    if status_update.status == "delivered":
+        update_data["delivered_at"] = datetime.now(timezone.utc)
+    
+    await db.deliveries.update_one({"id": delivery_id}, {"$set": update_data})
+    
+    # Real-time notification to customer and kitchen
+    await ws_manager.notify_delivery_update(
+        delivery_id=delivery_id,
+        status=status_update.status,
+        customer_id=delivery.get("customer_id"),
+        driver_id=current_user.get("id")
+    )
+    
+    return {"message": "Delivery updated", "status": status_update.status}
+
+# ==================== ENHANCED SKIP MEAL WITH REINDEXING ====================
+
+@api_router.post("/subscription/skip-with-reindex")
+async def skip_meal_with_reindex(skip_data: SkipMeal, current_user: dict = Depends(get_current_user)):
+    """
+    Skip a meal and trigger recursive re-indexing of all subsequent deliveries.
+    This ensures a perfect 1, 2, 3 sequence with no gaps.
+    """
+    # Get user's subscription
+    subscription = await db.subscriptions.find_one({"user_id": current_user["id"], "status": "active"})
+    if not subscription:
+        raise HTTPException(status_code=404, detail="No active subscription")
+    
+    # Check skip deadline (4 PM previous day)
+    skip_date = datetime.strptime(skip_data.date, "%Y-%m-%d")
+    deadline = skip_date - timedelta(hours=8)  # 4 PM previous day
+    
+    if datetime.now() > deadline:
+        raise HTTPException(status_code=400, detail="Skip deadline passed (4 PM previous day)")
+    
+    # Mark the delivery as skipped
+    await db.deliveries.update_one(
+        {"customer_id": current_user["id"], "delivery_date": skip_data.date},
+        {"$set": {
+            "status": "skipped",
+            "skipped_at": datetime.now(timezone.utc),
+            "sequence_number": None  # Remove from sequence
+        }}
+    )
+    
+    # Credit wallet
+    credit_amount = 12.00  # CAD per skipped meal
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$inc": {"wallet_balance": credit_amount}}
+    )
+    
+    # Log the skip
+    await db.skip_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "date": skip_data.date,
+        "meal_type": skip_data.meal_type,
+        "credit_amount": credit_amount,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # TRIGGER RECURSIVE RE-INDEXING
+    reindexed_count = await reindex_delivery_sequence(skip_data.date)
+    
+    return {
+        "message": f"Meal skipped. ${credit_amount:.2f} CAD credited. {reindexed_count} deliveries reindexed.",
+        "credit": credit_amount,
+        "reindexed": reindexed_count
+    }
+
+# ==================== KITCHEN MANIFEST - NO PRICES ====================
+
+@api_router.get("/kitchen/clean-manifest")
+async def get_kitchen_clean_manifest(
+    date: Optional[str] = None,
+    filter_plan: Optional[str] = None,  # daily, weekly, monthly
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Kitchen manifest with NO PRICES - pure logistics view.
+    Includes toggle filters for Daily/Weekly/Monthly plans.
+    """
+    if current_user.get("role") != "kitchen":
+        raise HTTPException(status_code=403, detail="Kitchen access required")
+    
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Build query
+    query = {"delivery_date": target_date, "status": {"$ne": "skipped"}}
+    
+    deliveries = await db.deliveries.find(query).sort("sequence_number", 1).to_list(1000)
+    
+    manifest = []
+    for delivery in deliveries:
+        customer = await db.users.find_one({"id": delivery.get("customer_id")})
+        subscription = await db.subscriptions.find_one({"user_id": delivery.get("customer_id"), "status": "active"})
+        
+        plan_type = subscription.get("plan_type", "daily") if subscription else "daily"
+        
+        # Filter by plan type if specified
+        if filter_plan and plan_type != filter_plan:
+            continue
+        
+        manifest.append({
+            "sequence": delivery.get("sequence_number"),
+            "customer_name": customer.get("name") if customer else "Unknown",
+            "address": delivery.get("delivery_address", ""),
+            "phone": customer.get("phone") if customer else "",
+            "plan_type": plan_type,  # daily, weekly, monthly
+            "items": delivery.get("items", []),
+            "spice_level": customer.get("spice_preference", "medium") if customer else "medium",
+            "special_instructions": delivery.get("special_instructions", ""),
+            "dabba_ready": delivery.get("dabba_ready", False),
+            "delivery_id": delivery.get("id")
+            # NO PRICE FIELDS
+        })
+    
+    return {
+        "date": target_date,
+        "total": len(manifest),
+        "by_plan": {
+            "daily": len([m for m in manifest if m["plan_type"] == "daily"]),
+            "weekly": len([m for m in manifest if m["plan_type"] == "weekly"]),
+            "monthly": len([m for m in manifest if m["plan_type"] == "monthly"])
+        },
+        "manifest": manifest
+    }
+
+@api_router.post("/kitchen/mark-dabba-ready/{delivery_id}")
+async def mark_dabba_ready(delivery_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Mark a dabba as prepared - syncs instantly to Driver's app.
+    """
+    if current_user.get("role") != "kitchen":
+        raise HTTPException(status_code=403, detail="Kitchen access required")
+    
+    result = await db.deliveries.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "dabba_ready": True,
+            "ready_at": datetime.now(timezone.utc),
+            "prepared_by": current_user.get("id")
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    # Notify driver in real-time
+    await ws_manager.broadcast_to_role({
+        "event": "dabba_ready",
+        "data": {"delivery_id": delivery_id, "timestamp": datetime.now(timezone.utc).isoformat()}
+    }, "driver")
+    
+    return {"message": "Dabba marked as ready", "delivery_id": delivery_id}
+
+# ==================== PERFORMANCE METRICS FOR SELF-LEARNING ====================
+
+@api_router.post("/metrics/delivery-completed")
+async def log_delivery_metrics(
+    delivery_id: str,
+    predicted_eta: int,  # minutes
+    actual_time: int,  # minutes
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Log delivery performance for AI self-learning.
+    System uses this data to improve ETA predictions daily.
+    """
+    delivery = await db.deliveries.find_one({"id": delivery_id})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    variance = actual_time - predicted_eta
+    variance_percent = (variance / predicted_eta * 100) if predicted_eta > 0 else 0
+    
+    await db.delivery_metrics.insert_one({
+        "id": str(uuid.uuid4()),
+        "delivery_id": delivery_id,
+        "address": delivery.get("delivery_address"),
+        "predicted_eta": predicted_eta,
+        "actual_time": actual_time,
+        "variance_minutes": variance,
+        "variance_percent": round(variance_percent, 2),
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # Check if this address consistently causes delays
+    recent_metrics = await db.delivery_metrics.find({
+        "address": delivery.get("delivery_address"),
+        "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=3)}
+    }).to_list(100)
+    
+    if len(recent_metrics) >= 3:
+        avg_variance = sum(m.get("variance_percent", 0) for m in recent_metrics) / len(recent_metrics)
+        if avg_variance > 15:  # More than 15% delay on average
+            # Log suggestion for admin
+            await db.route_suggestions.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": "delay_pattern",
+                "address": delivery.get("delivery_address"),
+                "avg_delay_percent": round(avg_variance, 2),
+                "suggestion": f"Consider earlier start time or route reorder for {delivery.get('delivery_address')}",
+                "created_at": datetime.now(timezone.utc),
+                "reviewed": False
+            })
+    
+    return {"message": "Metrics logged", "variance_percent": round(variance_percent, 2)}
+
+@api_router.get("/admin/route-suggestions")
+async def get_route_suggestions(current_user: dict = Depends(get_current_user)):
+    """Get AI-generated route optimization suggestions"""
+    if current_user.get("role") != "kitchen":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    suggestions = await db.route_suggestions.find({"reviewed": False}).sort("created_at", -1).to_list(50)
+    
+    return {
+        "suggestions": [{k: v for k, v in s.items() if k != "_id"} for s in suggestions],
+        "total": len(suggestions)
+    }
 
 # Include the router (MUST be after all route definitions)
 app.include_router(api_router)

@@ -1,77 +1,90 @@
 # The Dabba - Premium Tiffin Delivery Ecosystem PRD
 
 ## Original Problem Statement
-Build "The Dabba" - Nova Scotia's most competitive premium tiffin delivery app with AI-powered customer support, intelligent planning, and Halifax localization.
+Build "The Dabba" - Nova Scotia's most competitive premium tiffin delivery app with AI-powered customer support, intelligent planning, and Halifax localization. Now evolving into a **Self-Evolving Logistics Ecosystem**.
 
 ## Current Build
-- **Version**: 1.2.0
-- **Build Number**: 16
-- **Status**: COMPLETE ECOSYSTEM + UI/UX REVISIONS
+- **Version**: 2.0.0
+- **Build Number**: 17
+- **Status**: PHASE 1 COMPLETE - Real-time Infrastructure
 
 ## What's Been Implemented
 
-### 🎨 UI/UX Revisions (Mar 10, 2025)
+### 🚀 Phase 1: Self-Evolving Logistics Foundation (Mar 11, 2025)
 
-#### Kitchen Portal Redesign
-- **Hero Card**: Premium gradient card showing today's orders with animated counter and progress bar
-- **Stats Row**: 3 mini stat cards (Customers, Active Plans, Dishes) with color-coded icons
-- **Quick Actions**: 2x2 grid with Add Dish, Set Menu, Plans, Orders
-- **New Plans Page**: Full CRUD for subscription plans with inline editing
-  - Edit plan name, price, description inline
-  - Toggle active/inactive status
-  - Delete with confirmation
-  - Add new plan modal
+#### Real-Time WebSocket Infrastructure
+- **WebSocket Manager**: Full duplex communication at `/ws/{role}/{user_id}`
+- **< 1 second latency**: Status changes propagate instantly across all portals
+- **Auto-reconnect**: Exponential backoff with 5 retry attempts
+- **Ping/pong keep-alive**: 30-second heartbeat
 
-#### Customer Portal Menu Display
-- **MenuItemCard Component**: Beautiful card for each menu item with:
-  - Category icon (roti, sabji, dal, rice, salad, extra)
-  - Color-coded backgrounds per category
-  - Item name and quantity badge
-- **Quick Stats Bar**: Shows totals by category at bottom of each day
-- **Date Circle**: Enhanced date display with day/month
+#### Dynamic Skip-Logic with Reindexing
+- **Recursive Re-indexing**: When User #7 skips, User #8 becomes #7, etc.
+- **Perfect sequences**: No gaps in delivery sequence (1, 2, 3...)
+- **Instant propagation**: Kitchen Prep List, Driver Manifest, Print Labels all sync
+- **Auto-credit**: $12 CAD credited to wallet on skip
 
-### 🤖 Tiffin Concierge AI Chatbot (Mar 10, 2025)
-- **Powered by**: GPT-5.2 via Emergent LLM Key
-- **Personality**: Friendly Halifax-based assistant
-- **Capabilities**:
-  - [x] Check wallet balance
-  - [x] Skip meals with confirmation
-  - [x] Update spice preferences (mild/medium/spicy)
-  - [x] Track deliveries in real-time
-  - [x] Weather-aware responses
-  - [x] Human handover escalation
-  - [x] Menu knowledge base
-- **UI**: Floating chat button on Customer Portal
-- **Quick Actions**: Track food, Skip tomorrow, Check wallet, Spice complaints
+#### Driver Full Manifest
+- **No list capping**: Full daily route displayed
+- **Real-time GPS distance**: Haversine formula calculates km
+- **Live ETA**: `ETA = Current_Time + (Distance/Avg_Speed) + Buffer`
+- **Cumulative routing**: Each stop updates position for next calculation
 
-### Previous Implementations
-- 7-Day Dinner Discovery slider
-- Halifax Weather Alerts (normal/caution/warning/severe)
-- Spice Level preferences
-- Add-on Marketplace (8 items: Lassi, Gulab Jamun, Samosa, etc.)
-- "Rate My Dinner" emoji feedback
-- Ingredient Forecast for Kitchen
-- Modular Meal Builder
-- Halifax Test Data (10 addresses)
-- Credit System with auto-deductions
-- Premium animations and haptics
+#### Kitchen Clean Manifest
+- **NO PRICES**: Pure logistics view (no $ amounts)
+- **Plan filters**: Toggle Daily/Weekly/Monthly subscriptions
+- **Dabba Ready**: Check-in system syncs to Driver instantly
 
-## API Endpoints
+#### Performance Metrics & Self-Learning
+- **Delivery logging**: Predicted vs Actual time recorded
+- **15% delay detection**: Auto-generates route suggestions
+- **Route optimization**: AI suggests earlier start times
 
-### Kitchen Plans APIs
+### API Endpoints Added
 ```
-GET  /api/kitchen/plans       - Get all subscription plans
-POST /api/kitchen/plans       - Create new plan
-PUT  /api/kitchen/plans/{id}  - Update plan (name, price, description)
-DELETE /api/kitchen/plans/{id} - Delete plan
+WebSocket: /ws/{role}/{user_id}
+GET  /api/driver/full-manifest - Full route with GPS & ETA
+POST /api/driver/delivery/{id}/complete - Complete with photo
+POST /api/subscription/skip-with-reindex - Skip + reindex sequence
+GET  /api/kitchen/clean-manifest - No-price logistics view
+POST /api/kitchen/mark-dabba-ready/{id} - Sync to drivers
+POST /api/metrics/delivery-completed - Log for AI learning
+GET  /api/admin/route-suggestions - AI optimization suggestions
 ```
 
-### AI Chatbot APIs
+## Remaining Phases
+
+### Phase 2: Driver Portal UI Overhaul
+- [ ] Full route manifest UI (remove "Next 3" cap)
+- [ ] Live distance/ETA display per stop
+- [ ] Delivery photo capture with instant sync
+- [ ] Proof-of-delivery gallery for customers
+
+### Phase 3: Security & Intelligence
+- [ ] 2FA onboarding (Email + SMS OTP via Twilio)
+- [ ] Ghost user prevention (inactive until verified)
+- [ ] Nightly maintenance scripts (12:00 AM)
+- [ ] Business Intelligence reports
+- [ ] 1% daily accuracy improvement tracking
+
+## Architecture
 ```
-POST /api/chat/concierge      - Chat with Tiffin Concierge AI
-GET  /api/chat/history        - Get user's chat history
-GET  /api/kitchen/quality-alerts - AI-summarized customer feedback
-GET  /api/menu/knowledge-base - Full menu for AI knowledge base
+/app
+├── backend/
+│   ├── server.py (~3300 lines)
+│   │   ├── WebSocket Manager (ConnectionManager class)
+│   │   ├── Dynamic Indexing Engine (reindex_delivery_sequence)
+│   │   ├── GPS/ETA Calculations (Haversine)
+│   │   └── Performance Metrics logging
+│   └── .env
+├── frontend/
+│   ├── src/services/
+│   │   ├── api.ts (enhanced with new APIs)
+│   │   └── realtime.ts (NEW - WebSocket client)
+│   ├── app/
+│   │   ├── (customer)/ - Customer Portal
+│   │   ├── (kitchen)/ - Kitchen Portal
+│   │   └── (driver)/ - Driver Portal
 ```
 
 ## Test Credentials
@@ -79,40 +92,6 @@ GET  /api/menu/knowledge-base - Full menu for AI knowledge base
 - **Kitchen**: `kitchen@dabba.com` / `kitchen123`
 - **Driver**: `driver@dabba.com` / `driver123`
 
-## Architecture
-```
-/app
-├── backend/
-│   ├── .env (includes EMERGENT_LLM_KEY)
-│   └── server.py (~3000 lines - needs refactoring)
-├── frontend/
-│   ├── app/
-│   │   ├── (customer)/ - Customer Portal
-│   │   │   └── index.tsx (MenuItemCard, DayCard components)
-│   │   ├── (kitchen)/ - Kitchen Portal  
-│   │   │   ├── index.tsx (Hero card, redesigned home)
-│   │   │   └── plans.tsx (NEW - Plan management page)
-│   │   ├── (driver)/ - Driver Portal
-│   │   └── components/
-│   │       └── TiffinConcierge.tsx - AI Chatbot Widget
-│   └── src/services/api.ts
-```
-
-## Remaining Work
-
-### P1 - High Priority
-- [x] Kitchen Portal UI redesign ✅
-- [x] Kitchen Plans editing page ✅
-- [x] Customer menu beautiful display ✅
-- [ ] iOS Certificate renewal (Apple Developer Portal)
-- [ ] Driver slide-to-deliver animation fix
-
-### P2 - Medium Priority
-- [ ] Production deployment for 24/7 access
-- [ ] Backend refactoring (break down server.py)
-- [ ] MongoDB persistent storage
-- [ ] Website integration of chat widget
-
 ## URLs
 - Preview: https://halifax-meal-planner.preview.emergentagent.com/
-- Target domain: thadabba.ca
+- WebSocket: wss://halifax-meal-planner.preview.emergentagent.com/ws/{role}/{user_id}
