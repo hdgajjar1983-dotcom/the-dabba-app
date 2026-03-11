@@ -77,8 +77,7 @@
     "extra": {
       "eas": {
         "projectId": "3476b33a-d63b-4572-a172-fa3415e8bffb"
-      },
-      "apiUrl": "https://halifax-meal-planner.preview.emergentagent.com/api"
+      }
     },
     "owner": "thedabba"
   }

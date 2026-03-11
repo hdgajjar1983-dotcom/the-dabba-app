@@ -2,17 +2,18 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Get API URL from Expo config or environment
+// Get API URL from environment - NO hardcoded fallbacks for production
 const getApiUrl = () => {
-  // Try expo config first
+  // Try expo config first (for EAS builds)
   const configUrl = Constants.expoConfig?.extra?.apiUrl;
   if (configUrl) return configUrl;
   
-  // Fallback to environment variable for Expo Go
+  // Use environment variable (set in eas.json for production)
   const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
   if (envUrl) return `${envUrl}/api`;
   
-  // Default for development
+  // For local development only - this will be overridden in production builds
+  console.warn('No API URL configured - using preview URL');
   return 'https://halifax-meal-planner.preview.emergentagent.com/api';
 };
 
