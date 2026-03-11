@@ -801,7 +801,7 @@ function initTrackingMap() {
     }
     
     // Mapbox public token for demo (replace with your own for production)
-    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+    mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94LWRlbW8iLCJhIjoiY2x4ZHV6aWRuMGR1eDJxcXQ5OWJyMXJweSJ9.demo-token-replace-me';
     
     // Halifax coordinates
     const halifaxCenter = [-63.5752, 44.6488];
