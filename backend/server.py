@@ -2808,7 +2808,8 @@ logger = logging.getLogger(__name__)
 
 # ==================== TIFFIN CONCIERGE AI CHATBOT ====================
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+# Using litellm for OpenAI compatibility (works with EMERGENT_LLM_KEY)
+import litellm
 
 CONCIERGE_SYSTEM_PROMPT = """You are the Tiffin Concierge, a friendly AI assistant for "The Dabba" - Halifax's premium tiffin delivery service. 
 
@@ -2871,7 +2872,8 @@ async def chat_with_concierge(
     import json
     import re
     
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    # Get API key - support both EMERGENT_LLM_KEY and OPENAI_API_KEY
+    api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="AI service not configured")
     
@@ -2905,16 +2907,30 @@ async def chat_with_concierge(
     history.reverse()
     
     try:
-        # Initialize chat
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=session_id,
-            system_message=CONCIERGE_SYSTEM_PROMPT
-        ).with_model("openai", "gpt-5.2")
+        # Use litellm for OpenAI-compatible API
+        messages = [
+            {"role": "system", "content": CONCIERGE_SYSTEM_PROMPT},
+        ]
         
-        # Send message
-        user_message = UserMessage(text=context)
-        ai_response = await chat.send_message(user_message)
+        # Add history
+        for h in history:
+            messages.append({
+                "role": h.get("role", "user"),
+                "content": h.get("content", "")
+            })
+        
+        # Add current message with context
+        messages.append({"role": "user", "content": context})
+        
+        # Call OpenAI via litellm
+        response = await litellm.acompletion(
+            model="gpt-4o-mini",
+            messages=messages,
+            api_key=api_key,
+            max_tokens=500
+        )
+        
+        ai_response = response.choices[0].message.content
         
         # Save to history
         await db.chat_history.insert_one({
