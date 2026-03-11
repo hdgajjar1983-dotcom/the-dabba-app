@@ -2814,8 +2814,8 @@ logger = logging.getLogger(__name__)
 
 # ==================== TIFFIN CONCIERGE AI CHATBOT ====================
 
-# Using litellm for OpenAI compatibility (works with EMERGENT_LLM_KEY)
-import litellm
+# Using OpenAI SDK directly
+from openai import AsyncOpenAI
 
 CONCIERGE_SYSTEM_PROMPT = """You are the Tiffin Concierge, a friendly AI assistant for "The Dabba" - Halifax's premium tiffin delivery service. 
 
@@ -2913,7 +2913,9 @@ async def chat_with_concierge(
     history.reverse()
     
     try:
-        # Use litellm for OpenAI-compatible API
+        # Use OpenAI SDK
+        client = AsyncOpenAI(api_key=api_key)
+        
         messages = [
             {"role": "system", "content": CONCIERGE_SYSTEM_PROMPT},
         ]
@@ -2928,11 +2930,10 @@ async def chat_with_concierge(
         # Add current message with context
         messages.append({"role": "user", "content": context})
         
-        # Call OpenAI via litellm
-        response = await litellm.acompletion(
+        # Call OpenAI
+        response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            api_key=api_key,
             max_tokens=500
         )
         
