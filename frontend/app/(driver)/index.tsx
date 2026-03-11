@@ -58,8 +58,12 @@ interface Delivery {
   subscription_plan?: string;
   distance: number;
   estimated_time: number;
+  eta_time?: string;
   latitude?: number;
   longitude?: number;
+  is_priority?: boolean;
+  dabba_ready?: boolean;
+  special_instructions?: string;
 }
 
 export default function DriverDeliveries() {
@@ -179,17 +183,41 @@ export default function DriverDeliveries() {
 
   const fetchDeliveries = useCallback(async () => {
     try {
-      // Use optimized route API for better sorting
+      // Use FULL MANIFEST API - no list capping
       if (driverLocation) {
-        const response = await driverAPI.getOptimizedRoute(
+        const response = await driverAPI.getFullManifest(
           driverLocation.latitude,
           driverLocation.longitude
         );
-        let deliveryList = response.data.route || [];
+        const manifestData = response.data;
+        let deliveryList = manifestData.manifest || [];
+        
+        // Map to expected format
+        deliveryList = deliveryList.map((d: any) => ({
+          id: d.delivery_id,
+          delivery_id: d.delivery_id,
+          delivery_number: d.sequence,
+          route_order: d.sequence,
+          customer_name: d.customer_name,
+          customer_phone: d.phone,
+          address: d.address,
+          status: d.status,
+          subscription_plan: d.plan_type || 'standard',
+          distance: d.distance_km,
+          estimated_time: d.eta_minutes,
+          eta_time: d.eta_time,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          is_priority: d.is_priority,
+          dabba_ready: d.dabba_ready,
+          special_instructions: d.special_instructions,
+        }));
+        
         setAllDeliveries(deliveryList);
         setPendingDeliveries(deliveryList.filter((d: any) => 
-          d.status === 'ready' || d.status === 'out_for_delivery'
+          d.status !== 'delivered' && d.status !== 'failed'
         ));
+        setCompletedToday(manifestData.completed || 0);
       }
     } catch (error) {
       // Fallback to regular API
@@ -514,23 +542,46 @@ export default function DriverDeliveries() {
               </TouchableOpacity>
             </View>
 
-            {/* Upcoming Deliveries */}
+            {/* FULL Route Manifest - NO LIMIT */}
             {pendingDeliveries.length > 1 && (
               <View style={styles.upcomingSection}>
-                <Text style={styles.upcomingTitle}>Coming Up</Text>
-                {pendingDeliveries.slice(1, 4).map((delivery, index) => (
-                  <View key={delivery.id} style={styles.upcomingCard}>
-                    <View style={styles.upcomingNumber}>
+                <View style={styles.manifestHeader}>
+                  <Text style={styles.upcomingTitle}>Full Route</Text>
+                  <Text style={styles.manifestCount}>{pendingDeliveries.length - 1} remaining</Text>
+                </View>
+                {pendingDeliveries.slice(1).map((delivery, index) => (
+                  <View key={delivery.id} style={[
+                    styles.upcomingCard,
+                    delivery.dabba_ready && styles.dabbaReadyCard
+                  ]}>
+                    <View style={[
+                      styles.upcomingNumber,
+                      delivery.is_priority && styles.priorityNumber
+                    ]}>
                       <Text style={styles.upcomingNumberText}>{index + 2}</Text>
                     </View>
                     <View style={styles.upcomingInfo}>
-                      <Text style={styles.upcomingName}>{delivery.customer_name}</Text>
+                      <View style={styles.upcomingNameRow}>
+                        <Text style={styles.upcomingName}>{delivery.customer_name}</Text>
+                        {delivery.dabba_ready && (
+                          <View style={styles.readyBadge}>
+                            <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
+                            <Text style={styles.readyBadgeText}>Ready</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.upcomingAddress} numberOfLines={1}>
                         {delivery.address}
                       </Text>
+                      {delivery.special_instructions && (
+                        <Text style={styles.specialInstructions} numberOfLines={1}>
+                          Note: {delivery.special_instructions}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.upcomingMeta}>
                       <Text style={styles.upcomingDistance}>{delivery.distance} km</Text>
+                      <Text style={styles.upcomingEta}>{delivery.eta_time || `${delivery.estimated_time} min`}</Text>
                     </View>
                   </View>
                 ))}
@@ -1004,6 +1055,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
   },
+  upcomingNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   upcomingName: {
     fontSize: 15,
     fontWeight: '600',
@@ -1014,6 +1070,12 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 4,
   },
+  specialInstructions: {
+    fontSize: 11,
+    color: COLORS.warning,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
   upcomingMeta: {
     alignItems: 'flex-end',
   },
@@ -1021,6 +1083,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  upcomingEta: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  manifestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  manifestCount: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  dabbaReadyCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.success,
+  },
+  priorityNumber: {
+    backgroundColor: COLORS.warning,
+  },
+  readyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(6, 193, 103, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+  },
+  readyBadgeText: {
+    fontSize: 10,
+    color: COLORS.success,
+    fontWeight: '600',
   },
   offlineState: {
     alignItems: 'center',
