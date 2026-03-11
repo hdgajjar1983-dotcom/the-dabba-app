@@ -2709,10 +2709,14 @@ app.add_middleware(
 WEBSITE_DIR = Path(__file__).parent.parent / "website"
 APP_DIR = WEBSITE_DIR / "app"
 
+# Only mount static files if directories exist (for Render deployment)
 if WEBSITE_DIR.exists():
-    app.mount("/css", StaticFiles(directory=WEBSITE_DIR / "css"), name="css")
-    app.mount("/js", StaticFiles(directory=WEBSITE_DIR / "js"), name="js")
-    app.mount("/assets", StaticFiles(directory=WEBSITE_DIR / "assets"), name="assets")
+    if (WEBSITE_DIR / "css").exists():
+        app.mount("/css", StaticFiles(directory=WEBSITE_DIR / "css"), name="css")
+    if (WEBSITE_DIR / "js").exists():
+        app.mount("/js", StaticFiles(directory=WEBSITE_DIR / "js"), name="js")
+    if (WEBSITE_DIR / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=WEBSITE_DIR / "assets"), name="assets")
     
     @app.get("/")
     async def serve_homepage():
@@ -2733,8 +2737,10 @@ if WEBSITE_DIR.exists():
 # Mount the mobile app web version
 if APP_DIR.exists():
     # Mount static directories first
-    app.mount("/app/_expo", StaticFiles(directory=APP_DIR / "_expo"), name="app_expo")
-    app.mount("/app/assets", StaticFiles(directory=APP_DIR / "assets"), name="app_assets")
+    if (APP_DIR / "_expo").exists():
+        app.mount("/app/_expo", StaticFiles(directory=APP_DIR / "_expo"), name="app_expo")
+    if (APP_DIR / "assets").exists():
+        app.mount("/app/assets", StaticFiles(directory=APP_DIR / "assets"), name="app_assets")
     
 # App routes - Serve specific HTML files for the Expo web export
 @app.get("/app/login")
