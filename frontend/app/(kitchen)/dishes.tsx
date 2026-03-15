@@ -34,6 +34,9 @@ interface Dish {
   name: string;
   description: string;
   type: string;
+  category: string;
+  quantity_per_tiffin: number;
+  unit: string;
   price: number;
   image_url?: string;
 }
@@ -50,7 +53,9 @@ export default function DishesManagement() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('vegetarian');
-  const [price, setPrice] = useState('120');
+  const [category, setCategory] = useState('Main Dishes');
+  const [quantity, setQuantity] = useState('1');
+  const [unit, setUnit] = useState('portion');
 
   const fetchDishes = useCallback(async () => {
     try {
@@ -78,7 +83,9 @@ export default function DishesManagement() {
     setName('');
     setDescription('');
     setType('vegetarian');
-    setPrice('120');
+    setCategory('Main Dishes');
+    setQuantity('1');
+    setUnit('portion');
     setShowModal(true);
   };
 
@@ -87,7 +94,9 @@ export default function DishesManagement() {
     setName(dish.name);
     setDescription(dish.description);
     setType(dish.type);
-    setPrice(dish.price.toString());
+    setCategory(dish.category || 'Main Dishes');
+    setQuantity((dish.quantity_per_tiffin || 1).toString());
+    setUnit(dish.unit || 'portion');
     setShowModal(true);
   };
 
@@ -103,7 +112,9 @@ export default function DishesManagement() {
         name: name.trim(),
         description: description.trim(),
         type,
-        price: parseFloat(price) || 120,
+        category,
+        quantity_per_tiffin: parseFloat(quantity) || 1,
+        unit,
       };
 
       if (editingDish) {
@@ -177,7 +188,7 @@ export default function DishesManagement() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Manage Dabba</Text>
+        <Text style={styles.title}>Manage Items</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.seedButton} onPress={handleSeedDishes}>
             <Ionicons name="flash" size={18} color={COLORS.gold} />
@@ -216,8 +227,14 @@ export default function DishesManagement() {
                       <Ionicons name="leaf" size={12} color={COLORS.success} />
                       <Text style={styles.typeText}>{dish.type}</Text>
                     </View>
-                    {/* Price removed from Kitchen view - logistics only */}
+                    <View style={[styles.typeBadge, { backgroundColor: '#E3F2FD' }]}>
+                      <Ionicons name="folder" size={12} color={COLORS.info} />
+                      <Text style={[styles.typeText, { color: COLORS.info }]}>{dish.category || 'Uncategorized'}</Text>
+                    </View>
                   </View>
+                  {dish.quantity_per_tiffin && (
+                    <Text style={styles.quantityText}>{dish.quantity_per_tiffin} {dish.unit || 'portion'} per tiffin</Text>
+                  )}
                 </View>
                 <View style={styles.dishActions}>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(dish)}>
@@ -240,7 +257,7 @@ export default function DishesManagement() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingDish ? 'Edit Dish' : 'Add New Dish'}
+                {editingDish ? 'Edit Item' : 'Add New Item'}
               </Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={28} color={COLORS.text} />
@@ -249,7 +266,7 @@ export default function DishesManagement() {
 
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Dish Name</Text>
+                <Text style={styles.label}>Item Name</Text>
                 <TextInput
                   style={styles.input}
                   value={name}
@@ -265,7 +282,7 @@ export default function DishesManagement() {
                   style={[styles.input, styles.textArea]}
                   value={description}
                   onChangeText={setDescription}
-                  placeholder="Describe the dish and what's included..."
+                  placeholder="Describe the item..."
                   placeholderTextColor={COLORS.textLight}
                   multiline
                   numberOfLines={3}
@@ -296,7 +313,51 @@ export default function DishesManagement() {
                 </View>
               </View>
 
-              {/* Price input removed - Kitchen is logistics only, no pricing */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Category</Text>
+                <View style={styles.typeSelector}>
+                  {['Breads', 'Main Dishes', 'Dals & Kathol', 'Rice & Grains', 'Sides & Drinks', 'Desserts'].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryChip, category === cat && styles.categoryChipActive]}
+                      onPress={() => setCategory(cat)}
+                    >
+                      <Text style={[styles.categoryChipText, category === cat && styles.categoryChipTextActive]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Quantity per Tiffin</Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={quantity}
+                    onChangeText={setQuantity}
+                    placeholder="1"
+                    keyboardType="decimal-pad"
+                    placeholderTextColor={COLORS.textLight}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <View style={[styles.typeSelector, { flexWrap: 'wrap' }]}>
+                      {['portion', 'pieces', 'grams'].map((u) => (
+                        <TouchableOpacity
+                          key={u}
+                          style={[styles.categoryChip, unit === u && styles.categoryChipActive]}
+                          onPress={() => setUnit(u)}
+                        >
+                          <Text style={[styles.categoryChipText, unit === u && styles.categoryChipTextActive]}>
+                            {u}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </View>
 
               <TouchableOpacity
                 style={[styles.saveButton, isSubmitting && styles.buttonDisabled]}
@@ -307,7 +368,7 @@ export default function DishesManagement() {
                   <ActivityIndicator color={COLORS.goldLight} />
                 ) : (
                   <Text style={styles.saveButtonText}>
-                    {editingDish ? 'Update Dish' : 'Add Dish'}
+                    {editingDish ? 'Update Item' : 'Add Item'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -538,6 +599,34 @@ const styles = StyleSheet.create({
   },
   typeOptionTextActive: {
     color: COLORS.card,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.maroon,
+    borderColor: COLORS.maroon,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  categoryChipTextActive: {
+    color: COLORS.card,
+  },
+  quantityText: {
+    fontSize: 12,
+    color: COLORS.info,
+    marginTop: 4,
+    fontWeight: '500',
   },
   saveButton: {
     backgroundColor: COLORS.maroon,

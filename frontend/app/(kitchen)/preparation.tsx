@@ -34,6 +34,7 @@ interface CustomerItem {
   phone: string;
   address: string;
   plan: string;
+  plan_type: string;
   roti: number;
   sabji: number;
   dal: number;
@@ -41,6 +42,10 @@ interface CustomerItem {
   salad: number;
   bread: number;
   notes: string;
+  total_skips: number;
+  recent_skips: number;
+  last_skip_date: string | null;
+  subscription_start: string;
   sequence_number?: number;
   expected_delivery?: string;
   dabba_ready?: boolean;
@@ -225,7 +230,7 @@ export default function PreparationScreen() {
                   <Text style={styles.totalValueLarge}>
                     {totals.total_dal_portions} portions = {totals.total_dal_kg} kg
                   </Text>
-                  <Text style={styles.totalSubtext}>({totals.total_dal_grams}g @ 227g each)</Text>
+                  <Text style={styles.totalSubtext}>({totals.total_dal_grams}g @ 340g / 12oz each)</Text>
                 </View>
               </View>
             </View>
@@ -303,7 +308,19 @@ export default function PreparationScreen() {
                     <Text style={styles.customerName} numberOfLines={1}>
                       {customer.customer_name}
                     </Text>
-                    <Text style={styles.customerPlan}>{customer.plan}</Text>
+                    <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <View style={[styles.planBadge, { backgroundColor: customer.plan_type === 'daily' ? '#FFF3E0' : customer.plan_type === 'yearly' ? '#E8F5E9' : '#E3F2FD' }]}>
+                        <Text style={[styles.planBadgeText, { color: customer.plan_type === 'daily' ? '#E65100' : customer.plan_type === 'yearly' ? '#2E7D32' : '#1565C0' }]}>
+                          {(customer.plan_type || 'W').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <Text style={styles.customerPlan}>{customer.plan}</Text>
+                      {customer.total_skips > 0 && (
+                        <View style={styles.skipBadge}>
+                          <Text style={styles.skipBadgeText}>{customer.recent_skips} skip{customer.recent_skips !== 1 ? 's' : ''}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                   
                   {/* Item Counts */}
@@ -566,6 +583,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.gold,
     marginTop: 2,
+  },
+  planBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  planBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  skipBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  skipBadgeText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: COLORS.warning,
   },
   numValue: {
     fontWeight: '600',

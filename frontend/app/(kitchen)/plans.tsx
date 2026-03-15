@@ -50,6 +50,7 @@ interface Plan {
   price: number;
   description?: string;
   features?: string[];
+  plan_type?: string;
   is_active: boolean;
 }
 
@@ -69,6 +70,7 @@ const PlanCard = ({
   const [editName, setEditName] = useState(plan.name);
   const [editPrice, setEditPrice] = useState(plan.price.toString());
   const [editDesc, setEditDesc] = useState(plan.description || '');
+  const [editPlanType, setEditPlanType] = useState(plan.plan_type || 'weekly');
   
   const scale = useSharedValue(1);
   
@@ -92,6 +94,7 @@ const PlanCard = ({
       name: editName.trim(),
       price,
       description: editDesc.trim() || undefined,
+      plan_type: editPlanType,
     });
     setIsEditing(false);
   };
@@ -100,6 +103,7 @@ const PlanCard = ({
     setEditName(plan.name);
     setEditPrice(plan.price.toString());
     setEditDesc(plan.description || '');
+    setEditPlanType(plan.plan_type || 'weekly');
     setIsEditing(false);
   };
 
@@ -174,6 +178,28 @@ const PlanCard = ({
             />
           </View>
           
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Plan Duration</Text>
+            <View style={styles.planTypeRow}>
+              {(['daily', 'weekly', 'yearly'] as const).map((pt) => (
+                <TouchableOpacity
+                  key={pt}
+                  style={[styles.planTypeChip, editPlanType === pt && styles.planTypeChipActive]}
+                  onPress={() => setEditPlanType(pt)}
+                >
+                  <Ionicons 
+                    name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : 'calendar-outline'} 
+                    size={16} 
+                    color={editPlanType === pt ? '#FFF' : COLORS.maroon} 
+                  />
+                  <Text style={[styles.planTypeChipText, editPlanType === pt && styles.planTypeChipTextActive]}>
+                    {pt.charAt(0).toUpperCase() + pt.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          
           <View style={styles.editActions}>
             <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -194,10 +220,13 @@ const PlanCard = ({
               </Text>
               <View style={styles.priceContainer}>
                 <Text style={styles.planPrice}>${plan.price.toFixed(2)}</Text>
-                <Text style={styles.priceUnit}>/week</Text>
+                <Text style={styles.priceUnit}>/{plan.plan_type || 'week'}</Text>
               </View>
             </View>
             <View style={styles.planActions}>
+              <View style={styles.planTypeBadge}>
+                <Text style={styles.planTypeBadgeText}>{(plan.plan_type || 'weekly').toUpperCase()}</Text>
+              </View>
               <TouchableOpacity 
                 style={[styles.toggleBtn, plan.is_active && styles.toggleBtnActive]} 
                 onPress={handleToggleActive}
@@ -264,11 +293,12 @@ const AddPlanModal = ({
 }: {
   visible: boolean;
   onClose: () => void;
-  onAdd: (data: { name: string; price: number; description?: string }) => void;
+  onAdd: (data: { name: string; price: number; description?: string; plan_type?: string }) => void;
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [planType, setPlanType] = useState('weekly');
 
   const handleAdd = () => {
     const priceNum = parseFloat(price);
@@ -286,12 +316,14 @@ const AddPlanModal = ({
       name: name.trim(),
       price: priceNum,
       description: description.trim() || undefined,
+      plan_type: planType,
     });
     
     // Reset form
     setName('');
     setPrice('');
     setDescription('');
+    setPlanType('weekly');
     onClose();
   };
 
@@ -348,6 +380,28 @@ const AddPlanModal = ({
                 numberOfLines={4}
               />
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Plan Duration *</Text>
+              <View style={styles.planTypeRow}>
+                {(['daily', 'weekly', 'yearly'] as const).map((pt) => (
+                  <TouchableOpacity
+                    key={pt}
+                    style={[styles.planTypeChip, planType === pt && styles.planTypeChipActive]}
+                    onPress={() => setPlanType(pt)}
+                  >
+                    <Ionicons 
+                      name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : 'calendar-outline'} 
+                      size={16} 
+                      color={planType === pt ? '#FFF' : COLORS.maroon} 
+                    />
+                    <Text style={[styles.planTypeChipText, planType === pt && styles.planTypeChipTextActive]}>
+                      {pt.charAt(0).toUpperCase() + pt.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </ScrollView>
           
           <TouchableOpacity style={styles.addPlanBtn} onPress={handleAdd}>
@@ -366,6 +420,7 @@ export default function KitchenPlans() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [filterType, setFilterType] = useState<string>('all');
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -414,7 +469,7 @@ export default function KitchenPlans() {
     }
   };
 
-  const handleAddPlan = async (data: { name: string; price: number; description?: string }) => {
+  const handleAddPlan = async (data: { name: string; price: number; description?: string; plan_type?: string }) => {
     try {
       await kitchenAPI.createPlan({
         ...data,
@@ -429,6 +484,7 @@ export default function KitchenPlans() {
   };
 
   const activePlans = plans.filter(p => p.is_active).length;
+  const filteredPlans = filterType === 'all' ? plans : plans.filter(p => (p.plan_type || 'weekly') === filterType);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -473,6 +529,30 @@ export default function KitchenPlans() {
           </Text>
         </Animated.View>
 
+        {/* Filter Tabs */}
+        <Animated.View entering={FadeIn.delay(250)} style={styles.filterRow}>
+          {[
+            { key: 'all', label: 'All Plans', icon: 'grid' },
+            { key: 'daily', label: 'Daily', icon: 'today' },
+            { key: 'weekly', label: 'Weekly', icon: 'calendar' },
+            { key: 'yearly', label: 'Yearly', icon: 'calendar-outline' },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.filterTab, filterType === tab.key && styles.filterTabActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilterType(tab.key);
+              }}
+            >
+              <Ionicons name={tab.icon as any} size={14} color={filterType === tab.key ? '#FFF' : COLORS.textLight} />
+              <Text style={[styles.filterTabText, filterType === tab.key && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+
         {/* Plans List */}
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -493,9 +573,15 @@ export default function KitchenPlans() {
               <Text style={styles.createFirstBtnText}>Create First Plan</Text>
             </TouchableOpacity>
           </Animated.View>
+        ) : filteredPlans.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="filter-outline" size={48} color={COLORS.textLight} />
+            <Text style={styles.emptyTitle}>No {filterType} Plans</Text>
+            <Text style={styles.emptyText}>No plans found for this filter.</Text>
+          </View>
         ) : (
           <View style={styles.plansList}>
-            {plans.map((plan, index) => (
+            {filteredPlans.map((plan, index) => (
               <PlanCard
                 key={plan.id}
                 plan={plan}
@@ -852,6 +938,77 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
+  },
+  planTypeBadge: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  planTypeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.warning,
+    letterSpacing: 0.5,
+  },
+  planTypeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  planTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.inputBg || '#FAF6F1',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  planTypeChipActive: {
+    backgroundColor: COLORS.maroon,
+    borderColor: COLORS.maroon,
+  },
+  planTypeChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.maroon,
+  },
+  planTypeChipTextActive: {
+    color: '#FFF',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+    flexWrap: 'wrap',
+  },
+  filterTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 5,
+  },
+  filterTabActive: {
+    backgroundColor: COLORS.maroon,
+    borderColor: COLORS.maroon,
+  },
+  filterTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textLight,
+  },
+  filterTabTextActive: {
+    color: '#FFF',
   },
   emptyTitle: {
     fontSize: 20,

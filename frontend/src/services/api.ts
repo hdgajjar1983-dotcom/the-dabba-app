@@ -14,7 +14,7 @@ const getApiUrl = () => {
   
   // For local development only - this will be overridden in production builds
   console.warn('No API URL configured - using preview URL');
-  return 'https://halifax-meal-planner.preview.emergentagent.com/api';
+  return 'https://dabba-order-engine.preview.emergentagent.com/api';
 };
 
 const API_BASE_URL = getApiUrl();
@@ -106,14 +106,17 @@ export const kitchenAPI = {
   // NEW: Route Suggestions (AI-generated)
   getRouteSuggestions: () => api.get('/admin/route-suggestions'),
   
+  // NEW: Driver Location Tracking
+  getDriverLocations: () => api.get('/kitchen/driver-locations'),
+  
   // Batch Totals
   getBatchTotals: () => api.get('/kitchen/batch-totals'),
   markSoldOut: (itemName: string) => api.post('/kitchen/mark-sold-out', { item_name: itemName }),
   getSoldOutItems: () => api.get('/kitchen/sold-out'),
   
-  // Dishes
+  // Items (was Dishes)
   getDishes: () => api.get('/kitchen/dishes'),
-  createDish: (data: { name: string; description: string; type: string; category?: string; price: number; image_url?: string }) =>
+  createDish: (data: { name: string; description: string; type: string; category?: string; price?: number; image_url?: string }) =>
     api.post('/kitchen/dishes', data),
   updateDish: (id: string, data: { name?: string; description?: string; type?: string; category?: string; price?: number; image_url?: string }) =>
     api.put(`/kitchen/dishes/${id}`, data),
@@ -130,13 +133,13 @@ export const kitchenAPI = {
   
   // Subscription Plans
   getPlans: () => api.get('/kitchen/plans'),
-  createPlan: (data: { name: string; price: number; description?: string; features?: string[]; is_active?: boolean }) =>
+  createPlan: (data: { name: string; price: number; description?: string; features?: string[]; plan_type?: string; is_active?: boolean }) =>
     api.post('/kitchen/plans', data),
-  updatePlan: (id: string, data: { name: string; price: number; description?: string; features?: string[]; is_active?: boolean }) =>
+  updatePlan: (id: string, data: { name?: string; price?: number; description?: string; features?: string[]; plan_type?: string; is_active?: boolean }) =>
     api.put(`/kitchen/plans/${id}`, data),
   deletePlan: (id: string) => api.delete(`/kitchen/plans/${id}`),
   
-  // Menu (Modular Dinner Builder)
+  // Dabba (was Menu) - Modular Dinner Builder
   getMenu: () => api.get('/kitchen/menu'),
   setMenuDay: (data: { date: string; dinner_item_ids: string[] }) =>
     api.post('/kitchen/menu', data),

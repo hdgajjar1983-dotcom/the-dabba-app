@@ -35,6 +35,11 @@ JWT_ALGORITHM = "HS256"
 # Create the main app
 app = FastAPI(title="The Dabba API")
 
+# Root health endpoint for deployment platforms (Render, Railway, etc.)
+@app.get("/health")
+async def root_health_check():
+    return {"status": "healthy", "service": "The Dabba API"}
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
@@ -1721,6 +1726,7 @@ class SubscriptionPlanData(BaseModel):
     price: float
     description: Optional[str] = None
     features: Optional[List[str]] = []
+    plan_type: Optional[str] = "weekly"  # daily, weekly, yearly
     is_active: bool = True
 
 @api_router.get("/plans")
@@ -1789,6 +1795,7 @@ async def create_subscription_plan(
         "price": plan_data.price,
         "description": plan_data.description,
         "features": plan_data.features,
+        "plan_type": plan_data.plan_type or "weekly",
         "is_active": plan_data.is_active,
         "created_at": datetime.utcnow().isoformat(),
         "created_by": current_user["id"]
@@ -1808,6 +1815,7 @@ async def update_subscription_plan(
         "price": plan_data.price,
         "description": plan_data.description,
         "features": plan_data.features,
+        "plan_type": plan_data.plan_type or "weekly",
         "is_active": plan_data.is_active,
         "updated_at": datetime.utcnow().isoformat(),
         "updated_by": current_user["id"]
@@ -1946,9 +1954,9 @@ async def get_preparation_list(current_user: dict = Depends(get_kitchen_user)):
     
     # Default items per customer (can be customized per subscription)
     default_items = {
-        "roti": 4,
+        "roti": 6,
         "sabji": 1,  # portions (227g each)
-        "dal": 1,    # portions (227g each)
+        "dal": 1,    # portions (340g / 12oz each)
         "rice": 1,   # portions
         "salad": 1,  # portions
         "bread": 0   # number of breads
@@ -1972,6 +1980,10 @@ async def get_preparation_list(current_user: dict = Depends(get_kitchen_user)):
         # Get customer preferences if any
         preferences = sub.get("meal_preferences", {})
         
+        # Get skip history for this customer
+        skipped_meals = sub.get("skipped_meals", [])
+        recent_skips = [s for s in skipped_meals if s.get("date", "") >= (datetime.now() - timedelta(days=30)).date().isoformat()]
+        
         # Calculate items for this customer
         customer_items = {
             "customer_id": sub.get("user_id"),
@@ -1979,18 +1991,23 @@ async def get_preparation_list(current_user: dict = Depends(get_kitchen_user)):
             "phone": user.get("phone", ""),
             "address": sub.get("delivery_address", ""),
             "plan": sub.get("plan", "standard"),
+            "plan_type": sub.get("plan_type", "weekly"),
             "roti": preferences.get("roti", default_items["roti"]),
             "sabji": preferences.get("sabji", default_items["sabji"]),
             "dal": preferences.get("dal", default_items["dal"]),
             "rice": preferences.get("rice", default_items["rice"]),
             "salad": preferences.get("salad", default_items["salad"]),
             "bread": preferences.get("bread", default_items["bread"]),
-            "notes": sub.get("special_notes", "")
+            "notes": sub.get("special_notes", ""),
+            "total_skips": len(skipped_meals),
+            "recent_skips": len(recent_skips),
+            "last_skip_date": skipped_meals[-1].get("date") if skipped_meals else None,
+            "subscription_start": sub.get("created_at", ""),
         }
         
         preparation_list.append(customer_items)
     
-    # Calculate totals
+    # Calculate totals (Dal = 340g/12oz per portion, Sabji = 227g per portion)
     totals = {
         "total_customers": len(preparation_list),
         "total_roti": sum(c["roti"] for c in preparation_list),
@@ -1998,8 +2015,8 @@ async def get_preparation_list(current_user: dict = Depends(get_kitchen_user)):
         "total_sabji_grams": sum(c["sabji"] for c in preparation_list) * 227,
         "total_sabji_kg": round(sum(c["sabji"] for c in preparation_list) * 227 / 1000, 2),
         "total_dal_portions": sum(c["dal"] for c in preparation_list),
-        "total_dal_grams": sum(c["dal"] for c in preparation_list) * 227,
-        "total_dal_kg": round(sum(c["dal"] for c in preparation_list) * 227 / 1000, 2),
+        "total_dal_grams": sum(c["dal"] for c in preparation_list) * 340,
+        "total_dal_kg": round(sum(c["dal"] for c in preparation_list) * 340 / 1000, 2),
         "total_rice_portions": sum(c["rice"] for c in preparation_list),
         "total_salad_portions": sum(c["salad"] for c in preparation_list),
         "total_bread": sum(c["bread"] for c in preparation_list),
@@ -3452,6 +3469,36 @@ async def get_route_suggestions(current_user: dict = Depends(get_current_user)):
         "suggestions": [{k: v for k, v in s.items() if k != "_id"} for s in suggestions],
         "total": len(suggestions)
     }
+
+@api_router.get("/kitchen/driver-locations")
+async def get_driver_locations(current_user: dict = Depends(get_kitchen_user)):
+    """Get all active driver locations for kitchen tracking"""
+    drivers = await db.users.find({"role": "driver"}, {"_id": 0}).to_list(50)
+    
+    driver_locations = []
+    for driver in drivers:
+        location = await db.driver_locations.find_one(
+            {"driver_id": driver.get("id")},
+            {"_id": 0}
+        )
+        # Get active deliveries count for this driver
+        active_deliveries = await db.deliveries.count_documents({
+            "driver_id": driver.get("id"),
+            "status": {"$in": ["assigned", "out_for_delivery", "in_transit"]}
+        })
+        
+        driver_locations.append({
+            "driver_id": driver.get("id"),
+            "driver_name": driver.get("name", "Unknown"),
+            "phone": driver.get("phone", ""),
+            "latitude": location.get("latitude") if location else None,
+            "longitude": location.get("longitude") if location else None,
+            "last_updated": location.get("updated_at") if location else None,
+            "active_deliveries": active_deliveries,
+            "is_online": location is not None,
+        })
+    
+    return {"drivers": driver_locations}
 
 # Include the router (MUST be after all route definitions)
 app.include_router(api_router)

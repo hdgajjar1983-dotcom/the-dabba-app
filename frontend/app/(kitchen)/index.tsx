@@ -85,7 +85,7 @@ const StatCard = ({ icon, value, label, bgColor, iconColor, index }: any) => {
   );
 };
 
-// Quick action card
+// Quick action card - redesigned as horizontal pill
 const ActionCard = ({ icon, label, bgColor, iconColor, onPress, index }: any) => {
   const scale = useSharedValue(1);
   
@@ -110,13 +110,14 @@ const ActionCard = ({ icon, label, bgColor, iconColor, onPress, index }: any) =>
       onPress={onPress}
     >
       <Animated.View
-        entering={FadeInDown.delay(500 + index * 80).springify()}
+        entering={FadeInDown.delay(500 + index * 60).springify()}
         style={[styles.actionCard, animatedStyle]}
       >
         <View style={[styles.actionIcon, { backgroundColor: bgColor }]}>
-          <Ionicons name={icon} size={28} color={iconColor} />
+          <Ionicons name={icon} size={22} color={iconColor} />
         </View>
         <Text style={styles.actionText}>{label}</Text>
+        <Ionicons name="chevron-forward" size={16} color={COLORS.textLight} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -179,15 +180,17 @@ export default function KitchenDashboard() {
   const statsData = [
     { icon: 'people', value: stats?.total_customers || 0, label: 'Total Customers', bgColor: '#E8F5E9', iconColor: COLORS.success },
     { icon: 'card', value: stats?.active_subscriptions || 0, label: 'Active Plans', bgColor: '#FFF3E0', iconColor: COLORS.warning },
-    { icon: 'restaurant', value: stats?.total_dishes || 0, label: 'Dishes', bgColor: '#E3F2FD', iconColor: COLORS.info },
+    { icon: 'restaurant', value: stats?.total_dishes || 0, label: 'Items', bgColor: '#E3F2FD', iconColor: COLORS.info },
     { icon: 'bicycle', value: stats?.deliveries_today || 0, label: "Today&apos;s Orders", bgColor: '#FCE4EC', iconColor: COLORS.maroon },
   ];
 
   const actionsData = [
-    { icon: 'add-circle', label: 'Add Dish', bgColor: '#E8F5E9', iconColor: COLORS.success, route: '/(kitchen)/dishes' },
-    { icon: 'calendar', label: 'Set Menu', bgColor: '#FFF3E0', iconColor: COLORS.warning, route: '/(kitchen)/menu' },
+    { icon: 'add-circle', label: 'Add Item', bgColor: '#E8F5E9', iconColor: COLORS.success, route: '/(kitchen)/dishes' },
+    { icon: 'calendar', label: 'Set Dabba', bgColor: '#FFF3E0', iconColor: COLORS.warning, route: '/(kitchen)/menu' },
     { icon: 'pricetags', label: 'Plans', bgColor: '#E3F2FD', iconColor: COLORS.info, route: '/(kitchen)/plans' },
     { icon: 'receipt', label: 'Orders', bgColor: '#FCE4EC', iconColor: COLORS.maroon, route: '/(kitchen)/orders' },
+    { icon: 'navigate', label: 'Track Driver', bgColor: '#E0F7FA', iconColor: '#00838F', route: '/(kitchen)/orders' },
+    { icon: 'people', label: 'Customers', bgColor: '#F3E5F5', iconColor: '#7B1FA2', route: '/(kitchen)/customers' },
   ];
 
   // Get current time greeting
@@ -545,36 +548,34 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     marginTop: 2,
   },
-  // Actions
+  // Actions - redesigned as vertical list
   actionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
     marginBottom: 16,
-    gap: 10,
+    gap: 8,
   },
   actionCard: {
-    width: '48%',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    gap: 12,
   },
   actionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   actionText: {
-    fontSize: 13,
+    flex: 1,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
-    textAlign: 'center',
   },
   // Prep List Card
   prepListCard: {

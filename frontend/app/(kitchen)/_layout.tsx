@@ -55,7 +55,7 @@ export default function KitchenLayout() {
       <Tabs.Screen
         name="dishes"
         options={{
-          title: 'Dabba',
+          title: 'Items',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="restaurant" size={size} color={color} />
           ),
@@ -64,7 +64,7 @@ export default function KitchenLayout() {
       <Tabs.Screen
         name="menu"
         options={{
-          title: 'Menu',
+          title: 'Dabba',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" size={size} color={color} />
           ),

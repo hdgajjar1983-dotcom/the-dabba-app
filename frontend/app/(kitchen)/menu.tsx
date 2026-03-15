@@ -200,12 +200,12 @@ export default function MenuManagement() {
         dinner_item_ids: selectedItems,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', `Dinner menu set with ${selectedItems.length} items!`);
+      Alert.alert('Success', `Dinner dabba set with ${selectedItems.length} items!`);
       setSelectedDate('');
       fetchMenu();
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to save menu');
+      Alert.alert('Error', 'Failed to save dabba');
     } finally {
       setIsSaving(false);
     }
@@ -238,7 +238,7 @@ export default function MenuManagement() {
             <Ionicons name="arrow-back" size={24} color={COLORS.maroon} />
           </TouchableOpacity>
           <View>
-            <Text style={styles.builderTitle}>Build Dinner Menu</Text>
+            <Text style={styles.builderTitle}>Build Daily Dabba</Text>
             <Text style={styles.builderSubtitle}>{formatDate(selectedDate).day}, {formatDate(selectedDate).month} {formatDate(selectedDate).date}</Text>
           </View>
         </View>
@@ -318,7 +318,7 @@ export default function MenuManagement() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={20} color={COLORS.goldLight} />
-                <Text style={styles.saveBtnText}>Set Menu</Text>
+                <Text style={styles.saveBtnText}>Set Dabba</Text>
               </>
             )}
           </TouchableOpacity>
@@ -330,8 +330,8 @@ export default function MenuManagement() {
   return (
     <SafeAreaView style={styles.container}>
       <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.header}>
-        <Text style={styles.title}>Daily Dinner Menu</Text>
-        <Text style={styles.subtitle}>Tap a day to build the dinner menu</Text>
+        <Text style={styles.title}>Daily Dinner Dabba</Text>
+        <Text style={styles.subtitle}>Tap a day to build the dinner dabba</Text>
       </Animated.View>
 
       <ScrollView

@@ -73,7 +73,7 @@ GET  /api/admin/route-suggestions
 - **Driver**: `driver@dabba.com` / `driver123`
 
 ## Preview URL
-https://halifax-meal-planner.preview.emergentagent.com/
+https://dabba-order-engine.preview.emergentagent.com/
 
 ## IMPORTANT
 **You need to trigger a new iOS build to see these changes:**
