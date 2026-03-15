@@ -1,0 +1,93 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+spawn eas build --platform ios --profile production
+
+# Step 1: Apple login question
+expect "Do you want to log in to your Apple account"
+sleep 1
+send "Y\r"
+
+# Step 2: Apple ID
+expect "Apple ID:"
+sleep 1
+send "hdgajjar1983@gmail.com\r"
+
+# Step 3: Password
+expect "Password"
+sleep 1
+send "Hiya@143\r"
+
+# Step 4: Wait for login
+expect {
+    "Logged in" {
+        puts "\n=== APPLE LOGIN SUCCESS ==="
+    }
+    "locked" {
+        puts "\n=== ACCOUNT LOCKED ==="
+        exit 1
+    }
+}
+
+# Step 5: 2FA - select device method
+expect "How do you want to validate"
+sleep 1
+send "\r"
+
+# Step 6: 2FA code - get from user
+puts "\n\n=== CHECK YOUR APPLE DEVICE FOR THE 6-DIGIT CODE ==="
+puts "=== Enter the code below: ==="
+expect "Code:"
+expect_user -re "(.*)\n"
+set code $expect_out(1,string)
+send "$code\r"
+
+# Step 7: Wait for credential setup and build
+set timeout 600
+expect {
+    "Select a team" {
+        sleep 1
+        send "\r"
+        exp_continue
+    }
+    "Generate a new" {
+        sleep 1
+        send "\r"
+        exp_continue
+    }
+    "Reuse" {
+        sleep 1
+        send "\r"
+        exp_continue
+    }
+    "(Y/n)" {
+        sleep 0.5
+        send "Y\r"
+        exp_continue
+    }
+    "(y/N)" {
+        sleep 0.5
+        send "y\r"
+        exp_continue
+    }
+    "accounts/thedabba" {
+        puts "\n=== BUILD SUBMITTED ==="
+        exp_continue
+    }
+    "Waiting for build to complete" {
+        puts "\n=== BUILD IN PROGRESS ==="
+        exp_continue
+    }
+    "Build finished" {
+        puts "\n=== BUILD COMPLETE ==="
+    }
+    "build command failed" {
+        puts "\n=== BUILD FAILED ==="
+    }
+    eof {
+        puts "\n=== DONE ==="
+    }
+    timeout {
+        puts "\n=== TIMEOUT - CHECK EXPO DASHBOARD ==="
+    }
+}
