@@ -5,8 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -26,6 +24,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/context/AuthContext';
 import DabbaLogo, { BRAND_COLORS } from '../../src/components/DabbaLogo';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const COLORS = {
   ...BRAND_COLORS,
@@ -103,15 +102,15 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 50 : 100}
+        extraHeight={150}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* Decorative top pattern */}
           <Animated.View entering={FadeIn.delay(100)} style={styles.decorativeTop}>
             <View style={styles.decorativeLine} />
@@ -251,8 +250,7 @@ export default function LoginScreen() {
           <Animated.View entering={FadeIn.delay(800)} style={styles.decorativeBottom}>
             <Text style={styles.decorativeText}>~ Since 2024 ~</Text>
           </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

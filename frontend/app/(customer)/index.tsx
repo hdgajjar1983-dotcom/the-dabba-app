@@ -675,15 +675,29 @@ export default function CustomerDashboard() {
           </AnimatedCard>
         )}
 
-        {/* 7-Day Dinner Discovery */}
+        {/* Today's Dabba - Daily Focus */}
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>7-Day Dinner Plan</Text>
+            <Text style={styles.sectionTitle}>Today's Dabba</Text>
             <TouchableOpacity onPress={() => setShowRating(true)}>
               <Text style={styles.rateLink}>Rate Yesterday&apos;s Meal</Text>
             </TouchableOpacity>
           </View>
           
+          {/* Today's Meal Card - Featured */}
+          {weeklyPlan.length > 0 && weeklyPlan[0] && (
+            <DayCard
+              key={weeklyPlan[0].date}
+              day={weeklyPlan[0]}
+              index={0}
+              onSkip={() => handleSkipMeal(weeklyPlan[0])}
+              onAddExtra={() => handleAddExtra(weeklyPlan[0])}
+              isToday={true}
+            />
+          )}
+          
+          {/* Upcoming Days */}
+          <Text style={[styles.sectionTitle, { marginTop: 20, fontSize: 16 }]}>Upcoming Days</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -691,11 +705,11 @@ export default function CustomerDashboard() {
             decelerationRate="fast"
             snapToInterval={SCREEN_WIDTH * 0.72 + 12}
           >
-            {weeklyPlan.map((day, index) => (
+            {weeklyPlan.slice(1).map((day, index) => (
               <DayCard
                 key={day.date}
                 day={day}
-                index={index}
+                index={index + 1}
                 onSkip={() => handleSkipMeal(day)}
                 onAddExtra={() => handleAddExtra(day)}
               />
