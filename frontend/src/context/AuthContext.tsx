@@ -33,7 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('authToken');
+      let storedToken = null;
+      try {
+        storedToken = await AsyncStorage.getItem('authToken');
+      } catch (storageError) {
+        console.log('AsyncStorage not available, skipping auto-login');
+      }
+      
       if (storedToken) {
         setToken(storedToken);
         const response = await authAPI.getMe();
@@ -41,7 +47,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.log('Auto login failed:', error);
-      await AsyncStorage.removeItem('authToken');
+      try {
+        await AsyncStorage.removeItem('authToken');
+      } catch (e) {
+        // Ignore AsyncStorage errors during cleanup
+      }
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +62,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authAPI.login({ email, password });
       const { token: authToken, user: userData } = response.data;
       
-      await AsyncStorage.setItem('authToken', authToken);
+      try {
+        await AsyncStorage.setItem('authToken', authToken);
+      } catch (e) {
+        console.log('Could not store auth token');
+      }
       setToken(authToken);
       setUser(userData);
       
@@ -71,7 +85,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       const { token: authToken, user: userData } = response.data;
       
-      await AsyncStorage.setItem('authToken', authToken);
+      try {
+        await AsyncStorage.setItem('authToken', authToken);
+      } catch (e) {
+        console.log('Could not store auth token');
+      }
       setToken(authToken);
       setUser(userData);
       
@@ -83,7 +101,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('authToken');
+    try {
+      await AsyncStorage.removeItem('authToken');
+    } catch (e) {
+      console.log('Could not clear auth token');
+    }
     setToken(null);
     setUser(null);
   };
