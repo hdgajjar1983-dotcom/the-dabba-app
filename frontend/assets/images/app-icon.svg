@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="royalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B1538"/>
+      <stop offset="100%" stop-color="#5D0E24"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37"/>
+      <stop offset="50%" stop-color="#F4E4BA"/>
+      <stop offset="100%" stop-color="#C5A028"/>
+    </linearGradient>
+    <linearGradient id="dabbaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#CD853F"/>
+      <stop offset="50%" stop-color="#B8860B"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#8B1538"/>
+  
+  <!-- Outer decorative ring -->
+  <circle cx="512" cy="512" r="490" fill="none" stroke="url(#goldGrad)" stroke-width="16"/>
+  <circle cx="512" cy="512" r="460" fill="none" stroke="url(#goldGrad)" stroke-width="6"/>
+  
+  <!-- Main background circle -->
+  <circle cx="512" cy="512" r="440" fill="url(#royalGrad)"/>
+  
+  <!-- Traditional Dabba/Tiffin Box - scaled up -->
+  <!-- Base container -->
+  <ellipse cx="512" cy="665" rx="230" ry="60" fill="url(#dabbaGrad)"/>
+  <rect x="282" y="460" width="460" height="205" rx="25" fill="url(#dabbaGrad)"/>
+  <ellipse cx="512" cy="460" rx="230" ry="60" fill="#DEB887"/>
+  
+  <!-- Lid -->
+  <ellipse cx="512" cy="385" rx="205" ry="52" fill="url(#goldGrad)"/>
+  <ellipse cx="512" cy="370" rx="180" ry="42" fill="#F4E4BA"/>
+  
+  <!-- Handle -->
+  <path d="M435 335 Q512 240 589 335" fill="none" stroke="url(#goldGrad)" stroke-width="22" stroke-linecap="round"/>
+  
+  <!-- Steam wisps -->
+  <path d="M410 290 Q400 240 420 200" fill="none" stroke="#F4E4BA" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  <path d="M512 260 Q502 210 522 170" fill="none" stroke="#F4E4BA" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  <path d="M614 290 Q624 240 604 200" fill="none" stroke="#F4E4BA" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- Decorative dots -->
+  <circle cx="360" cy="560" r="16" fill="#F4E4BA" opacity="0.6"/>
+  <circle cx="512" cy="590" r="16" fill="#F4E4BA" opacity="0.6"/>
+  <circle cx="664" cy="560" r="16" fill="#F4E4BA" opacity="0.6"/>
+  
+  <!-- Traditional pattern border -->
+  <circle cx="512" cy="512" r="425" fill="none" stroke="#D4AF37" stroke-width="5" stroke-dasharray="20,20" opacity="0.5"/>
+  
+  <!-- Text "THE DABBA" at bottom -->
+  <text x="512" y="880" text-anchor="middle" fill="#F4E4BA" font-family="Georgia, serif" font-size="72" font-weight="bold" letter-spacing="15">THE DABBA</text>
+</svg>
