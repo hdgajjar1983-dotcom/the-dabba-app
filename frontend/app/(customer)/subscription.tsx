@@ -308,7 +308,7 @@ export default function SubscriptionScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              {plans.find(p => p.id === selectedPlan)?.name} Plan - ${plans.find(p => p.id === selectedPlan)?.price} CAD/week
+              {plans.find(p => p.id === selectedPlan)?.name} Plan - ${plans.find(p => p.id === selectedPlan)?.price} CAD/{plans.find(p => p.id === selectedPlan)?.plan_type === 'daily' ? 'day' : 'week'}
             </Text>
             <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
               <AddressForm
