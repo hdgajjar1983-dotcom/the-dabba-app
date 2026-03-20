@@ -620,6 +620,126 @@ async def update_delivery_status(delivery_id: str, status_data: DeliveryStatusUp
         "has_photo": status_data.photo_base64 is not None
     }
 
+@api_router.post("/driver/pickup/{delivery_id}")
+async def driver_pickup_order(delivery_id: str, current_user: dict = Depends(get_current_user)):
+    """Driver marks order as picked up from kitchen"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    # Find the delivery
+    delivery = await db.delivery_queue.find_one({"id": delivery_id, "date": today})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    pickup_time = datetime.utcnow()
+    
+    # Calculate estimated delivery time (based on distance)
+    distance = delivery.get("distance", 2.0)
+    eta_minutes = max(5, int(distance * 3))  # ~3 mins per km
+    estimated_delivery = pickup_time + timedelta(minutes=eta_minutes)
+    
+    # Update delivery status
+    await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "status": "picked_up",
+            "driver_id": current_user["id"],
+            "driver_name": current_user.get("name", "Driver"),
+            "driver_phone": current_user.get("phone", ""),
+            "picked_up_at": pickup_time.isoformat(),
+            "estimated_delivery_time": estimated_delivery.isoformat(),
+            "eta_minutes": eta_minutes
+        }}
+    )
+    
+    return {
+        "message": "Order picked up successfully",
+        "delivery_id": delivery_id,
+        "picked_up_at": pickup_time.isoformat(),
+        "estimated_delivery_time": estimated_delivery.isoformat(),
+        "eta_minutes": eta_minutes
+    }
+
+@api_router.post("/driver/start-delivery/{delivery_id}")
+async def driver_start_delivery(delivery_id: str, current_user: dict = Depends(get_current_user)):
+    """Driver starts delivery (out for delivery)"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    delivery = await db.delivery_queue.find_one({"id": delivery_id, "date": today})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    start_time = datetime.utcnow()
+    
+    # Recalculate ETA based on current time
+    distance = delivery.get("distance", 2.0)
+    eta_minutes = max(5, int(distance * 3))
+    estimated_delivery = start_time + timedelta(minutes=eta_minutes)
+    
+    await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": {
+            "status": "out_for_delivery",
+            "started_delivery_at": start_time.isoformat(),
+            "estimated_delivery_time": estimated_delivery.isoformat(),
+            "eta_minutes": eta_minutes
+        }}
+    )
+    
+    return {
+        "message": "Delivery started",
+        "delivery_id": delivery_id,
+        "started_at": start_time.isoformat(),
+        "estimated_delivery_time": estimated_delivery.isoformat(),
+        "eta_minutes": eta_minutes
+    }
+
+@api_router.post("/driver/complete-delivery/{delivery_id}")
+async def driver_complete_delivery(
+    delivery_id: str, 
+    status: str = "delivered",
+    photo_base64: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Driver marks delivery as complete or failed"""
+    if current_user.get("role") != "driver":
+        raise HTTPException(status_code=403, detail="Driver role required")
+    
+    today = datetime.now().date().isoformat()
+    
+    delivery = await db.delivery_queue.find_one({"id": delivery_id, "date": today})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    completed_time = datetime.utcnow()
+    
+    update_data = {
+        "status": status,
+        "completed_at": completed_time.isoformat(),
+    }
+    
+    if photo_base64:
+        update_data["photo_base64"] = photo_base64
+    
+    if status == "failed":
+        update_data["failed_reason"] = "Customer not available"
+    
+    await db.delivery_queue.update_one(
+        {"id": delivery_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "message": f"Delivery marked as {status}",
+        "delivery_id": delivery_id,
+        "completed_at": completed_time.isoformat()
+    }
+
 # ==================== ROOT ROUTE ====================
 
 @api_router.get("/")
@@ -1190,10 +1310,15 @@ async def get_customer_delivery_status(current_user: dict = Depends(get_current_
     response = {
         "status": delivery.get("status", "pending"),
         "delivery_number": delivery.get("delivery_number"),
-        "estimated_time": delivery.get("estimated_time"),
+        "estimated_time": delivery.get("eta_minutes"),
+        "estimated_delivery_time": delivery.get("estimated_delivery_time"),
         "driver_name": delivery.get("driver_name"),
+        "driver_phone": delivery.get("driver_phone"),
         "driver_location": driver_location,
-        "message": get_status_message(delivery.get("status"))
+        "message": get_status_message(delivery.get("status")),
+        "picked_up_at": delivery.get("picked_up_at"),
+        "started_delivery_at": delivery.get("started_delivery_at"),
+        "ready_at": delivery.get("ready_at")
     }
     
     if delivery.get("status") == "delivered":
@@ -1205,8 +1330,9 @@ async def get_customer_delivery_status(current_user: dict = Depends(get_current_
 def get_status_message(status: str) -> str:
     messages = {
         "pending": "Your order is pending",
-        "ready": "Your tiffin is ready for delivery",
-        "out_for_delivery": "Driver is on the way with your tiffin!",
+        "ready": "Your tiffin is ready for pickup",
+        "picked_up": "Driver picked up your tiffin!",
+        "out_for_delivery": "Driver is on the way!",
         "delivered": "Your tiffin has been delivered. Enjoy!",
     }
     return messages.get(status, "Processing your order")

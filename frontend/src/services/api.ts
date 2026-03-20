@@ -190,13 +190,16 @@ export const driverAPI = {
     api.get('/driver/optimized-route', { params: { lat, lon } }),
   updateLocation: (latitude: number, longitude: number) =>
     api.post('/driver/update-location', { latitude, longitude }),
+  // NEW: Pickup order from kitchen
+  pickupOrder: (deliveryId: string) =>
+    api.post(`/driver/pickup/${deliveryId}`),
   startDelivery: (deliveryId: string) =>
-    api.put(`/driver/start-delivery/${deliveryId}`),
+    api.post(`/driver/start-delivery/${deliveryId}`),
   // NEW: Complete with photo - instant sync
   completeWithPhoto: (deliveryId: string, status: string, photoBase64?: string) =>
     api.post(`/driver/delivery/${deliveryId}/complete`, { status, photo_base64: photoBase64 }),
-  completeDelivery: (deliveryId: string, status: string, photoBase64?: string) =>
-    api.put(`/driver/complete-delivery/${deliveryId}`, { status, photo_base64: photoBase64 }),
+  completeDelivery: (deliveryId: string, status: string = 'delivered', photoBase64?: string) =>
+    api.post(`/driver/complete-delivery/${deliveryId}`, null, { params: { status, photo_base64: photoBase64 } }),
   failDelivery: (deliveryId: string, reason: string = 'customer_unavailable') =>
     api.put(`/driver/fail-delivery/${deliveryId}`, null, { params: { reason } }),
   updateDeliveryStatus: (id: string, status: string, photoBase64?: string) =>
