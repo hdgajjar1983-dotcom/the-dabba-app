@@ -53,7 +53,7 @@ export default function DishesManagement() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState('vegetarian');
-  const [category, setCategory] = useState('Main Dishes');
+  const [category, setCategory] = useState('sabji');
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState('portion');
 
@@ -83,7 +83,7 @@ export default function DishesManagement() {
     setName('');
     setDescription('');
     setType('vegetarian');
-    setCategory('Main Dishes');
+    setCategory('sabji');
     setQuantity('1');
     setUnit('portion');
     setShowModal(true);
@@ -94,7 +94,7 @@ export default function DishesManagement() {
     setName(dish.name);
     setDescription(dish.description);
     setType(dish.type);
-    setCategory(dish.category || 'Main Dishes');
+    setCategory(dish.category || 'sabji');
     setQuantity((dish.quantity_per_tiffin || 1).toString());
     setUnit(dish.unit || 'portion');
     setShowModal(true);
@@ -316,7 +316,7 @@ export default function DishesManagement() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Category</Text>
                 <View style={styles.typeSelector}>
-                  {['Breads', 'Main Dishes', 'Dals & Kathol', 'Rice & Grains', 'Sides & Drinks', 'Desserts'].map((cat) => (
+                  {['roti', 'sabji', 'dal', 'rice', 'salad', 'extra'].map((cat) => (
                     <TouchableOpacity
                       key={cat}
                       style={[styles.categoryChip, category === cat && styles.categoryChipActive]}
