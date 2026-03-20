@@ -1129,7 +1129,7 @@ async def start_delivery(delivery_id: str, current_user: dict = Depends(get_curr
     if current_user.get("role") != "driver":
         raise HTTPException(status_code=403, detail="Driver role required")
     
-    result = await db.delivery_queue.update_one(
+    await db.delivery_queue.update_one(
         {"id": delivery_id},
         {"$set": {
             "status": "out_for_delivery",
@@ -1425,6 +1425,106 @@ async def update_customer_preferences(
         upsert=True
     )
     return {"message": "Preferences updated", "spice_level": preferences.level}
+
+# Order History
+@api_router.get("/customer/order-history")
+async def get_order_history(
+    limit: int = 30,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get customer's order/delivery history with ratings"""
+    if current_user.get("role") != "customer":
+        raise HTTPException(status_code=403, detail="Customer role required")
+    
+    # Get subscription
+    subscription = await db.subscriptions.find_one({
+        "user_id": current_user["id"]
+    })
+    
+    if not subscription:
+        return {"orders": [], "total_orders": 0, "total_delivered": 0, "total_skipped": 0}
+    
+    # Get completed deliveries for this user
+    deliveries = await db.delivery_queue.find({
+        "user_id": current_user["id"],
+        "status": {"$in": ["delivered", "failed", "skipped"]}
+    }).sort("date", -1).to_list(limit)
+    
+    # Also check completed_deliveries collection (for future merging if needed)
+    _completed = await db.completed_deliveries.find({
+        "user_id": current_user["id"]
+    }).sort("completed_at", -1).to_list(limit)
+    
+    # Get ratings for these dates
+    ratings = await db.meal_ratings.find({
+        "user_id": current_user["id"]
+    }).to_list(200)
+    ratings_map = {r["date"]: r for r in ratings}
+    
+    # Get skipped meals
+    skipped_meals = subscription.get("skipped_meals", [])
+    skipped_dates = {s["date"]: s for s in skipped_meals}
+    
+    orders = []
+    seen_dates = set()
+    
+    # Process deliveries
+    for d in deliveries:
+        date = d.get("date", "")
+        if date in seen_dates:
+            continue
+        seen_dates.add(date)
+        
+        rating = ratings_map.get(date)
+        
+        # Get menu for this day
+        menu = await db.menu_schedule.find_one({"date": date})
+        items = []
+        if menu:
+            item_ids = menu.get("dinner_item_ids", [])
+            if item_ids:
+                dishes = await db.dishes.find({"id": {"$in": item_ids}}).to_list(10)
+                items = [{"name": di["name"], "quantity": 1, "category": di.get("category", "sabji")} for di in dishes]
+        
+        orders.append({
+            "id": d.get("id", str(uuid.uuid4())),
+            "date": date,
+            "status": d.get("status", "delivered"),
+            "items": items if items else [{"name": "Dinner Dabba", "quantity": 1, "category": "meal"}],
+            "delivery_time": d.get("delivered_at") or d.get("completed_at"),
+            "amount": 12.00,  # Default meal value
+            "rating": rating.get("rating") if rating else None,
+            "photo_available": d.get("photo_base64") is not None,
+        })
+    
+    # Add recent skipped dates that aren't in deliveries
+    today = datetime.now().date()
+    for skip_date, skip_info in skipped_dates.items():
+        if skip_date in seen_dates:
+            continue
+        skip_dt = datetime.fromisoformat(skip_date).date()
+        if (today - skip_dt).days <= 30:  # Only last 30 days
+            seen_dates.add(skip_date)
+            orders.append({
+                "id": str(uuid.uuid4()),
+                "date": skip_date,
+                "status": "skipped",
+                "items": [{"name": "Meal Skipped", "quantity": 1, "category": "skip"}],
+                "delivery_time": None,
+                "amount": 0,
+                "rating": None,
+                "photo_available": False,
+            })
+    
+    # Sort by date descending
+    orders.sort(key=lambda x: x["date"], reverse=True)
+    
+    return {
+        "orders": orders[:limit],
+        "total_orders": len(orders),
+        "total_delivered": len([o for o in orders if o["status"] == "delivered"]),
+        "total_skipped": len([o for o in orders if o["status"] == "skipped"]),
+    }
 
 # Rate My Dinner
 @api_router.post("/customer/rate-meal")
@@ -2185,6 +2285,108 @@ async def update_customer_items(
     
     return {"message": "Customer items updated"}
 
+# ==================== KITCHEN FEEDBACK DASHBOARD ====================
+
+@api_router.get("/kitchen/feedback-dashboard")
+async def get_feedback_dashboard(
+    days: int = 30,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Get customer feedback dashboard with ratings and insights"""
+    start_date = (datetime.now() - timedelta(days=days)).date().isoformat()
+    
+    # Get all ratings from the period
+    ratings = await db.meal_ratings.find({
+        "created_at": {"$gte": start_date}
+    }).sort("created_at", -1).to_list(500)
+    
+    # Calculate rating stats
+    rating_counts = {"yummy": 0, "good": 0, "bad": 0}
+    for r in ratings:
+        rating_type = r.get("rating", "").lower()
+        if rating_type in rating_counts:
+            rating_counts[rating_type] += 1
+    
+    total_ratings = sum(rating_counts.values())
+    
+    # Calculate satisfaction score (yummy = 100, good = 70, bad = 20)
+    if total_ratings > 0:
+        satisfaction_score = round(
+            (rating_counts["yummy"] * 100 + rating_counts["good"] * 70 + rating_counts["bad"] * 20) / total_ratings
+        )
+    else:
+        satisfaction_score = 0
+    
+    # Group by date for trends
+    date_ratings = {}
+    for r in ratings:
+        date = r.get("date", "")[:10]  # Get just the date part
+        if date not in date_ratings:
+            date_ratings[date] = {"yummy": 0, "good": 0, "bad": 0}
+        rating_type = r.get("rating", "").lower()
+        if rating_type in date_ratings[date]:
+            date_ratings[date][rating_type] += 1
+    
+    # Convert to list sorted by date
+    daily_trends = []
+    for date in sorted(date_ratings.keys(), reverse=True)[:14]:  # Last 14 days
+        counts = date_ratings[date]
+        day_total = sum(counts.values())
+        daily_trends.append({
+            "date": date,
+            **counts,
+            "total": day_total,
+            "satisfaction": round(
+                (counts["yummy"] * 100 + counts["good"] * 70 + counts["bad"] * 20) / day_total
+            ) if day_total > 0 else 0
+        })
+    
+    # Get recent feedback with comments
+    recent_feedback = []
+    for r in ratings[:20]:
+        if r.get("feedback"):
+            user = await db.users.find_one({"id": r.get("user_id")})
+            recent_feedback.append({
+                "date": r.get("date"),
+                "rating": r.get("rating"),
+                "feedback": r.get("feedback"),
+                "customer_name": user.get("name", "Anonymous") if user else "Anonymous",
+            })
+    
+    # Get reported issues
+    issues = await db.issue_reports.find({
+        "created_at": {"$gte": start_date}
+    }).sort("created_at", -1).to_list(50)
+    
+    issue_counts = {}
+    for i in issues:
+        issue_type = i.get("issue_type", "other")
+        issue_counts[issue_type] = issue_counts.get(issue_type, 0) + 1
+    
+    recent_issues = []
+    for i in issues[:10]:
+        user = await db.users.find_one({"id": i.get("user_id")})
+        recent_issues.append({
+            "id": i.get("id"),
+            "date": i.get("date"),
+            "issue_type": i.get("issue_type"),
+            "description": i.get("description"),
+            "status": i.get("status"),
+            "customer_name": user.get("name", "Anonymous") if user else "Anonymous",
+        })
+    
+    return {
+        "period_days": days,
+        "total_ratings": total_ratings,
+        "rating_counts": rating_counts,
+        "satisfaction_score": satisfaction_score,
+        "daily_trends": daily_trends,
+        "recent_feedback": recent_feedback,
+        "issue_counts": issue_counts,
+        "total_issues": len(issues),
+        "recent_issues": recent_issues,
+    }
+
 # ==================== TRUST ENGINE - WALLET SYSTEM ====================
 
 class WalletTransaction(BaseModel):
@@ -2203,9 +2405,9 @@ class VacationMode(BaseModel):
     end_date: str
     active: bool = True
 
-@api_router.get("/wallet")
-async def get_wallet(current_user: dict = Depends(get_current_user)):
-    """Get customer wallet balance and transaction history"""
+@api_router.get("/wallet/details")
+async def get_wallet_details(current_user: dict = Depends(get_current_user)):
+    """Get customer wallet balance and transaction history (detailed)"""
     wallet = await db.wallets.find_one({"user_id": current_user["id"]})
     
     if not wallet:
@@ -2236,7 +2438,7 @@ async def credit_wallet(
 ):
     """Add credit to wallet (internal use for skip meals, refunds, etc.)"""
     # Update or create wallet
-    result = await db.wallets.update_one(
+    await db.wallets.update_one(
         {"user_id": current_user["id"]},
         {
             "$inc": {"balance": transaction.amount},

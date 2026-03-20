@@ -159,6 +159,10 @@ export const kitchenAPI = {
   // Smart Delivery System
   markOrdersReady: (orderIds: string[]) => api.post('/kitchen/mark-ready', { order_ids: orderIds }),
   getPrintLabels: () => api.get('/kitchen/print-labels'),
+  
+  // Feedback Dashboard
+  getFeedbackDashboard: (days: number = 30) => 
+    api.get('/kitchen/feedback-dashboard', { params: { days } }),
 };
 
 // Public APIs
@@ -229,6 +233,10 @@ export const customerAPI = {
   getWeeklyPlan: () => api.get('/customer/weekly-plan'),
   addExtra: (data: { date: string; item_id: string; quantity?: number }) =>
     api.post('/customer/add-extra', data),
+  
+  // Order History
+  getOrderHistory: (limit: number = 30) => 
+    api.get('/customer/order-history', { params: { limit } }),
 };
 
 // Weather & Extras APIs

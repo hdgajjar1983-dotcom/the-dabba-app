@@ -88,6 +88,12 @@ export default function KitchenLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="feedback"
+        options={{
+          href: null, // Hidden from tab bar, accessible from dashboard
+        }}
+      />
     </Tabs>
   );
 }

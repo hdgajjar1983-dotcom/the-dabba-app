@@ -334,6 +334,43 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+backend:
+  - task: "Customer Order History API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: GET /api/customer/order-history working perfectly. Returns orders array, total_orders, total_delivered, total_skipped fields. Fixed minor bug where total_skipped was missing for customers without subscriptions. API handles authentication correctly, supports limit parameter, and returns proper structure for both empty and populated order histories."
+
+  - task: "Kitchen Feedback Dashboard API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: GET /api/kitchen/feedback-dashboard working perfectly. Returns satisfaction_score, rating_counts (yummy/good/bad), daily_trends, recent_feedback, recent_issues. API calculates satisfaction score correctly (yummy=100, good=70, bad=20), supports days parameter for period filtering, and properly aggregates feedback data. Kitchen role authentication enforced."
+
+  - task: "Wallet Details API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: GET /api/wallet/details working perfectly. Returns balance, currency (CAD), transactions array. API creates wallet automatically if it doesn't exist, handles transaction history properly, and maintains proper data structure. Customer authentication enforced correctly."
+
 agent_communication:
   - agent: "main"
     message: "Implemented The Dabba app MVP with full customer and admin views. Backend seeding works, all APIs tested manually with curl. Screenshots confirm both views rendering correctly. Ready for testing agent verification."
@@ -341,3 +378,17 @@ agent_communication:
     message: "BACKEND TESTING COMPLETED. All 10 API endpoints tested successfully. Time-lock logic working correctly. Prep stats calculation accurate and updates dynamically. User/subscriber skip toggles working. All core functionalities verified. Database seeding creates expected default data. System ready for production."
   - agent: "testing"
     message: "COMPREHENSIVE API TESTING COMPLETED - 20 endpoint groups tested with all major functionalities working perfectly. Core endpoints, authentication flow, user/subscriber management, credit system, route optimization, menu system, and notifications all verified. Time-lock logic enforcing 10 PM cutoff correctly. OAuth session exchange properly validates external sessions. All CRUD operations functional. The Dabba API is fully production-ready."
+  - agent: "testing"
+    message: "NEW APIS TESTING COMPLETED - All 3 requested new backend APIs tested successfully. Customer Order History API (/api/customer/order-history), Kitchen Feedback Dashboard API (/api/kitchen/feedback-dashboard), and Wallet Details API (/api/wallet/details) all working correctly. Fixed minor bug in Order History API where total_skipped field was missing for customers without subscriptions. All APIs handle authentication, return expected response structures, and support parameters correctly."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 3
+  run_ui: false
+
+test_plan:
+  current_focus: []
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"

@@ -187,8 +187,8 @@ export default function KitchenDashboard() {
   const actionsData = [
     { icon: 'add-circle', label: 'Add Item', bgColor: '#E8F5E9', iconColor: COLORS.success, route: '/(kitchen)/dishes' },
     { icon: 'calendar', label: 'Set Dabba', bgColor: '#FFF3E0', iconColor: COLORS.warning, route: '/(kitchen)/menu' },
-    { icon: 'pricetags', label: 'Plans', bgColor: '#E3F2FD', iconColor: COLORS.info, route: '/(kitchen)/plans' },
-    { icon: 'receipt', label: 'Orders', bgColor: '#FCE4EC', iconColor: COLORS.maroon, route: '/(kitchen)/orders' },
+    { icon: 'star', label: 'Feedback', bgColor: '#FCE4EC', iconColor: COLORS.maroon, route: '/(kitchen)/feedback' },
+    { icon: 'receipt', label: 'Orders', bgColor: '#E3F2FD', iconColor: COLORS.info, route: '/(kitchen)/orders' },
     { icon: 'navigate', label: 'Track Driver', bgColor: '#E0F7FA', iconColor: '#00838F', route: '/(kitchen)/orders' },
     { icon: 'people', label: 'Customers', bgColor: '#F3E5F5', iconColor: '#7B1FA2', route: '/(kitchen)/customers' },
   ];

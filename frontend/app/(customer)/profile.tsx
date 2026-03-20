@@ -142,7 +142,7 @@ export default function ProfileScreen() {
   const quickLinks = [
     { icon: 'calendar-outline', label: 'Weekly Menu', subtitle: 'View full menu', onPress: () => router.push('/(customer)/menu'), color: '#E65100', bgColor: '#FFF3E0' },
     { icon: 'wallet-outline', label: 'Wallet', subtitle: 'Credits & balance', onPress: () => router.push('/(customer)/wallet'), color: '#2E7D32', bgColor: '#E8F5E9' },
-    { icon: 'headset-outline', label: 'Support', subtitle: 'Get help', onPress: () => router.push('/support'), color: '#1565C0', bgColor: '#E3F2FD' },
+    { icon: 'time-outline', label: 'History', subtitle: 'Past orders', onPress: () => router.push('/(customer)/history'), color: '#1565C0', bgColor: '#E3F2FD' },
   ];
 
   const menuItems = [

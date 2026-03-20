@@ -5,22 +5,27 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { walletAPI } from '../../src/services/api';
+import { Skeleton, EmptyState } from '../../src/components';
 
 const COLORS = {
-  primary: '#EA580C',
-  primaryLight: '#FFF7ED',
-  background: '#FDFBF7',
-  text: '#1F2937',
-  textLight: '#6B7280',
-  border: '#E5E7EB',
-  white: '#FFFFFF',
-  success: '#10B981',
-  error: '#DC2626',
+  background: '#FDF8F3',
+  card: '#FFFFFF',
+  maroon: '#8B1538',
+  gold: '#C9A050',
+  goldLight: '#F5E6C8',
+  cream: '#FAF3E8',
+  text: '#3D2914',
+  textLight: '#8B7355',
+  border: '#E8DED1',
+  success: '#2E7D32',
+  error: '#C41E3A',
 };
 
 interface Transaction {
@@ -59,6 +64,7 @@ export default function WalletScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchWallet();
   }, [fetchWallet]);
 
@@ -87,8 +93,13 @@ export default function WalletScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Wallet</Text>
+        </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Skeleton width="100%" height={180} borderRadius={20} style={{ marginBottom: 24 }} />
+          <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 12 }} />
+          <Skeleton width="100%" height={80} borderRadius={16} />
         </View>
       </SafeAreaView>
     );
@@ -98,33 +109,38 @@ export default function WalletScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.maroon} />}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <Animated.View entering={FadeInDown.springify()} style={styles.header}>
           <Text style={styles.title}>Wallet</Text>
           <Text style={styles.subtitle}>Your meal credits and transactions</Text>
-        </View>
+        </Animated.View>
 
         {/* Balance Card */}
-        <View style={styles.balanceCard}>
+        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.balanceCard}>
           <View style={styles.balanceIcon}>
-            <Ionicons name="wallet" size={32} color={COLORS.white} />
+            <Ionicons name="wallet" size={32} color={COLORS.goldLight} />
           </View>
           <Text style={styles.balanceLabel}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>₹{wallet?.balance?.toFixed(2) || '0.00'}</Text>
+          <Text style={styles.balanceAmount}>${wallet?.balance?.toFixed(2) || '0.00'} CAD</Text>
           <View style={styles.balanceInfo}>
-            <Ionicons name="information-circle-outline" size={16} color={COLORS.primaryLight} />
+            <Ionicons name="information-circle-outline" size={16} color={COLORS.goldLight} />
             <Text style={styles.balanceInfoText}>Skip meals to earn credits</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Transactions */}
-        <View style={styles.transactionsSection}>
+        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.transactionsSection}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
           
           {wallet?.transactions && wallet.transactions.length > 0 ? (
-            wallet.transactions.map((transaction) => (
-              <View key={transaction.id} style={styles.transactionCard}>
+            wallet.transactions.map((transaction, index) => (
+              <Animated.View 
+                key={transaction.id} 
+                entering={FadeInDown.delay(250 + index * 50).springify()}
+                style={styles.transactionCard}
+              >
                 <View style={[
                   styles.transactionIcon,
                   transaction.type.includes('credit') ? styles.iconCredit : styles.iconDebit
@@ -143,26 +159,26 @@ export default function WalletScreen() {
                   styles.transactionAmount,
                   transaction.type.includes('credit') ? styles.amountCredit : styles.amountDebit
                 ]}>
-                  {transaction.type.includes('credit') ? '+' : '-'}₹{Math.abs(transaction.amount).toFixed(2)}
+                  {transaction.type.includes('credit') ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                 </Text>
-              </View>
+              </Animated.View>
             ))
           ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={48} color={COLORS.textLight} />
-              <Text style={styles.emptyStateTitle}>No transactions yet</Text>
-              <Text style={styles.emptyStateText}>Skip meals to start earning credits!</Text>
-            </View>
+            <EmptyState
+              illustration="wallet"
+              title="No transactions yet"
+              message="Skip meals to start earning credits!"
+            />
           )}
-        </View>
+        </Animated.View>
 
         {/* How it works */}
-        <View style={styles.infoSection}>
+        <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.infoSection}>
           <Text style={styles.sectionTitle}>How it works</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="close-circle-outline" size={24} color={COLORS.primary} />
+              <View style={[styles.infoIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="close-circle-outline" size={24} color="#E65100" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Skip a meal</Text>
@@ -170,17 +186,17 @@ export default function WalletScreen() {
               </View>
             </View>
             <View style={styles.infoRow}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="wallet-outline" size={24} color={COLORS.primary} />
+              <View style={[styles.infoIconContainer, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="wallet-outline" size={24} color={COLORS.success} />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>Get ₹120 credit</Text>
-                <Text style={styles.infoText}>Each skipped meal adds ₹120 to your wallet</Text>
+                <Text style={styles.infoTitle}>Get $12 CAD credit</Text>
+                <Text style={styles.infoText}>Each skipped meal adds $12 to your wallet</Text>
               </View>
             </View>
             <View style={[styles.infoRow, styles.infoRowLast]}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="card-outline" size={24} color={COLORS.primary} />
+              <View style={[styles.infoIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="card-outline" size={24} color="#1565C0" />
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>Use for renewal</Text>
@@ -188,7 +204,7 @@ export default function WalletScreen() {
               </View>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -200,9 +216,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -210,12 +225,13 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: COLORS.text,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subtitle: {
     fontSize: 14,
@@ -223,11 +239,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   balanceCard: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.maroon,
     borderRadius: 24,
-    padding: 24,
+    padding: 28,
     alignItems: 'center',
     marginBottom: 24,
+    shadowColor: COLORS.maroon,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   balanceIcon: {
     width: 64,
@@ -242,12 +263,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 8,
+    fontWeight: '500',
   },
   balanceAmount: {
-    fontSize: 40,
+    fontSize: 44,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.goldLight,
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   balanceInfo: {
     flexDirection: 'row',
@@ -256,7 +279,8 @@ const styles = StyleSheet.create({
   },
   balanceInfoText: {
     fontSize: 12,
-    color: COLORS.primaryLight,
+    color: COLORS.goldLight,
+    opacity: 0.9,
   },
   transactionsSection: {
     marginBottom: 24,
@@ -266,14 +290,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   transactionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -286,10 +311,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   iconCredit: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: '#E8F5E9',
   },
   iconDebit: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FFEBEE',
   },
   transactionInfo: {
     flex: 1,
@@ -314,30 +339,11 @@ const styles = StyleSheet.create({
   amountDebit: {
     color: COLORS.error,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emptyStateTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: COLORS.textLight,
-  },
   infoSection: {
     marginBottom: 24,
   },
   infoCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
@@ -357,25 +363,24 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   infoIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   infoContent: {
     flex: 1,
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 2,
   },
   infoText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textLight,
   },
 });
