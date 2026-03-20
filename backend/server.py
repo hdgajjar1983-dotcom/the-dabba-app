@@ -35,6 +35,15 @@ JWT_ALGORITHM = "HS256"
 # Create the main app
 app = FastAPI(title="The Dabba API")
 
+# Add CORS middleware for production deployment
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Root health endpoint for deployment platforms (Render, Railway, etc.)
 @app.get("/health")
 async def root_health_check():
