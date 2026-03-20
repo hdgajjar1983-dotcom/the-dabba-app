@@ -14,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 const COLORS = {
   primary: '#EA580C',
   primaryLight: '#FFF7ED',
@@ -107,7 +109,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
     onAddressChange(addressData, fullAddress);
   }, [streetAddress, apartment, city, state, postalCode]);
 
-  // Debounced search function using Nominatim API
+  // Debounced search function using backend proxy
   const searchAddress = useCallback(
     debounce(async (query: string) => {
       if (query.length < 3) {
@@ -119,23 +121,37 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
       setIsLoading(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Canada')}&limit=5&addressdetails=1`,
+          `${BACKEND_URL}/api/address-search?q=${encodeURIComponent(query)}`,
           {
             headers: {
-              'User-Agent': 'TheDabba/1.0',
+              'Accept': 'application/json',
             },
           }
         );
+        
+        if (!response.ok) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          return;
+        }
+        
         const data = await response.json();
-        setSuggestions(data);
-        setShowSuggestions(data.length > 0);
+        
+        if (data.results && Array.isArray(data.results)) {
+          setSuggestions(data.results);
+          setShowSuggestions(data.results.length > 0);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
       } catch (error) {
-        console.error('Address search error:', error);
+        // Silently handle errors
         setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setIsLoading(false);
       }
-    }, 300),
+    }, 500),
     []
   );
 

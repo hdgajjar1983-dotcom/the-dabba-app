@@ -3500,6 +3500,42 @@ async def get_driver_locations(current_user: dict = Depends(get_kitchen_user)):
     
     return {"drivers": driver_locations}
 
+
+# Address Search Proxy - to avoid CORS issues from mobile
+@api_router.get("/address-search")
+async def search_address(q: str):
+    """Proxy address search to Nominatim API"""
+    import httpx
+    
+    if len(q) < 3:
+        return {"results": []}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "format": "json",
+                    "q": f"{q}, Canada",
+                    "limit": 5,
+                    "addressdetails": 1,
+                },
+                headers={
+                    "User-Agent": "TheDabbaApp/2.0 (halifax@thedabba.ca)",
+                    "Accept": "application/json",
+                },
+                timeout=10.0,
+            )
+            
+            if response.status_code == 200:
+                return {"results": response.json()}
+            else:
+                return {"results": []}
+    except Exception as e:
+        logger.error(f"Address search error: {e}")
+        return {"results": []}
+
+
 # Include the router (MUST be after all route definitions)
 app.include_router(api_router)
 
