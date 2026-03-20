@@ -14,7 +14,7 @@ const getApiUrl = () => {
   
   // For local development only - this will be overridden in production builds
   console.warn('No API URL configured - using preview URL');
-  return 'https://meal-skip-hub.preview.emergentagent.com/api';
+  return 'https://multi-portal-sync.preview.emergentagent.com/api';
 };
 
 const API_BASE_URL = getApiUrl();

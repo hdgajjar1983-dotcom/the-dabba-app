@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 
 # Use the public URL from frontend .env
-BACKEND_URL = "https://meal-skip-hub.preview.emergentagent.com/api"
+BACKEND_URL = "https://multi-portal-sync.preview.emergentagent.com/api"
 
 def test_api_endpoint(method, endpoint, data=None, headers=None, expected_status=200):
     """Generic function to test API endpoints"""

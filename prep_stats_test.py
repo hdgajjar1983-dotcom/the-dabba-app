@@ -6,7 +6,7 @@ Additional Backend Test to verify prep stats with original seeded data
 import requests
 import json
 
-BACKEND_URL = "https://meal-skip-hub.preview.emergentagent.com/api"
+BACKEND_URL = "https://multi-portal-sync.preview.emergentagent.com/api"
 
 def test_prep_stats_original():
     """Test prep stats with original seeded data (no modifications)"""
