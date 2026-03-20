@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
   Modal,
   ScrollView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import debounce from 'lodash.debounce';
@@ -82,6 +83,8 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  
+  const inputRef = useRef<TextInput>(null);
 
   // Update parent when any field changes
   useEffect(() => {
@@ -116,7 +119,7 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
       setIsLoading(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Canada')}&limit=5&addressdetails=1`,
           {
             headers: {
               'User-Agent': 'TheDabba/1.0',
@@ -132,18 +135,18 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
       } finally {
         setIsLoading(false);
       }
-    }, 500),
+    }, 300),
     []
   );
 
   useEffect(() => {
-    if (streetAddress && streetAddress.length >= 3) {
+    if (streetAddress && streetAddress.length >= 3 && focusedField === 'street') {
       searchAddress(streetAddress);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [streetAddress, searchAddress]);
+  }, [streetAddress, searchAddress, focusedField]);
 
   const handleSelectSuggestion = (item: AddressSuggestion) => {
     const addr = item.address;
@@ -168,6 +171,9 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
     
     setShowSuggestions(false);
     setSuggestions([]);
+    
+    // Don't dismiss keyboard, just blur the input
+    Keyboard.dismiss();
   };
 
   const renderFloatingLabel = (label: string, value: string, isFocused: boolean) => {
@@ -184,69 +190,66 @@ export default function AddressForm({ onAddressChange, initialAddress }: Address
 
   return (
     <View style={styles.container}>
-      {/* Street Address */}
-      <View style={[styles.inputGroup, showSuggestions && styles.inputGroupWithSuggestions]}>
+      {/* Street Address with Inline Suggestions */}
+      <View style={styles.inputGroup}>
         <View style={[
           styles.inputContainer,
           focusedField === 'street' && styles.inputContainerFocused,
         ]}>
           {renderFloatingLabel('Street address', streetAddress, focusedField === 'street')}
           <TextInput
+            ref={inputRef}
             style={styles.input}
             value={streetAddress}
             onChangeText={setStreetAddress}
             onFocus={() => setFocusedField('street')}
-            onBlur={() => setFocusedField(null)}
+            onBlur={() => {
+              // Delay to allow tap on suggestion
+              setTimeout(() => {
+                if (focusedField === 'street') {
+                  setFocusedField(null);
+                }
+              }, 200);
+            }}
             placeholder=""
+            autoCorrect={false}
+            autoCapitalize="words"
           />
           {streetAddress.length > 0 && (
             <TouchableOpacity onPress={() => setStreetAddress('')} style={styles.clearButton}>
-              <Ionicons name="close" size={20} color={COLORS.textLight} />
+              <Ionicons name="close-circle" size={20} color={COLORS.textLight} />
             </TouchableOpacity>
           )}
-          {isLoading && focusedField === 'street' && (
+          {isLoading && (
             <ActivityIndicator size="small" color={COLORS.primary} style={styles.loader} />
           )}
         </View>
         
-        {/* Suggestions Dropdown - Using Modal for guaranteed overlay */}
-        <Modal
-          visible={showSuggestions && suggestions.length > 0}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowSuggestions(false)}
-        >
-          <TouchableOpacity 
-            style={styles.suggestionsOverlay}
-            activeOpacity={1}
-            onPress={() => setShowSuggestions(false)}
-          >
-            <View style={styles.suggestionsModal}>
-              <View style={styles.suggestionsHeader}>
-                <Text style={styles.suggestionsTitle}>Select Address</Text>
-                <TouchableOpacity onPress={() => setShowSuggestions(false)}>
-                  <Ionicons name="close" size={24} color={COLORS.text} />
-                </TouchableOpacity>
-              </View>
-              <FlatList
-                data={suggestions}
-                keyExtractor={(item) => item.place_id.toString()}
-                keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.suggestionItem}
-                    onPress={() => handleSelectSuggestion(item)}
-                  >
-                    <Ionicons name="location" size={18} color={COLORS.primary} />
-                    <Text style={styles.suggestionText} numberOfLines={2}>
-                      {item.display_name}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
+        {/* Inline Suggestions - Uber style */}
+        {showSuggestions && suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={item.place_id}
+                style={styles.suggestionItem}
+                onPress={() => handleSelectSuggestion(item)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.suggestionIcon}>
+                  <Ionicons name="location" size={18} color={COLORS.primary} />
+                </View>
+                <View style={styles.suggestionTextContainer}>
+                  <Text style={styles.suggestionMainText} numberOfLines={1}>
+                    {item.address.house_number ? `${item.address.house_number} ` : ''}{item.address.road || item.display_name.split(',')[0]}
+                  </Text>
+                  <Text style={styles.suggestionSubText} numberOfLines={1}>
+                    {[item.address.city || item.address.town, item.address.state].filter(Boolean).join(', ')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Apartment/Suite */}
@@ -374,10 +377,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
     position: 'relative',
-    zIndex: 1,
-  },
-  inputGroupWithSuggestions: {
-    zIndex: 9999,
   },
   inputContainer: {
     backgroundColor: COLORS.inputBg,
@@ -420,63 +419,54 @@ const styles = StyleSheet.create({
   loader: {
     marginLeft: 8,
   },
-  suggestionsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-    paddingTop: 150,
-    paddingHorizontal: 20,
-  },
-  suggestionsModal: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    maxHeight: 350,
-    overflow: 'hidden',
-  },
-  suggestionsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  suggestionsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
+  // Inline suggestions - Uber style
   suggestionsContainer: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 12,
-    maxHeight: 200,
-    marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 999,
-    zIndex: 9999,
+    marginTop: 8,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    gap: 10,
   },
-  suggestionText: {
+  suggestionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  suggestionTextContainer: {
     flex: 1,
-    fontSize: 14,
+  },
+  suggestionMainText: {
+    fontSize: 15,
+    fontWeight: '500',
     color: COLORS.text,
-    lineHeight: 20,
+  },
+  suggestionSubText: {
+    fontSize: 13,
+    color: COLORS.textLight,
+    marginTop: 2,
   },
   rowContainer: {
     flexDirection: 'row',
