@@ -11,11 +11,13 @@ import {
   Modal,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { kitchenAPI } from '../../src/services/api';
 import { BRAND_COLORS } from '../../src/components/DabbaLogo';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const COLORS = {
   ...BRAND_COLORS,
@@ -253,7 +255,10 @@ export default function DishesManagement() {
 
       {/* Add/Edit Modal */}
       <Modal visible={showModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -264,7 +269,11 @@ export default function DishesManagement() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <KeyboardAwareScrollView 
+              showsVerticalScrollIndicator={false}
+              enableOnAndroid={true}
+              extraScrollHeight={100}
+            >
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Item Name</Text>
                 <TextInput
@@ -372,9 +381,9 @@ export default function DishesManagement() {
                   </Text>
                 )}
               </TouchableOpacity>
-            </ScrollView>
+            </KeyboardAwareScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

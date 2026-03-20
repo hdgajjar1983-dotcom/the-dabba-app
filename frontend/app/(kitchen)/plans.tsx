@@ -181,14 +181,14 @@ const PlanCard = ({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Plan Duration</Text>
             <View style={styles.planTypeRow}>
-              {(['daily', 'weekly', 'yearly'] as const).map((pt) => (
+              {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((pt) => (
                 <TouchableOpacity
                   key={pt}
                   style={[styles.planTypeChip, editPlanType === pt && styles.planTypeChipActive]}
                   onPress={() => setEditPlanType(pt)}
                 >
                   <Ionicons 
-                    name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : 'calendar-outline'} 
+                    name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : pt === 'monthly' ? 'calendar-number' : 'calendar-outline'} 
                     size={16} 
                     color={editPlanType === pt ? '#FFF' : COLORS.maroon} 
                   />
@@ -384,14 +384,14 @@ const AddPlanModal = ({
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Plan Duration *</Text>
               <View style={styles.planTypeRow}>
-                {(['daily', 'weekly', 'yearly'] as const).map((pt) => (
+                {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((pt) => (
                   <TouchableOpacity
                     key={pt}
                     style={[styles.planTypeChip, planType === pt && styles.planTypeChipActive]}
                     onPress={() => setPlanType(pt)}
                   >
                     <Ionicons 
-                      name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : 'calendar-outline'} 
+                      name={pt === 'daily' ? 'today' : pt === 'weekly' ? 'calendar' : pt === 'monthly' ? 'calendar-number' : 'calendar-outline'} 
                       size={16} 
                       color={planType === pt ? '#FFF' : COLORS.maroon} 
                     />
@@ -535,6 +535,7 @@ export default function KitchenPlans() {
             { key: 'all', label: 'All Plans', icon: 'grid' },
             { key: 'daily', label: 'Daily', icon: 'today' },
             { key: 'weekly', label: 'Weekly', icon: 'calendar' },
+            { key: 'monthly', label: 'Monthly', icon: 'calendar-number' },
             { key: 'yearly', label: 'Yearly', icon: 'calendar-outline' },
           ].map((tab) => (
             <TouchableOpacity
