@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -299,7 +300,11 @@ export default function SubscriptionScreen() {
 
       {/* Address Modal */}
       <Modal visible={showModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Confirm Subscription</Text>
@@ -310,11 +315,17 @@ export default function SubscriptionScreen() {
             <Text style={styles.modalSubtitle}>
               {plans.find(p => p.id === selectedPlan)?.name} Plan - ${plans.find(p => p.id === selectedPlan)?.price} CAD/{plans.find(p => p.id === selectedPlan)?.plan_type === 'daily' ? 'day' : 'week'}
             </Text>
-            <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
+            <KeyboardAwareScrollView 
+              style={styles.modalScrollView} 
+              nestedScrollEnabled
+              enableOnAndroid={true}
+              extraScrollHeight={150}
+              keyboardShouldPersistTaps="handled"
+            >
               <AddressForm
                 onAddressChange={(addressData, fullAddress) => setAddress(fullAddress)}
               />
-            </ScrollView>
+            </KeyboardAwareScrollView>
             <TouchableOpacity
               style={[styles.confirmButton, isSubmitting && styles.confirmButtonDisabled]}
               onPress={confirmSubscription}
@@ -327,7 +338,7 @@ export default function SubscriptionScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
