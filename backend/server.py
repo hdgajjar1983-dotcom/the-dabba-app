@@ -540,60 +540,58 @@ async def get_driver_deliveries(
     if current_user.get("role") != "driver":
         raise HTTPException(status_code=403, detail="Access denied. Driver role required.")
     
-    # Get all active subscriptions for today's deliveries
     today = datetime.now().date().isoformat()
     
-    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(100)
+    # Get orders from delivery_queue that kitchen marked as ready
+    ready_orders = await db.delivery_queue.find({
+        "date": today,
+        "status": {"$in": ["ready", "in_transit"]}  # Show ready and in-transit orders
+    }).sort("delivery_number", 1).to_list(200)
     
-    # Batch fetch all users to avoid N+1 queries
-    user_ids = [sub["user_id"] for sub in subscriptions]
-    users = await db.users.find({"id": {"$in": user_ids}}).to_list(100)
-    user_map = {u["id"]: u for u in users}
+    # Also get completed/failed for stats
+    completed_orders = await db.delivery_queue.find({
+        "date": today,
+        "status": {"$in": ["delivered", "failed"]}
+    }).to_list(200)
     
     deliveries = []
-    for sub in subscriptions:
-        user = user_map.get(sub["user_id"])
-        if user:
-            # Check if not skipped
-            skipped_today = any(
-                s.get("date") == today 
-                for s in sub.get("skipped_meals", [])
-            )
-            
-            if not skipped_today:
-                address = sub.get("delivery_address", user.get("address", ""))
-                delivery_coords = get_coords_for_address(address)
-                
-                # Calculate distance if driver location provided
-                distance = 0
-                estimated_time = 5
-                if lat is not None and lon is not None:
-                    distance = calculate_distance(lat, lon, delivery_coords["lat"], delivery_coords["lon"])
-                    estimated_time = max(5, int(distance * 3))  # ~3 mins per km
-                else:
-                    # Simulate distances if no location
-                    import random
-                    distance = round(random.uniform(0.5, 5.0), 1)
-                    estimated_time = max(5, int(distance * 3))
-                
-                deliveries.append({
-                    "id": str(uuid.uuid4()),
-                    "customer_name": user.get("name", "Unknown"),
-                    "customer_phone": user.get("phone", ""),
-                    "address": address,
-                    "meal_type": "dinner",
-                    "status": "pending",
-                    "subscription_plan": sub.get("plan", "standard"),
-                    "latitude": delivery_coords["lat"],
-                    "longitude": delivery_coords["lon"],
-                    "distance": distance,
-                    "estimated_time": estimated_time
-                })
+    for order in ready_orders:
+        # Calculate distance if driver location provided
+        distance = 0
+        estimated_time = 5
+        if lat is not None and lon is not None and order.get("latitude") and order.get("longitude"):
+            distance = calculate_distance(lat, lon, order["latitude"], order["longitude"])
+            estimated_time = max(5, int(distance * 3))
+        else:
+            import random
+            distance = round(random.uniform(0.5, 5.0), 1)
+            estimated_time = max(5, int(distance * 3))
+        
+        deliveries.append({
+            "id": order.get("id"),
+            "subscription_id": order.get("subscription_id"),
+            "delivery_number": order.get("delivery_number"),
+            "customer_name": order.get("customer_name", "Unknown"),
+            "customer_phone": order.get("customer_phone", ""),
+            "address": order.get("address", ""),
+            "meal_type": "dinner",
+            "status": order.get("status", "ready"),
+            "subscription_plan": order.get("plan", "standard"),
+            "latitude": order.get("latitude", 44.6488),
+            "longitude": order.get("longitude", -63.5752),
+            "distance": distance,
+            "estimated_time": estimated_time,
+            "ready_at": order.get("ready_at")
+        })
     
-    # Sort by distance (nearest first)
-    deliveries.sort(key=lambda x: x["distance"])
+    # Sort by delivery number
+    deliveries.sort(key=lambda x: x.get("delivery_number", 999))
     
-    return {"deliveries": deliveries}
+    return {
+        "deliveries": deliveries,
+        "completed_count": len([o for o in completed_orders if o.get("status") == "delivered"]),
+        "failed_count": len([o for o in completed_orders if o.get("status") == "failed"])
+    }
 
 @api_router.put("/driver/delivery/{delivery_id}/status")
 async def update_delivery_status(delivery_id: str, status_data: DeliveryStatusUpdate, current_user: dict = Depends(get_current_user)):
