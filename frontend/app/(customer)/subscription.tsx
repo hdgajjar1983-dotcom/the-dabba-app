@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
