@@ -3,19 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
   Alert,
   TextInput,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { subscriptionAPI, publicAPI } from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import AddressForm from '../../src/components/AddressForm';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const COLORS = {
   primary: '#EA580C',
@@ -69,6 +70,7 @@ interface Plan {
   icon?: string;
   color?: string;
   popular?: boolean;
+  plan_type?: string;
 }
 
 interface Subscription {
@@ -108,6 +110,7 @@ export default function SubscriptionScreen() {
             icon: p.icon || 'restaurant-outline',
             color: p.color || COLORS.primary,
             popular: p.popular || false,
+            plan_type: p.plan_type || 'weekly',
           }));
           setPlans(apiPlans);
         }
@@ -190,9 +193,14 @@ export default function SubscriptionScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={Platform.OS === 'ios' ? 50 : 100}
+        extraHeight={150}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Text style={styles.title}>Subscription</Text>
@@ -260,7 +268,7 @@ export default function SubscriptionScreen() {
                 </View>
                 <View style={styles.priceContainer}>
                   <Text style={styles.priceAmount}>${plan.price}</Text>
-                  <Text style={styles.priceUnit}>CAD/week</Text>
+                  <Text style={styles.priceUnit}>CAD/{plan.plan_type === 'daily' ? 'day' : 'week'}</Text>
                 </View>
               </View>
               <View style={styles.featuresContainer}>
@@ -286,7 +294,7 @@ export default function SubscriptionScreen() {
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Address Modal */}
       <Modal visible={showModal} transparent animationType="slide">
