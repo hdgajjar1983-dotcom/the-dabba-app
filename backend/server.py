@@ -2285,6 +2285,123 @@ async def update_customer_items(
     
     return {"message": "Customer items updated"}
 
+# ==================== KITCHEN ANALYTICS ====================
+
+@api_router.get("/kitchen/analytics")
+async def get_kitchen_analytics(
+    days: int = 7,
+    current_user: dict = Depends(get_kitchen_user)
+):
+    """Get kitchen analytics and stats"""
+    start_date = (datetime.now() - timedelta(days=days)).date().isoformat()
+    today = datetime.now().date().isoformat()
+    
+    # Get total customers
+    total_customers = await db.users.count_documents({"role": "customer"})
+    
+    # Get active subscriptions
+    active_subs = await db.subscriptions.count_documents({"status": "active"})
+    
+    # Get deliveries in period
+    deliveries = await db.delivery_queue.find({
+        "date": {"$gte": start_date}
+    }).to_list(1000)
+    
+    # Calculate delivery stats
+    total_deliveries = len(deliveries)
+    delivered = len([d for d in deliveries if d.get("status") == "delivered"])
+    failed = len([d for d in deliveries if d.get("status") == "failed"])
+    
+    # Get skipped meals in period
+    subscriptions = await db.subscriptions.find({"status": "active"}).to_list(500)
+    total_skipped = 0
+    for sub in subscriptions:
+        skipped = sub.get("skipped_meals", [])
+        total_skipped += len([s for s in skipped if s.get("date", "") >= start_date])
+    
+    # Get ratings in period
+    ratings = await db.meal_ratings.find({
+        "created_at": {"$gte": start_date}
+    }).to_list(500)
+    rating_counts = {"yummy": 0, "good": 0, "bad": 0}
+    for r in ratings:
+        rt = r.get("rating", "").lower()
+        if rt in rating_counts:
+            rating_counts[rt] += 1
+    
+    # Get daily delivery counts for chart
+    daily_stats = {}
+    for d in deliveries:
+        date = d.get("date", "")[:10]
+        if date not in daily_stats:
+            daily_stats[date] = {"delivered": 0, "failed": 0, "total": 0}
+        daily_stats[date]["total"] += 1
+        if d.get("status") == "delivered":
+            daily_stats[date]["delivered"] += 1
+        elif d.get("status") == "failed":
+            daily_stats[date]["failed"] += 1
+    
+    # Convert to sorted list
+    daily_chart = []
+    for date in sorted(daily_stats.keys()):
+        stats = daily_stats[date]
+        daily_chart.append({
+            "date": date,
+            **stats,
+            "success_rate": round(stats["delivered"] / stats["total"] * 100) if stats["total"] > 0 else 0
+        })
+    
+    # Get popular dishes
+    menu_schedules = await db.menu_schedule.find({
+        "date": {"$gte": start_date}
+    }).to_list(100)
+    dish_counts = {}
+    for m in menu_schedules:
+        for dish_id in m.get("dinner_item_ids", []):
+            dish_counts[dish_id] = dish_counts.get(dish_id, 0) + 1
+    
+    # Get dish names
+    popular_dishes = []
+    for dish_id, count in sorted(dish_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
+        dish = await db.dishes.find_one({"id": dish_id})
+        if dish:
+            popular_dishes.append({
+                "id": dish_id,
+                "name": dish.get("name", "Unknown"),
+                "count": count
+            })
+    
+    # Calculate revenue estimate (basic)
+    avg_meal_value = 12.00  # CAD
+    estimated_revenue = delivered * avg_meal_value
+    
+    return {
+        "period_days": days,
+        "summary": {
+            "total_customers": total_customers,
+            "active_subscriptions": active_subs,
+            "total_deliveries": total_deliveries,
+            "delivered": delivered,
+            "failed": failed,
+            "skipped": total_skipped,
+            "delivery_rate": round(delivered / total_deliveries * 100) if total_deliveries > 0 else 0,
+        },
+        "ratings": {
+            "total": sum(rating_counts.values()),
+            **rating_counts,
+            "satisfaction": round(
+                (rating_counts["yummy"] * 100 + rating_counts["good"] * 70 + rating_counts["bad"] * 20) / 
+                sum(rating_counts.values())
+            ) if sum(rating_counts.values()) > 0 else 0
+        },
+        "daily_chart": daily_chart[-7:],  # Last 7 days
+        "popular_dishes": popular_dishes,
+        "revenue": {
+            "estimated": round(estimated_revenue, 2),
+            "currency": "CAD"
+        }
+    }
+
 # ==================== KITCHEN FEEDBACK DASHBOARD ====================
 
 @api_router.get("/kitchen/feedback-dashboard")

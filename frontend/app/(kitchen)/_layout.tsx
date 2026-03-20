@@ -94,6 +94,12 @@ export default function KitchenLayout() {
           href: null, // Hidden from tab bar, accessible from dashboard
         }}
       />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          href: null, // Hidden from tab bar, accessible from dashboard
+        }}
+      />
     </Tabs>
   );
 }

@@ -371,6 +371,18 @@ backend:
         agent: "testing"
         comment: "VERIFIED: GET /api/wallet/details working perfectly. Returns balance, currency (CAD), transactions array. API creates wallet automatically if it doesn't exist, handles transaction history properly, and maintains proper data structure. Customer authentication enforced correctly."
 
+  - task: "Kitchen Analytics API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: GET /api/kitchen/analytics working perfectly. Successfully authenticates kitchen users (kitchen@demo.com), returns comprehensive analytics data including summary, ratings, daily_chart, popular_dishes, and revenue. Supports days parameter (7, 30), properly restricts access to kitchen role only, handles authentication correctly (403 for unauthorized access). All response fields present and correctly structured. Revenue displayed in CAD currency. Popular dishes array populated with actual menu data."
+
 agent_communication:
   - agent: "main"
     message: "Implemented The Dabba app MVP with full customer and admin views. Backend seeding works, all APIs tested manually with curl. Screenshots confirm both views rendering correctly. Ready for testing agent verification."
@@ -380,6 +392,8 @@ agent_communication:
     message: "COMPREHENSIVE API TESTING COMPLETED - 20 endpoint groups tested with all major functionalities working perfectly. Core endpoints, authentication flow, user/subscriber management, credit system, route optimization, menu system, and notifications all verified. Time-lock logic enforcing 10 PM cutoff correctly. OAuth session exchange properly validates external sessions. All CRUD operations functional. The Dabba API is fully production-ready."
   - agent: "testing"
     message: "NEW APIS TESTING COMPLETED - All 3 requested new backend APIs tested successfully. Customer Order History API (/api/customer/order-history), Kitchen Feedback Dashboard API (/api/kitchen/feedback-dashboard), and Wallet Details API (/api/wallet/details) all working correctly. Fixed minor bug in Order History API where total_skipped field was missing for customers without subscriptions. All APIs handle authentication, return expected response structures, and support parameters correctly."
+  - agent: "testing"
+    message: "KITCHEN ANALYTICS API TESTING COMPLETED - GET /api/kitchen/analytics tested successfully with comprehensive validation. Kitchen user authentication working (kitchen@demo.com:kitchen123), all response fields verified (summary, ratings, daily_chart, popular_dishes, revenue), days parameter functional (7, 30), role-based access control enforced correctly. API returns analytics data for 3 customers, 2 active subscriptions, satisfaction score of 100%, popular dishes including Kachumber and Aloo Gobi, and revenue in CAD. Security controls working: 403 for unauthorized access, 403 for wrong role access."
 
 metadata:
   created_by: "main_agent"

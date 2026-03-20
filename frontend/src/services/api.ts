@@ -163,6 +163,10 @@ export const kitchenAPI = {
   // Feedback Dashboard
   getFeedbackDashboard: (days: number = 30) => 
     api.get('/kitchen/feedback-dashboard', { params: { days } }),
+  
+  // Analytics
+  getAnalytics: (days: number = 7) => 
+    api.get('/kitchen/analytics', { params: { days } }),
 };
 
 // Public APIs
