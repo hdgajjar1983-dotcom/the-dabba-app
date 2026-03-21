@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "The Dabba",
-    "slug": "the-dabba",
+    "name": "Dabba Halifax",
+    "slug": "dabba-halifax",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "thedabba",
+    "scheme": "dabbahalifax",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.thedabba.app",
+      "bundleIdentifier": "com.dabbahalifax.app",
       "buildNumber": "1"
     },
     "android": {
@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#8B1538"
       },
-      "package": "com.thedabba.app",
+      "package": "com.dabbahalifax.app",
       "versionCode": 1,
       "edgeToEdgeEnabled": true
     },

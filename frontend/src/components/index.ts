@@ -7,4 +7,4 @@ export { StatusBadge } from './StatusBadge';
 export { OrderHistoryCard } from './OrderHistoryCard';
 export { LoadingOverlay } from './LoadingOverlay';
 export { default as TiffinConcierge, ChatButton } from './TiffinConcierge';
-export { default as AnimatedSplash } from './AnimatedSplash';
+// AnimatedSplash is imported directly in native apps only
